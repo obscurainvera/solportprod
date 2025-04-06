@@ -249,6 +249,15 @@ class VolumeHandler(BaseDBHandler):
                 raise Exception(f"Missing tables: {', '.join(missingTables)}")
             return True
 
+    def getTableDocumentation(self, tableName: str) -> dict:
+        """Get documentation for a specific table"""
+        return self.schema.get(tableName, {})
+
+    def getColumnDescription(self, tableName: str, columnName: str) -> str:
+        """Get description for a specific column"""
+        tableSchema = self.schema.get(tableName, {})
+        return tableSchema.get(columnName, "No description available")
+
     def getExistingTokenState(self, tokenId: str) -> Optional[Dict]:
         """Get current token state if exists"""
         config = get_config()

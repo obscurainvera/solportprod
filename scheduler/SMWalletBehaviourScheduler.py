@@ -10,9 +10,6 @@ class SMWalletBehaviourScheduler:
     """Schedules Smart Money Wallet Behaviour analysis"""
     
     def __init__(self, dbPath: str = None):
-        # dbPath is deprecated
-        # if dbPath is None:
-        #     dbPath = config.get("DB_PATH")
         """
         Initialize with database connection
 

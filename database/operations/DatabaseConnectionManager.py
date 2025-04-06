@@ -3,7 +3,7 @@ import threading
 from contextlib import contextmanager
 from typing import ContextManager, Generator
 from logs.logger import get_logger
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 import os
