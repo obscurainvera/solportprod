@@ -1,6 +1,6 @@
 from config.Config import get_config
 from flask import jsonify, Blueprint, request
-from scheduler.SMWalletTopPNLTokenScheduler import SMWalletTopPnlTokenScheduler
+from scheduler.SMWalletTopPNLTokenScheduler import SMWalletTopPNLTokenScheduler
 from actions.SMWalletTopPNLTokenAction import SMWalletTopPNLTokenAction
 from database.operations.PortfolioDB import PortfolioDB
 from config.Security import COOKIE_MAP, isValidCookie
@@ -22,7 +22,7 @@ def persistAllSMWalletTopPNLTokens():
         return response, 200
         
     try:
-        scheduler = SMWalletTopPnlTokenScheduler()
+        scheduler = SMWalletTopPNLTokenScheduler()
         scheduler.persistAllTopPNLTokensForHighPNLSMWallets()
         
         response = jsonify({
