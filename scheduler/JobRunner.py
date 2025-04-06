@@ -140,29 +140,45 @@ class JobRunner:
             db_path: Path to portfolio database or database URL (Used for job store URL, not scheduler init)
         """
         config_instance = get_config()
-      
-        db_url = config_instance.get_database_url()
-            
-        self.db_path = db_url # Store the actual DB URL/path used
-        # Initialize schedulers without db_path
-        self.portfolio_scheduler = PortfolioScheduler() 
-        self.scheduler = BackgroundScheduler(**SCHEDULER_CONFIG)
         
-        # Use the correct db_url for the job store
-        if self.db_path.startswith('postgresql'):
-            jobstore_url = self.db_path
-        else:
-            # Assuming SQLite if not PostgreSQL
-            jobstore_url = f'sqlite:///{self.db_path}'
+        try:
+            db_url = config_instance.get_database_url()
+            self.db_path = db_url # Store the actual DB URL/path used
+            # Initialize schedulers without db_path
+            self.portfolio_scheduler = PortfolioScheduler() 
             
-        self.scheduler.add_jobstore(SQLAlchemyJobStore(url=jobstore_url), 'default')
-        
-        # Add event listener for job monitoring
-        self.scheduler.add_listener(
-            self._job_listener,
-            EVENT_JOB_ERROR | EVENT_JOB_EXECUTED
-        )
-        logger.info("JobRunner initialized")
+            # Use the scheduler configuration from SchedulerConfig
+            self.scheduler = BackgroundScheduler(**SCHEDULER_CONFIG)
+            
+            # If the SCHEDULER_CONFIG doesn't include a jobstore (fallback case),
+            # attempt to add it here with proper error handling
+            if 'jobstores' not in SCHEDULER_CONFIG:
+                try:
+                    # Use the correct db_url for the job store
+                    if self.db_path.startswith('postgresql'):
+                        jobstore_url = self.db_path
+                    else:
+                        # Assuming SQLite if not PostgreSQL
+                        jobstore_url = f'sqlite:///{self.db_path}'
+                        
+                    self.scheduler.add_jobstore(SQLAlchemyJobStore(url=jobstore_url), 'default')
+                    logger.info("Added jobstore to scheduler")
+                except Exception as jobstore_error:
+                    logger.error(f"Failed to add jobstore: {jobstore_error}")
+                    # Continue with in-memory jobstore
+            
+            # Add event listener for job monitoring
+            self.scheduler.add_listener(
+                self._job_listener,
+                EVENT_JOB_ERROR | EVENT_JOB_EXECUTED
+            )
+            logger.info("JobRunner initialized")
+        except Exception as e:
+            logger.error(f"Error initializing JobRunner: {e}")
+            # Create minimal scheduler without jobstore for failsafe operation
+            self.portfolio_scheduler = PortfolioScheduler()
+            self.scheduler = BackgroundScheduler()
+            logger.info("JobRunner initialized with minimal configuration due to errors")
 
     def addPortfolioSummaryJobs(self):
         """
