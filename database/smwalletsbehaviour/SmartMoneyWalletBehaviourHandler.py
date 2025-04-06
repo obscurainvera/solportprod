@@ -1,11 +1,10 @@
-from config.config import get_config
-# database/operations/smwallet_behaviour_handler.py
+from config.Config import get_config
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 from database.operations.BaseDBHandler import BaseDBHandler
 from typing import List, Optional
 from datetime import datetime
 from logs.logger import get_logger
 import pandas as pd
-import sqlite3
 from database.operations.schema import SmartMoneyWalletBehaviour
 
 logger = get_logger(__name__)
