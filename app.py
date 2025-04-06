@@ -74,8 +74,7 @@ def initialize_job_storage():
                     user=config_instance.DB_USER,
                     password=config_instance.DB_PASSWORD,
                     host=config_instance.DB_HOST,
-                    port=config_instance.DB_PORT,
-                    sslmode=config_instance.DB_SSLMODE
+                    port=config_instance.DB_PORT
                 )
                 
                 # Create tables with psycopg2
