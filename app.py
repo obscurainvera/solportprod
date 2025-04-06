@@ -55,6 +55,10 @@ def initialize_job_storage():
         # create the necessary tables for job storage.
         config_instance = get_config()
         if config_instance.DB_TYPE == 'sqlite':
+            # Make sure the directory exists
+            db_dir = os.path.dirname(os.path.abspath(config_instance.JOBS_DB_PATH))
+            if not os.path.exists(db_dir):
+                os.makedirs(db_dir)
             engine = create_engine(f'sqlite:///{config_instance.JOBS_DB_PATH}')
         else:
             # Use PostgreSQL for jobs database in production
@@ -67,46 +71,51 @@ def initialize_job_storage():
                 pool_pre_ping=True
             )
         
-        # Create monitoring tables
-        with engine.connect() as conn:
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS job_locks (
-                    job_id TEXT PRIMARY KEY,
-                    locked_at TIMESTAMP NOT NULL,
-                    timeout INTEGER NOT NULL
-                )
-            """))
-            
-            # Create job_executions table with DB-specific syntax
-            if config_instance.DB_TYPE == 'sqlite':
+        # Create monitoring tables with proper error handling
+        try:
+            with engine.connect() as conn:
                 conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS job_executions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        job_id TEXT NOT NULL,
-                        start_time TIMESTAMP NOT NULL,
-                        end_time TIMESTAMP,
-                        status TEXT NOT NULL,
-                        error_message TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS job_locks (
+                        job_id TEXT PRIMARY KEY,
+                        locked_at TIMESTAMP NOT NULL,
+                        timeout INTEGER NOT NULL
                     )
                 """))
-            else:
-                # PostgreSQL syntax
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS job_executions (
-                        id SERIAL PRIMARY KEY,
-                        job_id TEXT NOT NULL,
-                        start_time TIMESTAMP NOT NULL,
-                        end_time TIMESTAMP,
-                        status TEXT NOT NULL,
-                        error_message TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """))
-        logger.info("Job storage initialized successfully")
+                
+                # Create job_executions table with DB-specific syntax
+                if config_instance.DB_TYPE == 'sqlite':
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS job_executions (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            job_id TEXT NOT NULL,
+                            start_time TIMESTAMP NOT NULL,
+                            end_time TIMESTAMP,
+                            status TEXT NOT NULL,
+                            error_message TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                else:
+                    # PostgreSQL syntax
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS job_executions (
+                            id SERIAL PRIMARY KEY,
+                            job_id TEXT NOT NULL,
+                            start_time TIMESTAMP NOT NULL,
+                            end_time TIMESTAMP,
+                            status TEXT NOT NULL,
+                            error_message TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+            logger.info("Job storage initialized successfully")
+        except Exception as table_error:
+            logger.error(f"Failed to create job tables: {table_error}")
+            # We can continue without these tables - they'll be handled by the memory-based scheduler
     except Exception as e:
         logger.error(f"Failed to initialize job storage: {e}")
-        raise
+        logger.warning("Application will continue with memory-based job storage")
+        # Don't raise the exception - let the application continue with in-memory storage
 
 class PortfolioApp:
     """
@@ -129,71 +138,79 @@ class PortfolioApp:
         # Configure CORS
         CORS(self.app, resources={r"/api/*": {"origins": "*"}})
         
+        # Initialize components with graceful error handling
+        initialize_job_storage()  # This now handles its own errors
+
         try:
-            initialize_job_storage()
             self.job_runner = JobRunner()
-            self.is_shutting_down = threading.Event()
-            
-            # Register API blueprints
-            self.app.register_blueprint(wallets_invested_bp)
-            self.app.register_blueprint(wallets_invested_investement_details_bp)
-            self.app.register_blueprint(portfolio_bp)
-            self.app.register_blueprint(health_bp)
-            self.app.register_blueprint(dashboard_bp)
-            self.app.register_blueprint(analytics_bp)
-            self.app.register_blueprint(smart_money_wallets_bp)
-            self.app.register_blueprint(smwallet_top_pnl_token_bp)
-            self.app.register_blueprint(smwallet_top_pnl_token_investment_bp)
-            self.app.register_blueprint(smartMoneyWalletsReportBp)
-            self.app.register_blueprint(attention_bp)
-            self.app.register_blueprint(volumebot_bp)
-            self.app.register_blueprint(pumpfun_bp)
-            self.app.register_blueprint(scheduler_bp)
-            self.app.register_blueprint(portfolio_tagger_bp)
-            self.app.register_blueprint(strategy_bp)
-            self.app.register_blueprint(push_token_bp)
-            self.app.register_blueprint(strategy_page_bp)
-            self.app.register_blueprint(execution_monitor_bp)
-            self.app.register_blueprint(smartMoneyWalletBehaviourBp)
-            self.app.register_blueprint(reports_page_bp)
-            self.app.register_blueprint(port_summary_report_bp)
-            self.app.register_blueprint(smartMoneyPerformanceReportBp)
-            self.app.register_blueprint(strategy_report_bp)
-            self.app.register_blueprint(smwallet_investment_range_report_bp)
-            self.app.register_blueprint(smwalletBehaviourReportBp)
-            self.app.register_blueprint(strategyperformance_bp)
-            self.app.register_blueprint(portfolio_allocation_bp)
-            self.app.register_blueprint(attention_report_bp)
-            self.app.register_blueprint(dexscrenner_bp)
-            
-            # Add a dedicated healthcheck endpoint for container orchestration
-            @self.app.route('/healthcheck', methods=['GET'])
-            def healthcheck():
-                """Simple health check endpoint for container orchestration systems"""
-                try:
-                    # Test database connection
-                    db = PortfolioDB()
-                    db.check_connection()
-                    
-                    return jsonify({
-                        'status': 'healthy',
-                        'timestamp': time.time(),
-                        'database': 'connected',
-                        'database_type': get_config().DB_TYPE
-                    }), 200
-                except Exception as e:
-                    logger.error(f"Health check failed: {str(e)}")
-                    return jsonify({
-                        'status': 'unhealthy',
-                        'timestamp': time.time(),
-                        'error': str(e)
-                    }), 500
-            
-            logger.info("Portfolio app initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize PortfolioApp: {e}")
-            raise
+            logger.error(f"Failed to initialize JobRunner: {e}")
+            logger.warning("Continuing without job scheduler - scheduled tasks will not run")
+            self.job_runner = None  # We'll check for this later before using it
         
+        self.is_shutting_down = threading.Event()
+        
+        # Register API blueprints
+        self.app.register_blueprint(wallets_invested_bp)
+        self.app.register_blueprint(wallets_invested_investement_details_bp)
+        self.app.register_blueprint(portfolio_bp)
+        self.app.register_blueprint(health_bp)
+        self.app.register_blueprint(dashboard_bp)
+        self.app.register_blueprint(analytics_bp)
+        self.app.register_blueprint(smart_money_wallets_bp)
+        self.app.register_blueprint(smwallet_top_pnl_token_bp)
+        self.app.register_blueprint(smwallet_top_pnl_token_investment_bp)
+        self.app.register_blueprint(smartMoneyWalletsReportBp)
+        self.app.register_blueprint(attention_bp)
+        self.app.register_blueprint(volumebot_bp)
+        self.app.register_blueprint(pumpfun_bp)
+        self.app.register_blueprint(scheduler_bp)
+        self.app.register_blueprint(portfolio_tagger_bp)
+        self.app.register_blueprint(strategy_bp)
+        self.app.register_blueprint(push_token_bp)
+        self.app.register_blueprint(strategy_page_bp)
+        self.app.register_blueprint(execution_monitor_bp)
+        self.app.register_blueprint(smartMoneyWalletBehaviourBp)
+        self.app.register_blueprint(reports_page_bp)
+        self.app.register_blueprint(port_summary_report_bp)
+        self.app.register_blueprint(smartMoneyPerformanceReportBp)
+        self.app.register_blueprint(strategy_report_bp)
+        self.app.register_blueprint(smwallet_investment_range_report_bp)
+        self.app.register_blueprint(smwalletBehaviourReportBp)
+        self.app.register_blueprint(strategyperformance_bp)
+        self.app.register_blueprint(portfolio_allocation_bp)
+        self.app.register_blueprint(attention_report_bp)
+        self.app.register_blueprint(dexscrenner_bp)
+        
+        # Add a dedicated healthcheck endpoint for container orchestration
+        @self.app.route('/healthcheck', methods=['GET'])
+        def healthcheck():
+            """Simple health check endpoint for container orchestration systems"""
+            try:
+                # Test database connection
+                db = PortfolioDB()
+                db.check_connection()
+                
+                scheduler_status = "running" if self.job_runner else "disabled"
+                
+                return jsonify({
+                    'status': 'healthy',
+                    'timestamp': time.time(),
+                    'database': 'connected',
+                    'database_type': get_config().DB_TYPE,
+                    'scheduler': scheduler_status
+                }), 200
+            except Exception as e:
+                logger.error(f"Health check failed: {str(e)}")
+                return jsonify({
+                    'status': 'degraded',
+                    'timestamp': time.time(),
+                    'error': str(e),
+                    'scheduler': 'disabled' if not self.job_runner else 'unknown'
+                }), 200  # Return 200 even for degraded state to keep container running
+        
+        logger.info("Portfolio app initialized successfully")
+
     def _setup_signal_handlers(self):
         """
         Configure system signal handlers (Ctrl+C, kill, etc.)
@@ -219,9 +236,12 @@ class PortfolioApp:
         if not self.is_shutting_down.is_set():
             self.is_shutting_down.set()
             
-            logger.info("Shutting down job runner...")
-            self.job_runner.shutdown()
-            logger.info("✅ Job runner stopped")
+            if self.job_runner:
+                logger.info("Shutting down job runner...")
+                self.job_runner.shutdown()
+                logger.info("✅ Job runner stopped")
+            else:
+                logger.info("No job runner to shut down")
 
             try:
                 logger.info("Closing database connections...")

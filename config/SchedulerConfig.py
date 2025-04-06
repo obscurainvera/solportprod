@@ -3,9 +3,11 @@ Scheduler configuration settings
 """
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.jobstores.memory import MemoryJobStore
 from config.Config import get_config
 import logging
 from logs.logger import get_logger
+import os
 
 logger = get_logger(__name__)
 
@@ -13,13 +15,21 @@ logger = get_logger(__name__)
 config = get_config()
 try:
     db_url = config.get_database_url()
-    # Configure job store
-    job_store = SQLAlchemyJobStore(url=db_url)
+    # Check if we're using SQLite
+    if config.DB_TYPE == 'sqlite':
+        # Make sure the directory exists
+        db_dir = os.path.dirname(os.path.abspath(config.DB_PATH))
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+        job_store = SQLAlchemyJobStore(url=f'sqlite:///{config.DB_PATH}')
+    else:
+        # Using PostgreSQL
+        job_store = SQLAlchemyJobStore(url=db_url)
     
     # APScheduler configuration
     SCHEDULER_CONFIG = {
         'jobstores': {
-            'default': job_store  # Use the same database URL as the main application
+            'default': job_store  # Use the configured database URL
         },
         'executors': {
             'default': ThreadPoolExecutor(20)
@@ -33,10 +43,16 @@ try:
         },
         'timezone': 'UTC'
     }
+    logger.info(f"Scheduler configured with database jobstore: {config.DB_TYPE}")
+    
 except Exception as e:
     logger.error(f"Error configuring SQLAlchemyJobStore: {e}")
-    # Fallback configuration without jobstore
+    logger.info("Falling back to MemoryJobStore for scheduler")
+    # Fallback configuration with memory jobstore
     SCHEDULER_CONFIG = {
+        'jobstores': {
+            'default': MemoryJobStore()  # In-memory job store as fallback
+        },
         'executors': {
             'default': ThreadPoolExecutor(20)
         },
