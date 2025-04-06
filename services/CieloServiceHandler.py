@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Handles all Cielo API related operations including pagination and transaction processing
 """

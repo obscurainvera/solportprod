@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from logs.logger import get_logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from scheduler.PortfolioScheduler import PortfolioScheduler
@@ -267,18 +267,18 @@ class JobRunner:
             existing_jobs = self.scheduler.get_jobs()
             job_ids = [job.id for job in existing_jobs]
             
-            # Add all jobs
-            if 'portfolio_summary' not in job_ids:
-                self.addPortfolioSummaryJobs()
+            # # Add all jobs
+            # if 'portfolio_summary' not in job_ids:
+            #     self.addPortfolioSummaryJobs()
             
-            if 'token_analysis' not in job_ids:
-                self.addWalletsInvestedInATokenJobs()
+            # if 'token_analysis' not in job_ids:
+            #     self.addWalletsInvestedInATokenJobs()
             
-            if 'attention_analysis' not in job_ids:
-                self.addAttentionAnalysisJobs()
+            # if 'attention_analysis' not in job_ids:
+            #     self.addAttentionAnalysisJobs()
 
-            if 'token_deactivation' not in job_ids:
-                self.addTokenDeactivationJob()
+            # if 'token_deactivation' not in job_ids:
+            #     self.addTokenDeactivationJob()
 
             if 'volume_bot_analysis' not in job_ids:
                 self.addVolumeBotJobs()
