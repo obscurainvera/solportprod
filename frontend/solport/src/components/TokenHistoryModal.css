@@ -1,0 +1,219 @@
+/* Token History Modal Styles */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.token-history-modal {
+  max-width: 1000px !important;
+}
+
+.token-history-modal .modal-dialog {
+  max-width: 1000px !important;
+}
+
+.token-history-modal .modal-content {
+  background-color: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+}
+
+.token-history-modal-content {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+.token-history-modal-header {
+  background-color: rgba(20, 20, 20, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 15px 20px !important;
+}
+
+.token-history-modal-header .btn-close {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat !important;
+}
+
+.token-history-modal-header .close {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.token-history-modal-header .close:hover,
+.token-history-modal-header .btn-close:hover {
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+.token-history-modal-body {
+  padding: 20px !important;
+  background-color: #000 !important;
+}
+
+/* Token Info Header */
+.token-info-header {
+  width: 100%;
+}
+
+.token-info-header h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.token-info-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.chain-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chain-badge.ethereum,
+.chain-badge.eth {
+  background-color: rgba(114, 137, 218, 0.3);
+  color: #b8c0ff;
+}
+
+.chain-badge.bsc,
+.chain-badge.binance {
+  background-color: rgba(240, 185, 11, 0.3);
+  color: #ffe082;
+}
+
+.chain-badge.solana,
+.chain-badge.sol {
+  background-color: rgba(20, 241, 149, 0.3);
+  color: #9effdb;
+}
+
+.chain-badge.arbitrum,
+.chain-badge.arb {
+  background-color: rgba(40, 160, 240, 0.3);
+  color: #a4d4ff;
+}
+
+.chain-badge.polygon,
+.chain-badge.matic {
+  background-color: rgba(130, 71, 229, 0.3);
+  color: #d2b8ff;
+}
+
+.token-id-display {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 5px;
+}
+
+/* History Chart Container */
+.history-chart-container {
+  margin-top: 10px;
+}
+
+.history-chart-container h4 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.chart-wrapper {
+  min-height: 450px;
+  /* Make chart more prominent */
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 450px;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 450px;
+  gap: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.retry-button {
+  background-color: rgba(75, 192, 192, 0.2);
+  color: rgba(75, 192, 192, 1);
+  border: 1px solid rgba(75, 192, 192, 0.5);
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: rgba(75, 192, 192, 0.3);
+}
+
+.no-data-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .token-info-badges {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 768px) {
+  .token-history-modal-header {
+    padding: 10px 15px !important;
+  }
+  
+  .token-history-modal-body {
+    padding: 15px !important;
+  }
+  
+  .chart-wrapper {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 576px) {
+  .token-info-header h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  
+  .chain-badge,
+  .token-id-display {
+    font-size: 11px;
+  }
+} 

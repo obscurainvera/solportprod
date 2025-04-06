@@ -1,0 +1,804 @@
+/* Strategy Config Table - Apple Design Inspired */
+:root {
+  --true-black: #000000;
+  --apple-dark-gray: #1c1c1e;
+  --apple-darker-gray: #121214;
+  --apple-medium-gray: #2c2c2e;
+  --apple-light-gray: #3a3a3c;
+  --apple-silver: rgba(170, 170, 173, 0.9);
+  --apple-silver-muted: rgba(170, 170, 173, 0.6);
+  --apple-blue: rgb(10, 132, 255);
+  --apple-positive: #34c759;
+  --apple-negative: #ff3b30;
+  --apple-warning: #ff9500;
+  --apple-gray: #8e8e93;
+  --apple-light-gray: #e5e5ea;
+  --apple-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --apple-border-radius: 12px;
+  --apple-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --apple-bg: #f5f5f7;
+  --apple-card-bg: #ffffff;
+  --apple-border: rgba(0, 0, 0, 0.1);
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: #86868b;
+  --apple-highlight: #0071e3;
+}
+
+/* Table wrapper with horizontal scrolling */
+.strategy-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  background: rgba(28, 28, 30, 0.8);
+  border-radius: var(--apple-border-radius);
+  font-family: var(--apple-font);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+}
+
+/* Custom scrollbar for better visibility */
+.strategy-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.strategy-table-wrapper::-webkit-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.strategy-table-wrapper::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.strategy-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Shadow indicator for scrollable content */
+.strategy-table-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(18, 18, 20, 0), rgba(18, 18, 20, 0.8));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+  border-top-right-radius: var(--apple-border-radius);
+  border-bottom-right-radius: var(--apple-border-radius);
+}
+
+.strategy-table-wrapper.scrollable::after {
+  opacity: 1;
+}
+
+/* Base table styling */
+.strategy-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--apple-silver);
+  font-size: 13px;
+}
+
+/* Sticky header */
+.strategy-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(30, 30, 32, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.strategy-table thead::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0.05), 
+    rgba(255, 255, 255, 0.1), 
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+/* Column width constraints */
+.strategy-table th:nth-child(1), /* Strategy Name */
+.strategy-table td:nth-child(1) {
+  min-width: 150px;
+  width: 15%;
+}
+
+.strategy-table th:nth-child(2), /* Source */
+.strategy-table td:nth-child(2) {
+  min-width: 100px;
+  width: 10%;
+}
+
+.strategy-table th:nth-child(3), /* Description */
+.strategy-table td:nth-child(3) {
+  min-width: 180px;
+  width: 18%;
+}
+
+/* Make PNL columns consistent */
+.strategy-table th:nth-child(4), /* Amount Invested */
+.strategy-table td:nth-child(4),
+.strategy-table th:nth-child(5), /* Amount Taken Out */
+.strategy-table td:nth-child(5),
+.strategy-table th:nth-child(6), /* Remaining Value */
+.strategy-table td:nth-child(6),
+.strategy-table th:nth-child(7), /* Realized PNL */
+.strategy-table td:nth-child(7),
+.strategy-table th:nth-child(8), /* Total PNL */
+.strategy-table td:nth-child(8) {
+  min-width: 100px;
+  width: 10%;
+}
+
+/* PNL column specific styling */
+.strategy-table th.pnl-column,
+.strategy-table td.pnl-cell {
+  text-align: center !important;
+  font-weight: 500;
+}
+
+/* Table header styling */
+.strategy-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--apple-silver);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  position: relative;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  user-select: none;
+}
+
+.strategy-table th.sortable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.strategy-table th.sortable:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: white;
+}
+
+/* Header content alignment */
+.th-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Left-aligned headers */
+.strategy-table th:nth-child(1) .th-content, /* Strategy Name */
+.strategy-table th:nth-child(2) .th-content, /* Source */
+.strategy-table th:nth-child(3) .th-content /* Description */ {
+  justify-content: flex-start;
+}
+
+/* Cell text alignment - default is center */
+.strategy-table td {
+  text-align: center;
+}
+
+/* Specific text alignments */
+.strategy-table td.text-left { text-align: left; }
+.strategy-table td.text-right { text-align: center; }
+
+/* Left-aligned specific cells */
+.strategy-table td:nth-child(1), /* Strategy name */
+.strategy-table td:nth-child(2), /* Source */
+.strategy-table td:nth-child(3) /* Description */ {
+  text-align: left;
+}
+
+/* PNL value styling - ensure consistent display */
+td.realized-pnl,
+td.total-pnl {
+  font-weight: 500 !important;
+  letter-spacing: 0.2px;
+  text-align: center !important;
+  padding: 10px 16px !important;
+}
+
+/* Ensure both PNL columns are styled the same */
+.strategy-table td:nth-child(7), /* Realized PNL */
+.strategy-table td:nth-child(8) /* Total PNL */ {
+  text-align: center !important;
+}
+
+/* Positive/negative values styling */
+.positive {
+  color: var(--apple-positive) !important;
+}
+
+.negative {
+  color: var(--apple-negative) !important;
+}
+
+/* Animation for positive/negative values - make sure both PNL columns get the same effect */
+.positive, .negative {
+  position: relative;
+}
+
+.positive::before,
+.negative::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: -1;
+}
+
+.positive::before {
+  background: rgba(48, 209, 88, 0.05);
+}
+
+.negative::before {
+  background: rgba(255, 69, 58, 0.05);
+}
+
+.clickable-row:hover .positive::before,
+.clickable-row:hover .negative::before {
+  opacity: 1;
+}
+
+/* Sort icon styling */
+.sort-icon {
+  font-size: 8px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  margin-top: 1px;
+}
+
+.th-content:hover .sort-icon {
+  opacity: 0.8;
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: var(--apple-blue);
+}
+
+/* Table cell styling */
+.strategy-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.strategy-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row hover effects */
+.strategy-table tbody tr {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  background-color: transparent;
+  position: relative;
+}
+
+.strategy-table tbody tr:hover,
+.strategy-table tbody tr.hovered {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+/* Source badge styling */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transition: all 0.2s ease;
+  margin: 0 auto;
+}
+
+/* Different colors for different sources */
+.source-badge.twitter {
+  background: rgba(29, 161, 242, 0.15);
+  color: rgb(29, 161, 242);
+}
+
+.source-badge.telegram {
+  background: rgba(0, 136, 204, 0.15);
+  color: rgb(0, 136, 204);
+}
+
+.source-badge.discord {
+  background: rgba(114, 137, 218, 0.15);
+  color: rgb(114, 137, 218);
+}
+
+.source-badge.youtube {
+  background: rgba(255, 0, 0, 0.15);
+  color: rgb(255, 0, 0);
+}
+
+.source-badge.manual {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Source specific colors */
+.source-badge.pumpfun {
+  background: rgba(255, 105, 180, 0.15);
+  color: rgb(255, 105, 180);
+}
+
+.source-badge.volume {
+  background: rgba(138, 43, 226, 0.15);
+  color: rgb(138, 43, 226);
+}
+
+.source-badge.portsummary {
+  background: rgba(255, 215, 0, 0.15);
+  color: rgb(255, 215, 0);
+}
+
+/* Strategy name styling */
+.strategy-name {
+  font-weight: 500;
+  color: white;
+  position: relative;
+  text-align: left;
+}
+
+.strategy-name-text {
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s ease;
+}
+
+/* Hover indicator for strategy name */
+.strategy-hover-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: var(--apple-blue);
+  transition: width 0.2s ease;
+  opacity: 0;
+}
+
+.clickable-row:hover .strategy-hover-indicator {
+  width: 100%;
+  opacity: 1;
+}
+
+/* Description styling */
+.description-container {
+  position: relative;
+  width: 100%;
+}
+
+.description-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  color: var(--apple-silver);
+}
+
+.description-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.description-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: var(--apple-blue);
+  opacity: 0.8;
+}
+
+.description-toggle.expanded .description-arrow {
+  transform: rotate(90deg);
+  opacity: 1;
+}
+
+.expanded-description {
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(40, 40, 42, 0.6);
+  border-radius: 8px;
+  border-left: 2px solid var(--apple-blue);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.description-line {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--apple-silver);
+}
+
+.description-line:first-child {
+  margin-top: 0;
+}
+
+.description-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Description text truncation */
+.truncate-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  color: var(--apple-silver-muted);
+  transition: color 0.2s ease;
+}
+
+.strategy-table tr:hover .truncate-text {
+  color: var(--apple-silver);
+}
+
+/* Table footer */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(24, 24, 26, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  color: var(--apple-silver-muted);
+  border-bottom-left-radius: var(--apple-border-radius);
+  border-bottom-right-radius: var(--apple-border-radius);
+}
+
+/* Table info text */
+.table-info {
+  font-size: 12px;
+}
+
+/* Empty state styling */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: var(--apple-silver-muted);
+  background: rgba(28, 28, 30, 0.8);
+  border-radius: var(--apple-border-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  color: var(--apple-silver);
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: var(--apple-silver-muted);
+  margin: 0;
+  max-width: 280px;
+  text-align: center;
+}
+
+/* Clickable row styling */
+.clickable-row {
+  cursor: pointer;
+  position: relative;
+}
+
+.clickable-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.clickable-row:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .strategy-table th:nth-child(3), /* Description */
+  .strategy-table td:nth-child(3) {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 992px) {
+  .strategy-table {
+    font-size: 12px;
+  }
+  
+  .strategy-table th {
+    padding: 10px 12px;
+    font-size: 9px;
+  }
+  
+  .strategy-table td {
+    padding: 8px 12px;
+  }
+
+  .empty-state {
+    padding: 40px 0;
+  }
+  
+  .empty-icon {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .strategy-table-wrapper {
+    border-radius: 8px;
+  }
+  
+  .strategy-table th {
+    padding: 8px;
+    font-size: 9px;
+  }
+  
+  .strategy-table td {
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  .empty-state h3 {
+    font-size: 15px;
+  }
+  
+  .empty-state p {
+    font-size: 12px;
+  }
+}
+
+/* Ensure all numeric cells have identical dimensions and styling */
+.strategy-table td.numeric-cell {
+  width: 10% !important;
+  min-width: 100px !important;
+  max-width: 120px !important;
+  box-sizing: border-box !important;
+  padding: 10px 16px !important;
+  text-align: center !important;
+  position: relative !important;
+}
+
+/* Wrapper for all numeric values */
+.numeric-value-wrapper {
+  width: 100% !important;
+  display: block !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+  position: relative !important;
+}
+
+/* Style for all numeric values */
+.numeric-value {
+  display: inline-block !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* Positive and negative value styling */
+.positive {
+  color: var(--apple-positive);
+}
+
+.negative {
+  color: var(--apple-negative);
+}
+
+/* Fix for the PNL columns to ensure they display exactly the same */
+.strategy-table tr td:nth-child(7),  /* Realized PNL */
+.strategy-table tr td:nth-child(8) { /* Total PNL */
+  text-align: center !important;
+  padding: 10px 16px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  vertical-align: middle !important;
+  font-size: 13px !important;
+  width: 10% !important;
+  min-width: 100px !important;
+  position: relative;
+}
+
+/* Explicitly set width for Total PNL column to match Realized PNL */
+.strategy-table tr td:nth-child(8) { /* Total PNL */
+  width: 10% !important;
+  min-width: 100px !important;
+  box-sizing: border-box !important;
+  padding: 10px 16px !important;
+}
+
+/* Make sure both PNL columns have identical headers */
+.strategy-table thead th:nth-child(7) .th-content,
+.strategy-table thead th:nth-child(8) .th-content {
+  justify-content: center !important;
+}
+
+/* Ensure PNL positive and negative values have identical styling */
+.strategy-table td.realized-pnl.positive,
+.strategy-table td.total-pnl.positive {
+  color: var(--apple-positive) !important;
+}
+
+.strategy-table td.realized-pnl.negative,
+.strategy-table td.total-pnl.negative {
+  color: var(--apple-negative) !important;
+}
+
+/* Force identical hover effects for both PNL columns */
+.strategy-table tr:hover td.numeric-cell.realized-pnl,
+.strategy-table tr:hover td.numeric-cell.total-pnl {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Apply consistent hover animations for positive/negative values */
+.numeric-cell.realized-pnl::before,
+.numeric-cell.total-pnl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.2s ease;
+}
+
+.numeric-cell.realized-pnl .numeric-value.positive::before,
+.numeric-cell.total-pnl .numeric-value.positive::before {
+  background: rgba(48, 209, 88, 0.05) !important;
+}
+
+.numeric-cell.realized-pnl .numeric-value.negative::before,
+.numeric-cell.total-pnl .numeric-value.negative::before {
+  background: rgba(255, 69, 58, 0.05) !important;
+}
+
+.strategy-table tr:hover .numeric-cell.realized-pnl::before,
+.strategy-table tr:hover .numeric-cell.total-pnl::before {
+  opacity: 1 !important;
+}
+
+/* Make the total-pnl and realized-pnl cells identical */
+.strategy-table td.numeric-cell.realized-pnl,
+.strategy-table td.numeric-cell.total-pnl {
+  width: 10% !important;
+  min-width: 100px !important;
+  max-width: 120px !important;
+  box-sizing: border-box !important;
+  padding: 10px 16px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  font-size: 13px !important;
+  position: relative !important;
+  white-space: nowrap !important;
+  display: table-cell !important;
+}
+
+/* Styling for PNL value wrappers */
+.numeric-cell.realized-pnl .numeric-value-wrapper,
+.numeric-cell.total-pnl .numeric-value-wrapper {
+  width: 100% !important;
+  display: block !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+}
+
+/* Styling for PNL values */
+.numeric-cell.realized-pnl .numeric-value,
+.numeric-cell.total-pnl .numeric-value {
+  display: inline-block !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* Make sure both PNL columns have identical headers */
+.strategy-table thead th:nth-child(7) .th-content,
+.strategy-table thead th:nth-child(8) .th-content {
+  justify-content: center !important;
+}
+
+/* Positive/negative values styling */
+.positive {
+  color: var(--apple-positive) !important;
+}
+
+.negative {
+  color: var(--apple-negative) !important;
+}
+
+/* Force identical hover effects for both PNL columns */
+.strategy-table tr:hover td.numeric-cell.realized-pnl,
+.strategy-table tr:hover td.numeric-cell.total-pnl {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Apply consistent hover animations for positive/negative values */
+.numeric-cell.realized-pnl::before,
+.numeric-cell.total-pnl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.2s ease;
+}
+
+.numeric-cell.realized-pnl .numeric-value.positive::before,
+.numeric-cell.total-pnl .numeric-value.positive::before {
+  background: rgba(48, 209, 88, 0.05) !important;
+}
+
+.numeric-cell.realized-pnl .numeric-value.negative::before,
+.numeric-cell.total-pnl .numeric-value.negative::before {
+  background: rgba(255, 69, 58, 0.05) !important;
+}
+
+.strategy-table tr:hover .numeric-cell.realized-pnl::before,
+.strategy-table tr:hover .numeric-cell.total-pnl::before {
+  opacity: 1 !important;
+} 

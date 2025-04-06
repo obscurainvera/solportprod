@@ -1,0 +1,90 @@
+/* Fix for input text visibility in profit level inputs */
+.profit-level input {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  width: 100% !important;
+  text-align: right !important;
+  padding-right: 8px !important;
+  padding-left: 26px !important;
+  box-sizing: border-box !important;
+  min-width: 75px !important;
+}
+
+.form-group input[type="number"], 
+.profit-level input[type="number"] {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+input[type="number"] {
+  color: #ffffff !important;
+}
+
+/* Remove spinner buttons from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+}
+
+/* More specific class for profit level inputs */
+.profit-input-field {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  letter-spacing: 0 !important;
+  padding-right: 8px !important;
+  min-width: 75px !important;
+  font-family: monospace !important;
+}
+
+/* Fix for mini-label size */
+.mini-label {
+  font-size: 0.65rem !important;
+  color: #999 !important;
+  left: 6px !important;
+  width: auto !important;
+  max-width: 20px !important;
+  overflow: visible !important;
+}
+
+/* Target the profit level inputs directly with a stronger selector */
+div.profit-level input[type="number"] {
+  color: #ffffff !important;
+  text-align: right !important;
+  background-color: rgba(20, 20, 20, 0.9) !important;
+  min-width: 75px !important;
+  width: 100% !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+}
+
+/* Additional fixes for 3-digit number visibility */
+.profit-level input[type="number"] {
+  padding-left: 26px !important;
+  padding-right: 12px !important;
+  min-width: 100px !important;
+  width: 100% !important;
+  font-size: 0.9rem !important;
+  text-align: right !important;
+  letter-spacing: 0 !important;
+  background-color: rgba(20, 20, 20, 0.9) !important;
+}
+
+/* Final fix to ensure three-digit values are visible */
+.profit-input-field {
+  font-family: monospace !important;
+  min-width: 75px !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0 !important;
+  padding-right: 8px !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  text-align: right !important;
+}

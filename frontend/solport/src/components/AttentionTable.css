@@ -1,0 +1,527 @@
+/* AttentionTable Styles */
+.attention-table-wrapper {
+  flex: 1;
+  overflow-x: auto;
+  background-color: rgba(28, 28, 30, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.attention-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+  background: transparent;
+}
+
+.attention-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.attention-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.attention-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.attention-table-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(90deg, rgba(28, 28, 30, 0) 0%, rgba(28, 28, 30, 0.8) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.attention-table-wrapper.scrollable::after {
+  opacity: 1;
+}
+
+.attention-data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.attention-data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: rgba(30, 30, 30, 0.8);
+}
+
+.attention-data-table thead::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.attention-data-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  position: relative;
+  white-space: nowrap;
+  transition: background-color 0.3s ease;
+  font-size: 13px;
+}
+
+.attention-data-table th.sortable {
+  cursor: pointer;
+}
+
+.attention-data-table th.sortable:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sort-icon {
+  font-size: 12px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.th-content:hover .sort-icon {
+  opacity: 1;
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: rgba(75, 192, 192, 1);
+}
+
+.attention-data-table td {
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.attention-data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.attention-data-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.attention-data-table tbody tr:hover,
+.attention-data-table tbody tr.hovered {
+  background-color: rgba(75, 192, 192, 0.1);
+}
+
+.attention-data-table tbody tr.selected-row {
+  background-color: rgba(75, 192, 192, 0.2);
+}
+
+/* Cell styling */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+/* Token ID styling */
+.token-id-cell {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.token-id {
+  display: inline-block;
+  padding: 3px 6px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: copy;
+  transition: background-color 0.2s ease;
+}
+
+.token-id:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Chain badge styling */
+.chain-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chain-badge.ethereum,
+.chain-badge.eth {
+  background-color: rgba(114, 137, 218, 0.3);
+  color: #b8c0ff;
+}
+
+.chain-badge.bsc,
+.chain-badge.binance {
+  background-color: rgba(240, 185, 11, 0.3);
+  color: #ffe082;
+}
+
+.chain-badge.solana,
+.chain-badge.sol {
+  background-color: rgba(20, 241, 149, 0.3);
+  color: #9effdb;
+}
+
+.chain-badge.arbitrum,
+.chain-badge.arb {
+  background-color: rgba(40, 160, 240, 0.3);
+  color: #a4d4ff;
+}
+
+.chain-badge.polygon,
+.chain-badge.matic {
+  background-color: rgba(130, 71, 229, 0.3);
+  color: #d2b8ff;
+}
+
+/* Status badge styling */
+.status-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #8effa7;
+}
+
+.status-badge.new {
+  background-color: rgba(54, 162, 235, 0.2);
+  color: #9ccfff;
+}
+
+.status-badge.inactive {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff8e8e;
+}
+
+/* Numeric cell styling */
+.numeric-cell {
+  text-align: right;
+}
+
+.numeric-value-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.attention-score-cell .numeric-value {
+  font-weight: 500;
+  color: rgba(75, 192, 192, 1);
+}
+
+.attention-count {
+  font-weight: 500;
+}
+
+/* Table footer */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.table-info {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* PNL styling (borrowed from StrategyConfigTable) */
+.positive {
+  color: #4cd964;
+}
+
+.negative {
+  color: #ff3b30;
+}
+
+/* History Modal */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.history-modal {
+  max-width: 800px !important;
+}
+
+.history-modal .modal-dialog {
+  max-width: 800px !important;
+}
+
+.history-modal .modal-content {
+  background-color: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+}
+
+.history-modal-content {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+.history-modal-header {
+  background-color: rgba(20, 20, 20, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 15px 20px !important;
+}
+
+.history-modal-header .btn-close {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat !important;
+}
+
+.history-modal-header .close {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.history-modal-header .close:hover,
+.history-modal-header .btn-close:hover {
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+.history-modal-body {
+  padding: 20px !important;
+  background-color: #000 !important;
+}
+
+/* Token Info Header */
+.token-info-header {
+  width: 100%;
+}
+
+.token-info-header h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.token-info-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.token-score,
+.token-count {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.token-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.token-change {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.token-change.positive {
+  background-color: rgba(76, 217, 100, 0.1);
+}
+
+.token-change.negative {
+  background-color: rgba(255, 59, 48, 0.1);
+}
+
+.token-id-display {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 5px;
+}
+
+/* History Chart Container */
+.history-chart-container {
+  margin-top: 10px;
+}
+
+.history-chart-container h4 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.chart-wrapper {
+  min-height: 350px;
+  /* Make chart more prominent */
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.no-data-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  font-style: italic;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: rgba(75, 192, 192, 0.1);
+}
+
+.clickable-row:active {
+  background-color: rgba(75, 192, 192, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .token-info-badges,
+  .token-changes {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 768px) {
+  .attention-data-table th,
+  .attention-data-table td {
+    padding: 12px 15px;
+  }
+  
+  .history-modal-header {
+    padding: 10px 15px !important;
+  }
+  
+  .history-modal-body {
+    padding: 15px !important;
+  }
+  
+  .chart-wrapper {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 576px) {
+  .attention-data-table th,
+  .attention-data-table td {
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .chain-badge,
+  .status-badge,
+  .token-id {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  
+  .token-info-header h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+}
+
+/* Empty state styling */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 40px 20px;
+  background: rgba(28, 28, 30, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 400px;
+} 

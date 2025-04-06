@@ -1,0 +1,686 @@
+.filter-form {
+  position: relative;
+  background: var(--true-black, #000000);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding: 16px 0;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  overflow: hidden;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.filter-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.filter-form::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(
+    circle at top right,
+    rgba(10, 132, 255, 0.15),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Header styles */
+.filter-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: transparent;
+}
+
+.filter-form-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color, rgba(255, 255, 255, 0.9));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-form-header h3 svg {
+  color: var(--accent-color, #4285f4);
+  filter: drop-shadow(0 0 5px rgba(10, 132, 255, 0.4));
+}
+
+/* Reset button */
+.filter-reset-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+
+.filter-reset-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filter-reset-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Form body */
+.filter-form-body {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  margin-bottom: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.filter-group label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.filter-group:hover label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.filter-icon {
+  font-size: 0.7rem;
+  margin-right: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0.7;
+}
+
+/* Input styles */
+.filter-group input {
+  width: 100%;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.filter-group input:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(10, 132, 255, 0.03);
+  box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.1);
+}
+
+.filter-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.filter-input-with-icon {
+  position: relative;
+}
+
+.filter-input-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.filter-input-with-icon input {
+  padding-right: 32px;
+}
+
+.filter-input-with-icon input:focus + .filter-input-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Apply button in footer */
+.filter-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: transparent;
+}
+
+.filter-apply-button {
+  background: var(--accent-color, #4285f4);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-apply-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.filter-apply-button:active {
+  transform: translateY(0);
+}
+
+/* Selector Styling */
+.filter-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 34px;
+}
+
+.filter-selector:hover {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.filter-dropdown-icon {
+  transition: transform 0.2s ease;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+}
+
+.filter-dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.filter-selector:hover .filter-dropdown-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Popup Styling */
+.filter-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(25, 25, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-popup h5 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.filter-popup-option {
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-popup-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.filter-popup-option.selected {
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--accent-color, #4285f4);
+}
+
+.filter-popup-option.selected:hover {
+  background: rgba(10, 132, 255, 0.25);
+}
+
+.filter-check-icon {
+  font-size: 0.7rem;
+  color: var(--accent-color, #4285f4);
+  filter: drop-shadow(0 0 4px rgba(10, 132, 255, 0.4));
+}
+
+/* Category Label */
+.filter-category-label {
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* Custom Range Popup Styling */
+.filter-custom-range-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(25, 25, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 16px;
+  z-index: 150;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-custom-range-popup h5 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-custom-range-inputs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filter-custom-input-group {
+  flex: 1;
+}
+
+.filter-custom-input-group label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.filter-custom-input-group input {
+  width: 100%;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+}
+
+.filter-custom-input-group input:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(10, 132, 255, 0.03);
+}
+
+.filter-custom-range-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.filter-custom-range-actions button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-custom-range-actions button:first-child {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.filter-custom-range-actions button:last-child {
+  background: var(--accent-color, #4285f4);
+  border: none;
+  color: white;
+}
+
+.filter-custom-range-actions button:first-child:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filter-custom-range-actions button:last-child:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Scrollbar styling */
+.filter-popup::-webkit-scrollbar,
+.filter-custom-range-popup::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-popup::-webkit-scrollbar-track,
+.filter-custom-range-popup::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.filter-popup::-webkit-scrollbar-thumb,
+.filter-custom-range-popup::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.filter-popup::-webkit-scrollbar-thumb:hover,
+.filter-custom-range-popup::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Header & footer for dropdown */
+.filter-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.filter-dropdown-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-clear-selection {
+  background: transparent;
+  border: none;
+  color: var(--accent-color, #4285f4);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.filter-clear-selection:hover {
+  text-decoration: underline;
+  filter: brightness(1.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filter-popup {
+    width: 90%;
+    max-height: 250px;
+  }
+  
+  .filter-popup-option {
+    padding: 8px 12px;
+  }
+  
+  .filter-form {
+    max-width: 100%;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tag Selection Styling */
+.filter-dropdown-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 12px;
+  background-color: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  font-size: 0.75rem;
+  width: 100%;
+  min-height: 34px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.filter-dropdown-selector:hover {
+  background-color: rgba(40, 40, 40, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dropdown-icon {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  transition: transform 0.2s ease;
+  margin-left: 8px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+.dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.filter-dropdown-selector:hover .dropdown-icon {
+  color: white;
+}
+
+.selected-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: calc(100% - 25px); /* Reserve space for the arrow */
+}
+
+.selected-tag-chip {
+  background-color: rgba(50, 50, 50, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.7rem;
+  display: inline-block;
+  color: #fff;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+/* Tag Options */
+.tag-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: white;
+  border-radius: 4px;
+  margin: 2px 8px;
+  font-size: 0.75rem;
+}
+
+.tag-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tag-option.selected {
+  background-color: rgba(40, 40, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.check-icon {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+}
+
+/* Search Container */
+.search-container {
+  position: relative;
+  width: 100%;
+  margin: 8px 0;
+  padding: 0 8px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background-color: rgba(30, 30, 30, 0.6);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 400;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(40, 40, 40, 0.8);
+}
+
+/* Tag filter options container */
+.tag-filter-options {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 5px 0;
+}
+
+.tag-filter-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tag-filter-options::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.tag-filter-options::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.tag-filter-options::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Make full width for tags */
+.full-width {
+  width: 100%;
+}
+
+.no-tags-message {
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+.search-clear-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.search-clear-icon:hover {
+  color: rgba(255, 255, 255, 0.9);
+}

@@ -1,0 +1,718 @@
+.portfolio-calculator {
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+  padding: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Common Card Styles */
+.total-amount-card,
+.avg-entry-price-card,
+.current-price-card,
+.total-pnl-card {
+  background: #000000;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.total-amount-card:hover,
+.avg-entry-price-card:hover,
+.current-price-card:hover,
+.total-pnl-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Section Headers */
+h2 {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+h3 {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Amount Displays */
+.amount-display,
+.price-display,
+.pnl-display {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin-top: 0.25rem;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Input Groups */
+.input-group {
+  margin-bottom: 1rem;
+}
+
+.input-group label {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.dca-input,
+.strategy-input,
+.token-input-field {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.dca-input:focus,
+.strategy-input:focus,
+.token-input-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.dca-input::placeholder,
+.strategy-input::placeholder,
+.token-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* DCA Section */
+.dca-section {
+  background: #000000;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dca-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dca-entry {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Buttons */
+.add-entry-btn,
+.fetch-price-btn,
+.strategy-btn {
+  background: #000000;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.add-entry-btn:hover,
+.fetch-price-btn:hover,
+.strategy-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.strategy-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.remove-level-btn {
+  background: transparent;
+  color: #ff3b30;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+}
+
+.remove-level-btn:hover {
+  opacity: 1;
+  background: rgba(255, 59, 48, 0.05);
+}
+
+/* Token Price Section */
+.token-price-section {
+  margin-bottom: 1.5rem;
+}
+
+.token-input-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.token-input-field {
+  flex: 1;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+.token-input-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.token-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.fetch-price-btn {
+  background: #000000;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.fetch-price-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Chain Input Group */
+.chain-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Static Chain Filter */
+.static-chain-filter {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chain-btn {
+  background: #000000;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.chain-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.chain-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.chain-pair-input {
+  margin-top: 0.5rem;
+}
+
+/* Current Price Card */
+.current-price-card {
+  background: #000000;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.price-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 80px;
+}
+
+.price-info h2 {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-display {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.token-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.token-name .symbol {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  font-weight: normal;
+}
+
+/* Dexscreener Chart Container */
+.dexscreener-chart-container {
+  background: #000000;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.dexscreener-chart {
+  background: #000000;
+  border-radius: 8px;
+  border: none;
+  height: 800px !important; /* Enforce height with !important */
+  width: 100%;
+}
+
+/* Ensure iframe respects the height */
+.dexscreener-chart-container iframe {
+  height: 800px !important;
+  width: 100%;
+}
+
+.chart-error {
+  color: #ff3b30;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* Strategy Section */
+.strategy-section {
+  background: #000000;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.strategy-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Profit Taking Section */
+.profit-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.profit-level {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.level-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 60px;
+}
+
+.level-header h3 {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.profit-level .input-group {
+  margin-bottom: 0;
+}
+
+.profit-level .input-group label {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.profit-level .strategy-input {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.profit-level .value-display {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profit-level .value-display .label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.profit-level .value-display .value {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Value Displays */
+.value-display,
+.loss-percentage {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.value-display .label,
+.loss-percentage .label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.value-display .value,
+.loss-percentage .value {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+.value-display.positive .value {
+  color: #34c759;
+}
+
+.value-display.negative .value {
+  color: #ff3b30;
+}
+
+.total-profit-display {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.total-profit-display .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.total-profit-display .value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Stop Loss Section */
+.stop-loss-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stop-loss-section .input-group {
+  margin-bottom: 0;
+}
+
+.stop-loss-section .loss-percentage {
+  background: rgba(255, 59, 48, 0.05);
+}
+
+.stop-loss-section .loss-percentage .value {
+  color: #ff3b30;
+}
+
+.stop-loss-section .value-display {
+  background: rgba(255, 59, 48, 0.05);
+}
+
+.stop-loss-section .value-display .value {
+  color: #ff3b30;
+}
+
+/* PNL Summary Section */
+.pnl-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.pnl-summary-item {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pnl-summary-item .label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.pnl-summary-item .value {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.pnl-summary-item.positive .value {
+  color: #34c759;
+}
+
+.pnl-summary-item.negative .value {
+  color: #ff3b30;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .profit-level {
+    grid-template-columns: auto 1fr 1fr 1fr 1fr auto;
+  }
+  
+  .profit-level .value-display:nth-child(4) {
+    grid-column: 2 / -1;
+  }
+}
+
+@media (max-width: 1200px) {
+  .profit-level {
+    grid-template-columns: auto 1fr 1fr 1fr auto;
+  }
+  
+  .profit-level .value-display:nth-child(4),
+  .profit-level .value-display:nth-child(5) {
+    grid-column: 2 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .portfolio-calculator {
+    padding: 1rem;
+  }
+
+  .dca-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .current-price-card {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .price-info {
+    padding: 0.5rem;
+    min-height: auto;
+  }
+
+  .price-display {
+    font-size: 1.1rem;
+  }
+
+  .token-name {
+    font-size: 0.9rem;
+  }
+
+  .strategy-selector {
+    flex-direction: column;
+  }
+
+  .token-input-group {
+    flex-direction: column;
+  }
+
+  .fetch-price-btn {
+    width: 100%;
+  }
+
+  .dexscreener-chart-container {
+    padding: 0.5rem;
+  }
+
+  .dexscreener-chart,
+  .dexscreener-chart-container iframe {
+    height: 800px !important; /* Adjusted for smaller screens */
+  }
+
+  .static-chain-filter {
+    flex-wrap: wrap;
+  }
+
+  .chain-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .profit-level {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .level-header {
+    min-width: auto;
+  }
+
+  .profit-level .value-display:nth-child(4),
+  .profit-level .value-display:nth-child(5) {
+    grid-column: auto;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .price-source-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.price-source-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-btn {
+  background: #000000;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.toggle-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
