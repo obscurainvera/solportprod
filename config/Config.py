@@ -1,0 +1,126 @@
+import os
+from typing import Dict, Any
+import urllib.parse
+
+# Get the project root directory
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+class Config:
+    """
+    Base configuration class that handles environment variables and provides default values.
+    """
+    # Flask settings
+    DEBUG = False
+    TESTING = False
+    
+    # Database settings
+    DB_TYPE = os.getenv('DB_TYPE', 'postgres')  # Default to PostgreSQL
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = int(os.getenv('DB_PORT', '5432'))
+    DB_NAME = os.getenv('DB_NAME', 'portfolio')
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_PATH = os.getenv('DB_PATH', os.path.join(PROJECT_ROOT, 'portfolio.db'))
+    DB_SSLMODE = os.getenv('DB_SSLMODE', 'prefer')  # SSL mode for PostgreSQL cloud connections
+    DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
+    DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
+    DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '30'))
+    DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
+    DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
+    
+    # API settings
+    API_HOST = os.getenv('API_HOST', '0.0.0.0')
+    API_PORT = int(os.getenv('API_PORT', '8080'))
+    API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
+    
+    # CORS settings
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
+    
+    # Logging settings
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.getenv('LOG_FILE', os.path.join(PROJECT_ROOT, 'logs', 'app.log'))
+    
+    # Job scheduler settings
+    JOBS_DB_PATH = os.getenv('JOBS_DB_PATH', os.path.join(PROJECT_ROOT, 'jobs.db'))
+    
+    def get_database_url(self) -> str:
+        """
+        Get the database URL based on configuration.
+        
+        Returns:
+            str: Database URL
+        """
+        if self.DB_TYPE == 'sqlite':
+            return f'sqlite:///{self.DB_PATH}'
+        else:
+            # URL encode the password to handle special characters
+            password = urllib.parse.quote_plus(self.DB_PASSWORD)
+            
+            # Build PostgreSQL connection string with additional parameters for cloud compatibility
+            conn_string = f'postgresql://{self.DB_USER}:{password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
+            
+            # Add SSL mode and other connection parameters for cloud deployments
+            if self.DB_SSLMODE:
+                conn_string += f'?sslmode={self.DB_SSLMODE}'
+                
+            return conn_string
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert configuration to dictionary.
+        
+        Returns:
+            Dict[str, Any]: Configuration dictionary
+        """
+        return {
+            'DEBUG': self.DEBUG,
+            'TESTING': self.TESTING,
+            'DB_TYPE': self.DB_TYPE,
+            'DB_HOST': self.DB_HOST,
+            'DB_PORT': self.DB_PORT,
+            'DB_NAME': self.DB_NAME,
+            'DB_USER': self.DB_USER,
+            'DB_PATH': self.DB_PATH,
+            'DB_SSLMODE': self.DB_SSLMODE,
+            'DB_POOL_SIZE': self.DB_POOL_SIZE,
+            'DB_MAX_OVERFLOW': self.DB_MAX_OVERFLOW,
+            'DB_POOL_TIMEOUT': self.DB_POOL_TIMEOUT,
+            'DB_POOL_RECYCLE': self.DB_POOL_RECYCLE,
+            'API_HOST': self.API_HOST,
+            'API_PORT': self.API_PORT,
+            'API_BASE_URL': self.API_BASE_URL,
+            'CORS_ORIGINS': self.CORS_ORIGINS,
+            'LOG_LEVEL': self.LOG_LEVEL,
+            'LOG_FILE': self.LOG_FILE,
+            'JOBS_DB_PATH': self.JOBS_DB_PATH
+        }
+
+class DevelopmentConfig(Config):
+    """
+    Development configuration.
+    """
+    DEBUG = True
+    LOG_LEVEL = 'DEBUG'
+    DB_SSLMODE = 'disable'  # Typically no SSL in development
+
+class ProductionConfig(Config):
+    """
+    Production configuration.
+    """
+    DB_TYPE = 'postgres'  # Always use PostgreSQL in production
+    DB_SSLMODE = 'require'  # Require SSL in production
+    API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.solport.com')  # Production API URL
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'https://solport.com').split(',')
+    LOG_LEVEL = 'INFO'
+
+def get_config() -> Config:
+    """
+    Get the appropriate configuration based on environment.
+    
+    Returns:
+        Config: Configuration instance
+    """
+    env = os.getenv('FLASK_ENV', 'development')
+    if env == 'production':
+        return ProductionConfig()
+    return DevelopmentConfig() 
