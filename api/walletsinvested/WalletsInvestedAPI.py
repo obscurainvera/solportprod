@@ -31,7 +31,7 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                 'message': 'Token ID is required'
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 400
     
         db = PortfolioDB()
@@ -45,7 +45,7 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                 'message': f'Token {token_id} not found in portfolio summary'
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 404
 
         # 2. Get valid cookie for token analysis
@@ -60,7 +60,7 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                 'message': 'No valid cookies available for wallets invested analysis'
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 400
 
         # 3. Execute token analysis
@@ -83,7 +83,7 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                 }
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
         
         logger.error(f"Failed to get analysis data for token {token_id}")
@@ -169,9 +169,9 @@ def getWalletsInvestedInToken(token_id):
                     'count': 0
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response
-            
+        
             # Get detailed information for each wallet
             detailed_wallets = []
             for wallet in wallets:
@@ -204,7 +204,7 @@ def getWalletsInvestedInToken(token_id):
                 'count': len(detailed_wallets)
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:
