@@ -57,24 +57,15 @@ def initialize_job_storage():
         # which stores information about scheduled jobs. This engine is used to 
         # create the necessary tables for job storage.
         config_instance = get_config()
-        if config_instance.DB_TYPE == 'sqlite':
-            # Make sure the directory exists
-            db_dir = os.path.dirname(os.path.abspath(config_instance.JOBS_DB_PATH))
-            if not os.path.exists(db_dir):
-                os.makedirs(db_dir)
-            engine = create_engine(f'sqlite:///{config_instance.JOBS_DB_PATH}')
-        else:
-            # Use PostgreSQL for jobs database in production with psycopg2-binary
-
-            
-            try:
-                # Create direct connection to PostgreSQL
+       
+        try:
+            # Create direct connection to PostgreSQL
                 conn = psycopg2.connect(
-                    dbname=config_instance.DB_NAME,
                     user=config_instance.DB_USER,
                     password=config_instance.DB_PASSWORD,
                     host=config_instance.DB_HOST,
-                    port=config_instance.DB_PORT
+                    port=config_instance.DB_PORT,
+                    dbname=config_instance.DB_NAME
                 )
                 
                 # Create tables with psycopg2
@@ -105,24 +96,14 @@ def initialize_job_storage():
                 conn.close()
                 logger.info("Job storage initialized successfully using psycopg2")
                 
-                # Still create SQLAlchemy engine for compatibility with existing code
-                engine = create_engine(
-                    f"postgresql://{config_instance.DB_USER}:{config_instance.DB_PASSWORD}@{config_instance.DB_HOST}:{config_instance.DB_PORT}/{config_instance.DB_NAME}?sslmode={config_instance.DB_SSLMODE}",
-                    pool_size=config_instance.DB_POOL_SIZE,
-                    max_overflow=config_instance.DB_MAX_OVERFLOW,
-                    pool_timeout=config_instance.DB_POOL_TIMEOUT,
-                    pool_recycle=config_instance.DB_POOL_RECYCLE,
-                    pool_pre_ping=True
-                )
-                
-            except psycopg2.Error as pg_error:
-                logger.error(f"PostgreSQL error: {pg_error}")
-                logger.warning("Application will continue with memory-based job storage")
-                raise
-            except Exception as e:
-                logger.error(f"Failed to connect to PostgreSQL with psycopg2: {e}")
-                logger.warning("Application will continue with memory-based job storage")
-                raise
+        except psycopg2.Error as pg_error:
+            logger.error(f"PostgreSQL error: {pg_error}")
+            logger.warning("Application will continue with memory-based job storage")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to connect to PostgreSQL with psycopg2: {e}")
+            logger.warning("Application will continue with memory-based job storage")
+            raise
     except Exception as e:
         logger.error(f"Failed to initialize job storage: {e}")
         logger.warning("Application will continue with memory-based job storage")

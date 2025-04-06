@@ -39,11 +39,11 @@ try:
             try:
                 # Test direct connection
                 conn = psycopg2.connect(
-                    dbname=config.DB_NAME,
                     user=config.DB_USER,
                     password=config.DB_PASSWORD,
                     host=config.DB_HOST,
-                    port=config.DB_PORT
+                    port=config.DB_PORT,
+                    dbname=config.DB_NAME
                 )
                 conn.close()
                 logger.info(f"Successfully connected to PostgreSQL with user {config.DB_USER}")

@@ -354,12 +354,11 @@ def getJobHistory(job_id):
         try:
             # Direct connection to PostgreSQL
             conn = psycopg2.connect(
-                dbname=config_instance.DB_NAME,
                 user=config_instance.DB_USER,
                 password=config_instance.DB_PASSWORD,
                 host=config_instance.DB_HOST,
                 port=config_instance.DB_PORT,
-                sslmode=config_instance.DB_SSLMODE
+                dbname=config_instance.DB_NAME
             )
             
             # Use RealDictCursor to get dictionary-like results

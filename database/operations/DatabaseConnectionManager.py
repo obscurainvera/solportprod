@@ -69,12 +69,11 @@ class DatabaseConnectionManager:
                         cls._instance.pool = psycopg2.pool.ThreadedConnectionPool(
                             minconn=1,
                             maxconn=config.DB_POOL_SIZE,
-                            dbname=config.DB_NAME,
                             user=config.DB_USER,
                             password=config.DB_PASSWORD,
                             host=config.DB_HOST,
                             port=config.DB_PORT,
-                            sslmode=config.DB_SSLMODE
+                            dbname=config.DB_NAME
                         )
                         cls._instance.connection_type = 'postgres'
                         logger.info(f"Initialized PostgreSQL connection pool to {config.DB_HOST}")
