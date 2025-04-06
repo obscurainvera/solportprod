@@ -3,11 +3,10 @@ import threading
 from contextlib import contextmanager
 from typing import ContextManager, Generator
 from logs.logger import get_logger
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
 import os
-from sqlalchemy.engine.url import URL
+import psycopg2
+import psycopg2.pool
+from psycopg2.extras import RealDictCursor
 
 logger = get_logger(__name__)
 
@@ -42,7 +41,7 @@ class DatabaseConnectionManager:
         - Centralizes connection management
         
         Args:
-            db_url: Database connection URL
+            db_url: Database connection URL (deprecated, kept for compatibility)
         
         Returns:
             DatabaseConnectionManager: Singleton instance
@@ -52,114 +51,103 @@ class DatabaseConnectionManager:
                 cls._instance = super(DatabaseConnectionManager, cls).__new__(cls)
                 config = get_config()
                 
-                if db_url:
-                    cls._instance.db_url = db_url
-                elif config.DB_TYPE == 'sqlite':
-                    cls._instance.db_url = f'sqlite:///{config.DB_PATH}'
-                else:
-                    # Use PostgreSQL connection parameters
-                    cls._instance.db_url = URL.create(
-                        drivername="postgresql",
-                        username=config.DB_USER,
-                        password=config.DB_PASSWORD,
-                        host=config.DB_HOST,
-                        port=config.DB_PORT,
-                        database=config.DB_NAME,
-                        query={"sslmode": config.DB_SSLMODE}
-                    )
+                # Store configuration for use in connection methods
+                cls._instance.config = config
                 
-                # Configure SQLAlchemy engine with PostgreSQL-specific settings for cloud environments
-                cls._instance.engine = create_engine(
-                    cls._instance.db_url,
-                    poolclass=QueuePool,
-                    pool_size=config.DB_POOL_SIZE,
-                    max_overflow=config.DB_MAX_OVERFLOW,
-                    pool_timeout=config.DB_POOL_TIMEOUT,
-                    pool_recycle=config.DB_POOL_RECYCLE,
-                    pool_pre_ping=True,  # Verify connections before usage
-                    connect_args={
-                        'connect_timeout': config.DB_CONNECT_TIMEOUT,
-                    }
-                )
-                cls._instance.Session = sessionmaker(bind=cls._instance.engine)
+                if config.DB_TYPE == 'sqlite':
+                    # SQLite support retained for development
+                    from sqlalchemy import create_engine
+                    from sqlalchemy.orm import sessionmaker
+                    
+                    cls._instance.db_url = f'sqlite:///{config.DB_PATH}'
+                    cls._instance.engine = create_engine(cls._instance.db_url)
+                    cls._instance.Session = sessionmaker(bind=cls._instance.engine)
+                    cls._instance.connection_type = 'sqlite'
+                else:
+                    # Use psycopg2 connection pooling for PostgreSQL
+                    try:
+                        cls._instance.pool = psycopg2.pool.ThreadedConnectionPool(
+                            minconn=1,
+                            maxconn=config.DB_POOL_SIZE,
+                            dbname=config.DB_NAME,
+                            user=config.DB_USER,
+                            password=config.DB_PASSWORD,
+                            host=config.DB_HOST,
+                            port=config.DB_PORT,
+                            sslmode=config.DB_SSLMODE
+                        )
+                        cls._instance.connection_type = 'postgres'
+                        logger.info(f"Initialized PostgreSQL connection pool to {config.DB_HOST}")
+                    except Exception as e:
+                        logger.error(f"Failed to initialize PostgreSQL connection pool: {e}")
+                        raise
+            
             return cls._instance
 
     @contextmanager
     def get_connection(self):
         """
-        Gets a thread-local database connection.
-        
-        Why thread-local?
-        - Each thread gets its own connection
-        - Prevents connection sharing between threads
-        - Ensures thread safety
-        
-        How it works:
-        1. Checks if thread has a connection
-        2. Creates new connection if needed
-        3. Returns connection for use
-        4. Connection persists for thread lifetime
+        Gets a database connection from the pool.
         
         Returns:
             Connection: Database connection
         """
-        if not hasattr(self._local, 'connection'):
-            self._local.connection = self.engine.connect()
-        yield self._local.connection
+        connection = None
+        try:
+            if self.connection_type == 'sqlite':
+                if not hasattr(self._local, 'connection'):
+                    self._local.connection = self.engine.connect()
+                connection = self._local.connection
+            else:
+                # Get PostgreSQL connection from pool
+                connection = self.pool.getconn()
+            
+            yield connection
+        finally:
+            if self.connection_type == 'postgres' and connection:
+                # Return PostgreSQL connection to pool
+                self.pool.putconn(connection)
 
     @contextmanager
     def transaction(self):
         """
         Provides a transaction context for database operations.
         
-        Why use transactions?
-        - Ensures atomic operations
-        - Automatic rollback on errors
-        - Groups related operations
-        
-        How it works:
-        1. Gets connection
-        2. Creates session
-        3. Executes operations
-        4. Commits if successful
-        5. Rolls back if error occurs
-        
-        Usage:
-            with db.transaction() as session:
-                session.execute("INSERT INTO...")
-        
         Returns:
-            Session: Database session for operations
+            Cursor: Database cursor for operations
         """
-        session = self.Session()
-        try:
-            yield session
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            logger.error(f"Transaction rolled back due to error: {str(e)}")
-            raise e
-        finally:
-            session.close()
+        if self.connection_type == 'sqlite':
+            # Use SQLAlchemy session for SQLite
+            session = self.Session()
+            try:
+                yield session
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Transaction rolled back due to error: {str(e)}")
+                raise e
+            finally:
+                session.close()
+        else:
+            # Use psycopg2 for PostgreSQL
+            conn = self.pool.getconn()
+            try:
+                # Auto-commit is off by default in psycopg2
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                yield cur
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Transaction rolled back due to error: {str(e)}")
+                raise e
+            finally:
+                cur.close()
+                self.pool.putconn(conn)
 
     @contextmanager
     def table_lock(self, table_name: str):
         """
         Provides table-level locking for thread-safe operations.
-        
-        Why table locks?
-        - Prevents concurrent modifications
-        - Finer control than database locks
-        - Better performance than full DB locks
-        
-        How it works:
-        1. Creates lock for table if not exists
-        2. Acquires lock before operations
-        3. Releases lock after operations
-        
-        Usage:
-            with db.table_lock('users'):
-                # perform thread-safe operations
         
         Args:
             table_name: Name of table to lock
@@ -171,18 +159,14 @@ class DatabaseConnectionManager:
 
     def close(self):
         """
-        Closes the thread's database connection.
-        
-        Why needed?
-        - Releases database resources
-        - Prevents connection leaks
-        - Proper cleanup
-        
-        When to use:
-        - Application shutdown
-        - Thread completion
-        - Resource cleanup
+        Closes all database connections.
         """
-        if hasattr(self._local, 'connection'):
-            self._local.connection.close()
-            del self._local.connection 
+        if self.connection_type == 'sqlite':
+            if hasattr(self._local, 'connection'):
+                self._local.connection.close()
+                del self._local.connection
+        else:
+            # Close the PostgreSQL connection pool
+            if hasattr(self, 'pool'):
+                self.pool.closeall()
+                logger.info("Closed all PostgreSQL connections in the pool") 

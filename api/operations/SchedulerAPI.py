@@ -9,6 +9,8 @@ import time
 import json
 from datetime import datetime
 from sqlalchemy.engine.url import URL
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 logger = get_logger(__name__)
 
@@ -346,41 +348,38 @@ def getJobHistory(job_id):
         
         # Connect to the jobs database
         config_instance = get_config()
+    
         
-        # Use SQLAlchemy for database access with explicit parameters
-        postgres_url = URL.create(
-            drivername="postgresql",
-            username=config_instance.DB_USER,
-            password=config_instance.DB_PASSWORD,
-            host=config_instance.DB_HOST,
-            port=config_instance.DB_PORT,
-            database=config_instance.DB_NAME,
-            query={"sslmode": config_instance.DB_SSLMODE}
-        )
-        
-        engine = create_engine(postgres_url)
-        with engine.connect() as conn:
-            result = conn.execute(
-                text("""
-                    SELECT id, start_time, end_time, status, error_message, created_at
-                    FROM job_executions
-                    WHERE job_id = :job_id
-                    ORDER BY start_time DESC
-                    LIMIT 10
-                """),
-                {"job_id": job_id}
+        history = []
+        try:
+            # Direct connection to PostgreSQL
+            conn = psycopg2.connect(
+                dbname=config_instance.DB_NAME,
+                user=config_instance.DB_USER,
+                password=config_instance.DB_PASSWORD,
+                host=config_instance.DB_HOST,
+                port=config_instance.DB_PORT,
+                sslmode=config_instance.DB_SSLMODE
             )
             
-            # Convert to list of dictionaries
-            for row in result:
-                history.append({
-                    'id': row[0],
-                    'start_time': row[1],
-                    'end_time': row[2],
-                    'status': row[3],
-                    'error_message': row[4],
-                    'created_at': row[5]
-                })
+            # Use RealDictCursor to get dictionary-like results
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, start_time, end_time, status, error_message, created_at
+                    FROM job_executions
+                    WHERE job_id = %s
+                    ORDER BY start_time DESC
+                    LIMIT 10
+                """, (job_id,))
+                
+                # Fetch all results
+                history = [dict(row) for row in cur.fetchall()]
+            
+            conn.close()
+            
+        except Exception as db_error:
+            logger.error(f"Database error getting job history: {str(db_error)}")
+            # Return empty history on error
         
         response = jsonify({
             'success': True,

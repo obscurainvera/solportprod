@@ -40,6 +40,8 @@ from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_
 from api.attention.AttentionReportAPI import attention_report_bp
 from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 from sqlalchemy.engine.url import URL
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 logger = get_logger(__name__)
 
@@ -62,55 +64,33 @@ def initialize_job_storage():
                 os.makedirs(db_dir)
             engine = create_engine(f'sqlite:///{config_instance.JOBS_DB_PATH}')
         else:
-            # Use PostgreSQL for jobs database in production with explicit parameters
-            
-            postgres_url = URL.create(
-                drivername="postgresql",
-                username=config_instance.DB_USER,
-                password=config_instance.DB_PASSWORD,
-                host=config_instance.DB_HOST,
-                port=config_instance.DB_PORT,
-                database=config_instance.DB_NAME
-            )
+            # Use PostgreSQL for jobs database in production with psycopg2-binary
 
-            logger.info(f"Using PostgreSQL URL: {postgres_url}")
             
-            engine = create_engine(
-                postgres_url,
-                pool_size=config_instance.DB_POOL_SIZE,
-                max_overflow=config_instance.DB_MAX_OVERFLOW,
-                pool_timeout=config_instance.DB_POOL_TIMEOUT,
-                pool_recycle=config_instance.DB_POOL_RECYCLE,
-                pool_pre_ping=True
-            )
-        
-        # Create monitoring tables with proper error handling
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS job_locks (
-                        job_id TEXT PRIMARY KEY,
-                        locked_at TIMESTAMP NOT NULL,
-                        timeout INTEGER NOT NULL
-                    )
-                """))
+            try:
+                # Create direct connection to PostgreSQL
+                conn = psycopg2.connect(
+                    dbname=config_instance.DB_NAME,
+                    user=config_instance.DB_USER,
+                    password=config_instance.DB_PASSWORD,
+                    host=config_instance.DB_HOST,
+                    port=config_instance.DB_PORT,
+                    sslmode=config_instance.DB_SSLMODE
+                )
                 
-                # Create job_executions table with DB-specific syntax
-                if config_instance.DB_TYPE == 'sqlite':
-                    conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS job_executions (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            job_id TEXT NOT NULL,
-                            start_time TIMESTAMP NOT NULL,
-                            end_time TIMESTAMP,
-                            status TEXT NOT NULL,
-                            error_message TEXT,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                # Create tables with psycopg2
+                with conn.cursor() as cur:
+                    # Create job_locks table
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS job_locks (
+                            job_id TEXT PRIMARY KEY,
+                            locked_at TIMESTAMP NOT NULL,
+                            timeout INTEGER NOT NULL
                         )
-                    """))
-                else:
-                    # PostgreSQL syntax
-                    conn.execute(text("""
+                    """)
+                    
+                    # Create job_executions table with PostgreSQL syntax
+                    cur.execute("""
                         CREATE TABLE IF NOT EXISTS job_executions (
                             id SERIAL PRIMARY KEY,
                             job_id TEXT NOT NULL,
@@ -120,11 +100,30 @@ def initialize_job_storage():
                             error_message TEXT,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
-                    """))
-            logger.info("Job storage initialized successfully")
-        except Exception as table_error:
-            logger.error(f"Failed to create job tables: {table_error}")
-            # We can continue without these tables - they'll be handled by the memory-based scheduler
+                    """)
+                
+                conn.commit()
+                conn.close()
+                logger.info("Job storage initialized successfully using psycopg2")
+                
+                # Still create SQLAlchemy engine for compatibility with existing code
+                engine = create_engine(
+                    f"postgresql://{config_instance.DB_USER}:{config_instance.DB_PASSWORD}@{config_instance.DB_HOST}:{config_instance.DB_PORT}/{config_instance.DB_NAME}?sslmode={config_instance.DB_SSLMODE}",
+                    pool_size=config_instance.DB_POOL_SIZE,
+                    max_overflow=config_instance.DB_MAX_OVERFLOW,
+                    pool_timeout=config_instance.DB_POOL_TIMEOUT,
+                    pool_recycle=config_instance.DB_POOL_RECYCLE,
+                    pool_pre_ping=True
+                )
+                
+            except psycopg2.Error as pg_error:
+                logger.error(f"PostgreSQL error: {pg_error}")
+                logger.warning("Application will continue with memory-based job storage")
+                raise
+            except Exception as e:
+                logger.error(f"Failed to connect to PostgreSQL with psycopg2: {e}")
+                logger.warning("Application will continue with memory-based job storage")
+                raise
     except Exception as e:
         logger.error(f"Failed to initialize job storage: {e}")
         logger.warning("Application will continue with memory-based job storage")
