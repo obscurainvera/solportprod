@@ -35,7 +35,7 @@ class JobHandler(BaseDBHandler):
             
             # Check if we're using PostgreSQL or SQLite
             if config.DB_TYPE == 'postgres':
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS jobs (
                         id SERIAL PRIMARY KEY,
                         job_id TEXT NOT NULL UNIQUE,
@@ -49,9 +49,9 @@ class JobHandler(BaseDBHandler):
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS job_executions (
                         id SERIAL PRIMARY KEY,
                         job_id TEXT NOT NULL,
@@ -62,10 +62,10 @@ class JobHandler(BaseDBHandler):
                         error TEXT,
                         FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
                     )
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS jobs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         job_id TEXT NOT NULL UNIQUE,
@@ -79,9 +79,9 @@ class JobHandler(BaseDBHandler):
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS job_executions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         job_id TEXT NOT NULL,
@@ -92,7 +92,7 @@ class JobHandler(BaseDBHandler):
                         error TEXT,
                         FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
                     )
-                ''')
+                '''))
 
     def get_all_jobs(self) -> List[Dict]:
         """Get all job records"""
@@ -104,9 +104,9 @@ class JobHandler(BaseDBHandler):
                     SELECT * FROM jobs ORDER BY created_at DESC
                 """))
             else:
-                cursor.execute("""
+                cursor.execute(text("""
                     SELECT * FROM jobs ORDER BY created_at DESC
-                """)
+                """))
             
             return [dict(row) for row in cursor.fetchall()]
 
@@ -120,9 +120,9 @@ class JobHandler(BaseDBHandler):
                     SELECT * FROM jobs WHERE job_id = %s
                 """), (job_id,))
             else:
-                cursor.execute("""
+                cursor.execute(text("""
                     SELECT * FROM jobs WHERE job_id = ?
-                """, (job_id,))
+                """), (job_id,))
                 
             row = cursor.fetchone()
             return dict(row) if row else None
@@ -140,11 +140,11 @@ class JobHandler(BaseDBHandler):
                     AND (next_run IS NULL OR next_run <= %s)
                 """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
             else:
-                cursor.execute("""
+                cursor.execute(text("""
                     SELECT * FROM jobs 
                     WHERE (status = ? OR status = ?) 
                     AND (next_run IS NULL OR next_run <= ?)
-                """, (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
+                """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
                 
             return [dict(row) for row in cursor.fetchall()]
 
@@ -178,14 +178,14 @@ class JobHandler(BaseDBHandler):
                         job_data['updated_at']
                     ))
                 else:
-                    cursor.execute("""
+                    cursor.execute(text("""
                         INSERT INTO jobs (
                             job_id, name, description, params, 
                             status, schedule, next_run, created_at, updated_at
                         ) VALUES (
                             ?, ?, ?, ?, ?, ?, ?, ?, ?
                         )
-                    """, (
+                    """), (
                         job_data['job_id'],
                         job_data['name'],
                         job_data.get('description'),
@@ -220,14 +220,14 @@ class JobHandler(BaseDBHandler):
                             WHERE job_id = %s
                         """), (status.value, current_time, next_run, current_time, job_id))
                     else:
-                        cursor.execute("""
+                        cursor.execute(text("""
                             UPDATE jobs 
                             SET status = ?, 
                                 last_run = ?, 
                                 next_run = ?,
                                 updated_at = ?
                             WHERE job_id = ?
-                        """, (status.value, current_time, next_run, current_time, job_id))
+                        """), (status.value, current_time, next_run, current_time, job_id))
                 else:
                     if config.DB_TYPE == 'postgres':
                         cursor.execute(text("""
@@ -238,13 +238,13 @@ class JobHandler(BaseDBHandler):
                             WHERE job_id = %s
                         """), (status.value, current_time, current_time, job_id))
                     else:
-                        cursor.execute("""
+                        cursor.execute(text("""
                             UPDATE jobs 
                             SET status = ?, 
                                 last_run = ?,
                                 updated_at = ?
                             WHERE job_id = ?
-                        """, (status.value, current_time, current_time, job_id))
+                        """), (status.value, current_time, current_time, job_id))
                 
             return True
         except Exception as e:
@@ -274,13 +274,13 @@ class JobHandler(BaseDBHandler):
                     row = cursor.fetchone()
                     return row[0] if row else None
                 else:
-                    cursor.execute("""
+                    cursor.execute(text("""
                         INSERT INTO job_executions (
                             job_id, start_time, end_time, status, result, error
                         ) VALUES (
                             ?, ?, ?, ?, ?, ?
                         )
-                    """, (
+                    """), (
                         job_id, start_time, end_time, status.value, result, error
                     ))
                     return cursor.lastrowid
@@ -306,14 +306,14 @@ class JobHandler(BaseDBHandler):
                         WHERE id = %s
                     """), (end_time, status.value, result, error, execution_id))
                 else:
-                    cursor.execute("""
+                    cursor.execute(text("""
                         UPDATE job_executions
                         SET end_time = ?,
                             status = ?,
                             result = ?,
                             error = ?
                         WHERE id = ?
-                    """, (end_time, status.value, result, error, execution_id))
+                    """), (end_time, status.value, result, error, execution_id))
                 
             return True
         except Exception as e:
@@ -333,12 +333,12 @@ class JobHandler(BaseDBHandler):
                     LIMIT %s
                 """), (job_id, limit))
             else:
-                cursor.execute("""
+                cursor.execute(text("""
                     SELECT * FROM job_executions
                     WHERE job_id = ?
                     ORDER BY start_time DESC
                     LIMIT ?
-                """, (job_id, limit))
+                """), (job_id, limit))
                 
             return [dict(row) for row in cursor.fetchall()]
 
@@ -353,8 +353,8 @@ class JobHandler(BaseDBHandler):
                     cursor.execute(text("DELETE FROM jobs WHERE job_id = %s"), (job_id,))
                 else:
                     # Delete executions first (SQLite might need this explicitly depending on constraints)
-                    cursor.execute("DELETE FROM job_executions WHERE job_id = ?", (job_id,))
-                    cursor.execute("DELETE FROM jobs WHERE job_id = ?", (job_id,))
+                    cursor.execute(text("DELETE FROM job_executions WHERE job_id = ?"), (job_id,))
+                    cursor.execute(text("DELETE FROM jobs WHERE job_id = ?"), (job_id,))
                 
             return True
         except Exception as e:

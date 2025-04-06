@@ -61,9 +61,21 @@ def initialize_job_storage():
                 os.makedirs(db_dir)
             engine = create_engine(f'sqlite:///{config_instance.JOBS_DB_PATH}')
         else:
-            # Use PostgreSQL for jobs database in production
+            # Use PostgreSQL for jobs database in production with explicit parameters
+            from sqlalchemy.engine.url import URL
+            
+            postgres_url = URL.create(
+                drivername="postgresql",
+                username=config_instance.DB_USER,
+                password=config_instance.DB_PASSWORD,
+                host=config_instance.DB_HOST,
+                port=config_instance.DB_PORT,
+                database=config_instance.DB_NAME,
+                query={"sslmode": config_instance.DB_SSLMODE}
+            )
+            
             engine = create_engine(
-                config_instance.get_database_url(),
+                postgres_url,
                 pool_size=config_instance.DB_POOL_SIZE,
                 max_overflow=config_instance.DB_MAX_OVERFLOW,
                 pool_timeout=config_instance.DB_POOL_TIMEOUT,

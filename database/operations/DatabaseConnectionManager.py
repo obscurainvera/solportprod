@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 import os
+from sqlalchemy.engine.url import URL
 
 logger = get_logger(__name__)
 
@@ -49,19 +50,35 @@ class DatabaseConnectionManager:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super(DatabaseConnectionManager, cls).__new__(cls)
-                db_url = db_url or get_config().get_database_url()
-                cls._instance.db_url = db_url
+                config = get_config()
+                
+                if db_url:
+                    cls._instance.db_url = db_url
+                elif config.DB_TYPE == 'sqlite':
+                    cls._instance.db_url = f'sqlite:///{config.DB_PATH}'
+                else:
+                    # Use PostgreSQL connection parameters
+                    cls._instance.db_url = URL.create(
+                        drivername="postgresql",
+                        username=config.DB_USER,
+                        password=config.DB_PASSWORD,
+                        host=config.DB_HOST,
+                        port=config.DB_PORT,
+                        database=config.DB_NAME,
+                        query={"sslmode": config.DB_SSLMODE}
+                    )
+                
                 # Configure SQLAlchemy engine with PostgreSQL-specific settings for cloud environments
                 cls._instance.engine = create_engine(
-                    db_url,
+                    cls._instance.db_url,
                     poolclass=QueuePool,
-                    pool_size=int(os.getenv('DB_POOL_SIZE', '5')),
-                    max_overflow=int(os.getenv('DB_MAX_OVERFLOW', '10')),
-                    pool_timeout=int(os.getenv('DB_POOL_TIMEOUT', '30')),
-                    pool_recycle=int(os.getenv('DB_POOL_RECYCLE', '1800')),
+                    pool_size=config.DB_POOL_SIZE,
+                    max_overflow=config.DB_MAX_OVERFLOW,
+                    pool_timeout=config.DB_POOL_TIMEOUT,
+                    pool_recycle=config.DB_POOL_RECYCLE,
                     pool_pre_ping=True,  # Verify connections before usage
                     connect_args={
-                        'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '10')),
+                        'connect_timeout': config.DB_CONNECT_TIMEOUT,
                     }
                 )
                 cls._instance.Session = sessionmaker(bind=cls._instance.engine)

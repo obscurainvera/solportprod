@@ -15,12 +15,18 @@ class Config:
     
     # Database settings
     DB_TYPE = os.getenv('DB_TYPE', 'postgres')  # Default to PostgreSQL
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    
+    # Remove http:// or https:// prefix from DB_HOST if present
+    _DB_HOST = os.getenv('DB_HOST', 'localhost')
+    if _DB_HOST.startswith(('http://', 'https://')):
+        DB_HOST = _DB_HOST.split('://', 1)[1]
+    else:
+        DB_HOST = _DB_HOST
     
     # Handle empty DB_PORT by ensuring it has a default
     _DB_PORT = os.getenv('DB_PORT', '5432')
     try:
-        DB_PORT = int(_DB_PORT) if _DB_PORT.strip() else 5432
+        DB_PORT = int(_DB_PORT) if _DB_PORT and _DB_PORT.strip() else 5432
     except (ValueError, AttributeError):
         # If conversion fails, use default
         DB_PORT = 5432
@@ -29,38 +35,44 @@ class Config:
     DB_USER = os.getenv('DB_USER', 'postgres')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     DB_PATH = os.getenv('DB_PATH', os.path.join(PROJECT_ROOT, 'portfolio.db'))
-    DB_SSLMODE = os.getenv('DB_SSLMODE', 'prefer')  # SSL mode for PostgreSQL cloud connections
+    DB_SSLMODE = os.getenv('DB_SSLMODE', 'disable')  # SSL mode for PostgreSQL cloud connections
     
     # Handle empty values for connection pooling parameters
+    _DB_POOL_SIZE = os.getenv('DB_POOL_SIZE', '5')
     try:
-        DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
+        DB_POOL_SIZE = int(_DB_POOL_SIZE) if _DB_POOL_SIZE and _DB_POOL_SIZE.strip() else 5
     except ValueError:
         DB_POOL_SIZE = 5
         
+    _DB_MAX_OVERFLOW = os.getenv('DB_MAX_OVERFLOW', '10')
     try:
-        DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
+        DB_MAX_OVERFLOW = int(_DB_MAX_OVERFLOW) if _DB_MAX_OVERFLOW and _DB_MAX_OVERFLOW.strip() else 10
     except ValueError:
         DB_MAX_OVERFLOW = 10
         
+    _DB_POOL_TIMEOUT = os.getenv('DB_POOL_TIMEOUT', '30')
     try:
-        DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '30'))
+        DB_POOL_TIMEOUT = int(_DB_POOL_TIMEOUT) if _DB_POOL_TIMEOUT and _DB_POOL_TIMEOUT.strip() else 30
     except ValueError:
         DB_POOL_TIMEOUT = 30
         
+    _DB_POOL_RECYCLE = os.getenv('DB_POOL_RECYCLE', '1800')
     try:
-        DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
+        DB_POOL_RECYCLE = int(_DB_POOL_RECYCLE) if _DB_POOL_RECYCLE and _DB_POOL_RECYCLE.strip() else 1800
     except ValueError:
         DB_POOL_RECYCLE = 1800
         
+    _DB_CONNECT_TIMEOUT = os.getenv('DB_CONNECT_TIMEOUT', '10')
     try:
-        DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
+        DB_CONNECT_TIMEOUT = int(_DB_CONNECT_TIMEOUT) if _DB_CONNECT_TIMEOUT and _DB_CONNECT_TIMEOUT.strip() else 10
     except ValueError:
         DB_CONNECT_TIMEOUT = 10
     
     # API settings
     API_HOST = os.getenv('API_HOST', '0.0.0.0')
+    _API_PORT = os.getenv('API_PORT', '8080')
     try:
-        API_PORT = int(os.getenv('API_PORT', '8080'))
+        API_PORT = int(_API_PORT) if _API_PORT and _API_PORT.strip() else 8080
     except ValueError:
         API_PORT = 8080
     API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
@@ -140,7 +152,7 @@ class ProductionConfig(Config):
     Production configuration.
     """
     DB_TYPE = 'postgres'  # Always use PostgreSQL in production
-    DB_SSLMODE = 'require'  # Require SSL in production
+    DB_SSLMODE = 'disable'  # Disable SSL as requested
     API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.solport.com')  # Production API URL
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'https://solport.com').split(',')
     LOG_LEVEL = 'INFO'

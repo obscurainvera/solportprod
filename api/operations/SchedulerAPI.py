@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, text
 import time
 import json
 from datetime import datetime
+from sqlalchemy.engine.url import URL
 
 logger = get_logger(__name__)
 
@@ -346,8 +347,18 @@ def getJobHistory(job_id):
         # Connect to the jobs database
         config_instance = get_config()
         
-        # Use SQLAlchemy for database access (compatible with both SQLite and PostgreSQL)
-        engine = create_engine(config_instance.get_database_url())
+        # Use SQLAlchemy for database access with explicit parameters
+        postgres_url = URL.create(
+            drivername="postgresql",
+            username=config_instance.DB_USER,
+            password=config_instance.DB_PASSWORD,
+            host=config_instance.DB_HOST,
+            port=config_instance.DB_PORT,
+            database=config_instance.DB_NAME,
+            query={"sslmode": config_instance.DB_SSLMODE}
+        )
+        
+        engine = create_engine(postgres_url)
         with engine.connect() as conn:
             result = conn.execute(
                 text("""
