@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from actions.WalletsInvestedAction import WalletsInvestedAction
