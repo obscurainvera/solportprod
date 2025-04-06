@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Scheduler to persist all the smart money wallets data from the API
 """

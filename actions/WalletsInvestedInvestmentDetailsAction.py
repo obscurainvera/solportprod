@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Takes all the transactions of a wallet and token and calculates 
 the total invested, 

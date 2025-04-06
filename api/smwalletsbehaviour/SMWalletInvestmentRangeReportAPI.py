@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from database.smwalletsbehaviour.SMWalletInvestmentRangeReportHandler import SMWalletInvestmentRangeReportHandler
@@ -51,7 +51,7 @@ def get_wallet_investment_range_report(wallet_address):
             
             response = jsonify(response_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:
@@ -118,7 +118,7 @@ def get_top_wallets_investment_range_reports(limit):
             
             response = jsonify(response_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:
@@ -169,7 +169,7 @@ def get_batch_investment_range_reports():
                 "message": "Request must include 'walletAddresses' array"
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 400
             
         wallet_addresses = request_data['walletAddresses']
@@ -180,7 +180,7 @@ def get_batch_investment_range_reports():
                 "message": "'walletAddresses' must be a non-empty array"
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 400
             
         # Limit batch size to prevent overloading
@@ -211,7 +211,7 @@ def get_batch_investment_range_reports():
             
             response = jsonify(response_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:
@@ -269,7 +269,7 @@ def get_tokens_by_range(wallet_address, range_id):
             
             response = jsonify(response_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 400
         
         logger.info(f"Processing tokens by range request for wallet: {wallet_address}, range: {range_id}")
@@ -294,7 +294,7 @@ def get_tokens_by_range(wallet_address, range_id):
             
             response = jsonify(response_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:

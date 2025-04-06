@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 from database.strategyreport.StrategyPerformanceHandler import StrategyPerformanceHandler

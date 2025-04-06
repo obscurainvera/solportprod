@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from decimal import Decimal

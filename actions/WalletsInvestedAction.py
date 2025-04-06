@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 "Takes all the wallets invested in a specific token and persists them to the database"
 
 from typing import Optional, Dict, Any, List

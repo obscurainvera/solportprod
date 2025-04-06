@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from database.portsummary.PortSummaryReportHandler import PortSummaryReportHandler
@@ -50,7 +50,7 @@ def get_port_summary():
                     'message': "Handler 'port_summary_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
                 return response, 500
                 
             portSummaryData = handler.getPortSummaryReport(
@@ -156,7 +156,7 @@ def get_token_history(token_id):
                     'message': "Handler 'port_summary_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response, 500
                 
             # Get historical data for the token
@@ -166,7 +166,7 @@ def get_token_history(token_id):
                 logger.warning(f"No history data found for token ID: {token_id}")
                 response = jsonify([])
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response
                 
             logger.info(f"Retrieved {len(history_data)} history records for token ID: {token_id}")
@@ -190,7 +190,7 @@ def get_token_history(token_id):
             
             response = jsonify(formatted_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:

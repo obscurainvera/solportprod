@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from database.attention.AttentionReportHandler import AttentionReportHandler
@@ -41,7 +41,7 @@ def get_attention_report():
                 'message': "Handler 'attention_report' not found"
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 500
                 
         attentionData = handler.getAttentionReport(
@@ -94,7 +94,7 @@ def get_attention_history(tokenId):
                     'message': "Handler 'attention_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response, 500
                 
             historyData = handler.getAttentionHistoryById(tokenId)
@@ -138,7 +138,7 @@ def get_attention_filters():
                     'message': "Handler 'attention_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response, 500
                 
             statusOptions = handler.getAttentionStatusOptions()

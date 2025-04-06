@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from database.operations.BaseDBHandler import BaseDBHandler
 from database.operations.schema import PortfolioSummary
 from typing import List, Dict, Optional, Any
@@ -7,6 +7,7 @@ import sqlite3
 from logs.logger import get_logger
 from datetime import datetime
 import json
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 
 logger = get_logger(__name__)
 

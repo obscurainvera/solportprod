@@ -2,7 +2,7 @@
 Persists all the attention scores for the that specific time period
 """
 
-from config.config import get_config
+from config.Config import get_config
 from database.operations.PortfolioDB import PortfolioDB
 from config.Security import COOKIE_MAP, isValidCookie
 from logs.logger import get_logger

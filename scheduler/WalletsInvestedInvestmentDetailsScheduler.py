@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Dict
 from database.operations.PortfolioDB import PortfolioDB
 from config.Security import COOKIE_MAP, isValidCookie

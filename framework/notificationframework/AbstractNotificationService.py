@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Abstract base class for notification services
 """
@@ -14,7 +14,7 @@ class AbstractNotificationService(ABC):
     Defines the interface that all notification services must implement.
     """
     
-    def __init__(self, db: SQLitePortfolioDB):
+    def __init__(self, db: DatabaseConnectionManager):
         """
         Initialize the notification service with database connection
         

@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request, current_app
 from logs.logger import get_logger
 from scheduler.JobRunner import JobRunner

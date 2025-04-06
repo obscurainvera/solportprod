@@ -1,8 +1,8 @@
-from config.config import get_config
-# database/smwalletsbehaviour/SmartMoneyWalletBehaviourReportHandler.py
+from config.Config import get_config
 from database.operations.BaseDBHandler import BaseDBHandler
 from typing import List, Dict, Optional, Any
 from datetime import datetime
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 from logs.logger import get_logger
 import pandas as pd
 import json

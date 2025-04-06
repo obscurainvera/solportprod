@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Fetches token price information from DexScreener API and returns price details for
 the Raydium pool

@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from database.operations.schema import SMWalletTopPnlToken

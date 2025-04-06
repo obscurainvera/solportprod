@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Marks portfolio records as inactive if they haven't been seen for more than 2 days
 Runs daily to clean up tokens that are no longer tracked by smart money wallets

@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import Optional, Dict, Any, List, Tuple
 from database.portsummary.PortfolioHandler import PortfolioHandler
 from framework.analyticsframework.models.BaseModels import BaseTokenData, BaseStrategyConfig

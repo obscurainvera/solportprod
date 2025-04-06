@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from database.strategyreport.StrategyReportHandler import StrategyReportHandler
@@ -96,7 +96,7 @@ def get_strategy_detail(strategy_id):
                 'timestamp': datetime.now().isoformat()
             })
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response, 404
         
         # Return the response

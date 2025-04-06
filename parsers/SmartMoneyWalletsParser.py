@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Optional, Dict, Union
 from database.operations.schema import SmartMoneyWallet
 from decimal import Decimal, InvalidOperation

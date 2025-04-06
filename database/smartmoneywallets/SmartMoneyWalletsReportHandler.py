@@ -1,11 +1,13 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Dict, Any, Optional
 from database.operations.BaseDBHandler import BaseDBHandler
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 from logs.logger import get_logger
 import json
 import sqlite3
 import requests
 from actions.DexscrennerAction import DexScreenerAction
+
 
 logger = get_logger(__name__)
 

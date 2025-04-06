@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Takes attention scores for tokens and stores them in the database with analysis
 """

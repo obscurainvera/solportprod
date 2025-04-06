@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Notification Manager
 Provides a simple interface for sending notifications
@@ -21,7 +21,7 @@ class NotificationManager:
     Provides a simple interface for sending notifications to various services
     """
     
-    def __init__(self, db: SQLitePortfolioDB):
+    def __init__(self, db: DatabaseConnectionManager):
         """
         Initialize the notification manager
         

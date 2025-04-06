@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from actions.WalletsInvestedInvestmentDetailsAction import WalletsInvestedInvestmentDetailsAction
@@ -141,7 +141,7 @@ def handle_options_request():
     """Helper function to handle OPTIONS requests with CORS headers"""
     response = jsonify({})
     config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+    response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
     return response, 200
@@ -159,6 +159,6 @@ def create_response(status, message, status_code=200, additional_data=None):
         
     response = jsonify(response_data)
     config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+    response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
     
     return response, status_code 

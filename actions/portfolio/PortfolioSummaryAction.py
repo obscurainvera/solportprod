@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Takes all the tokens in portfolio summary and stores them in portfolio_summary table and
 in case of duplicate tokens, it updates the record and records the history

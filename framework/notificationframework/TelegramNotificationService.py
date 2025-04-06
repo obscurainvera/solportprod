@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Telegram implementation of the notification service
 """
@@ -23,7 +23,7 @@ class TelegramNotificationService(AbstractNotificationService):
     Handles sending messages to Telegram chat groups.
     """
     
-    def __init__(self, db: SQLitePortfolioDB):
+    def __init__(self, db: DatabaseConnectionManager):
         """
         Initialize the Telegram notification service
         

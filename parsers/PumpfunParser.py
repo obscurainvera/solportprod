@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """Parsers for pump fun signals data"""
 
 from dataclasses import dataclass

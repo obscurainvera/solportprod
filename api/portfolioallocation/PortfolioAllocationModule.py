@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from math import pow
 from typing import Dict, List, Any, Tuple, Optional
 from logs.logger import get_logger

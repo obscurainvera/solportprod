@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Finds invested amount, taken out amount and total coins for high pnl wallets
 for a particular token

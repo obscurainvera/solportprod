@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import jsonify, Blueprint, request
 from scheduler.VolumebotScheduler import VolumeBotScheduler
 from actions.VolumebotAction import VolumebotAction

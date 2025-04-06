@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Takes all the token help by smart money through portfolio summary api and persists them to the database
 

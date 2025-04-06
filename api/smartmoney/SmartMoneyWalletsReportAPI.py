@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB
 from database.smartmoneywallets.SmartMoneyWalletsReportHandler import SmartMoneyWalletsReportHandler
@@ -51,7 +51,7 @@ def get_wallet_token_details(wallet_address):
                     'message': "Handler 'smart_money_wallets_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response, 500
                 
             report_data = handler.getSmartMoneyWalletReport(
@@ -63,7 +63,7 @@ def get_wallet_token_details(wallet_address):
             # Return the data
             response = jsonify(report_data)
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:
@@ -112,7 +112,7 @@ def get_top_smart_money_wallets():
                     'message': "Handler 'smart_money_wallets_report' not found"
                 })
                 config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
                 return response, 500
                 
             wallets = handler.getTopSmartMoneyWallets(limit=limit)
@@ -120,7 +120,7 @@ def get_top_smart_money_wallets():
             # Return the data
             response = jsonify({'wallets': wallets})
             config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
+            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
             return response
             
     except Exception as e:

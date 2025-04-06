@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from database.operations.BaseDBHandler import BaseDBHandler
 from database.operations.schema import WalletsInvested, WalletInvestedStatusEnum
 from typing import List, Dict, Optional, Any

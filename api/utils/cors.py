@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Response
 
 def add_cors_headers(response, status_code=200):

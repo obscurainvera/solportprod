@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from logs.logger import get_logger

@@ -1,5 +1,5 @@
-from config.config import get_config
-from solportprod.database.operations.connection_manager import DatabaseConnectionManager
+from config.Config import get_config
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 """
 Handler for notification database operations
 """

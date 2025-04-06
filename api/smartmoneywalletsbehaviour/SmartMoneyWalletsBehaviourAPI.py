@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 # api/smwallet_behaviour/smwallet_behaviour_api.py
 from flask import Blueprint, jsonify, request
 from scheduler.SMWalletBehaviourScheduler import SMWalletBehaviourScheduler

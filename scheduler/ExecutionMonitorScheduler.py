@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Monitors active strategy executions for profit targets and stop losses
 

@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Optional, Dict, Any
 from database.operations.schema import AttentionData
 from decimal import Decimal

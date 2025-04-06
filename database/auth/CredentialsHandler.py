@@ -1,10 +1,11 @@
-from config.config import get_config
+from config.Config import get_config
 from database.auth.ServiceCredentialsEnum import ServiceCredentials
 from database.operations.BaseDBHandler import BaseDBHandler
 from typing import Dict, Optional, Any
 from datetime import datetime
 from logs.logger import get_logger
 import json
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 
 logger = get_logger(__name__)
 

@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 # api/smwalletsbehaviour/SMWalletBehaviourReportAPI.py
 from flask import Blueprint, jsonify, request
 from database.operations.PortfolioDB import PortfolioDB

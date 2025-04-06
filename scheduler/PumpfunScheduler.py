@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Take all the tokens that came through the pump fun bot and persist them to the database
 

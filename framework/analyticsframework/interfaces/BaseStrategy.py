@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
 from decimal import Decimal

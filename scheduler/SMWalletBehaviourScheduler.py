@@ -1,5 +1,4 @@
 from config.Config import get_config
-# scheduler/smwallet_behaviour_scheduler.py
 from database.operations.PortfolioDB import PortfolioDB
 from actions.SmartMoneyWalletBehaviourAction import SmartMoneyWalletBehaviourAction
 from logs.logger import get_logger

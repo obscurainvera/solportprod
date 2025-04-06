@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from typing import List, Dict, Any, Optional, Tuple
 from database.operations.BaseDBHandler import BaseDBHandler
 from database.operations.DatabaseConnectionManager import DatabaseConnectionManager

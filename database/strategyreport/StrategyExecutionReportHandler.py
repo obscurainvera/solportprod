@@ -1,8 +1,9 @@
-from config.config import get_config
+from config.Config import get_config
 from database.operations.BaseDBHandler import BaseDBHandler
 from typing import List, Dict, Optional, Any
 from decimal import Decimal
 import sqlite3
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 from logs.logger import get_logger
 from datetime import datetime
 from actions.DexscrennerAction import DexScreenerAction

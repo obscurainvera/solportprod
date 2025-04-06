@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Blueprint, jsonify, request, redirect, url_for
 from framework.analyticsframework.api.CreateStrategyAPI import CreateStrategyAPI
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType

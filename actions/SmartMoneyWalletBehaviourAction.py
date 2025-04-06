@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 # actions/smwallet_behaviour_action.py
 from database.operations.PortfolioDB import PortfolioDB
 from database.smwalletsbehaviour.SmartMoneyWalletBehaviourHandler import SmartMoneyWalletBehaviourHandler

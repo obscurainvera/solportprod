@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 API endpoints for strategy execution monitoring
 """
