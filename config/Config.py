@@ -16,21 +16,53 @@ class Config:
     # Database settings
     DB_TYPE = os.getenv('DB_TYPE', 'postgres')  # Default to PostgreSQL
     DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = int(os.getenv('DB_PORT', '5432'))
+    
+    # Handle empty DB_PORT by ensuring it has a default
+    _DB_PORT = os.getenv('DB_PORT', '5432')
+    try:
+        DB_PORT = int(_DB_PORT) if _DB_PORT.strip() else 5432
+    except (ValueError, AttributeError):
+        # If conversion fails, use default
+        DB_PORT = 5432
+        
     DB_NAME = os.getenv('DB_NAME', 'portfolio')
     DB_USER = os.getenv('DB_USER', 'postgres')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     DB_PATH = os.getenv('DB_PATH', os.path.join(PROJECT_ROOT, 'portfolio.db'))
     DB_SSLMODE = os.getenv('DB_SSLMODE', 'prefer')  # SSL mode for PostgreSQL cloud connections
-    DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
-    DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
-    DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '30'))
-    DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
-    DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
+    
+    # Handle empty values for connection pooling parameters
+    try:
+        DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
+    except ValueError:
+        DB_POOL_SIZE = 5
+        
+    try:
+        DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
+    except ValueError:
+        DB_MAX_OVERFLOW = 10
+        
+    try:
+        DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '30'))
+    except ValueError:
+        DB_POOL_TIMEOUT = 30
+        
+    try:
+        DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
+    except ValueError:
+        DB_POOL_RECYCLE = 1800
+        
+    try:
+        DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
+    except ValueError:
+        DB_CONNECT_TIMEOUT = 10
     
     # API settings
     API_HOST = os.getenv('API_HOST', '0.0.0.0')
-    API_PORT = int(os.getenv('API_PORT', '8080'))
+    try:
+        API_PORT = int(os.getenv('API_PORT', '8080'))
+    except ValueError:
+        API_PORT = 8080
     API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
     
     # CORS settings
