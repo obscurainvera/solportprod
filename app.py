@@ -70,8 +70,7 @@ def initialize_job_storage():
                 password=config_instance.DB_PASSWORD,
                 host=config_instance.DB_HOST,
                 port=config_instance.DB_PORT,
-                database=config_instance.DB_NAME,
-                query={"sslmode": config_instance.DB_SSLMODE}
+                database=config_instance.DB_NAME
             )
 
             logger.info(f"Using PostgreSQL URL: {postgres_url}")
