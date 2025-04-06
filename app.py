@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import time

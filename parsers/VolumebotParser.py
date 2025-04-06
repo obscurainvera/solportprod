@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """Parsers for volume signals data"""
 
 from dataclasses import dataclass
@@ -99,19 +99,3 @@ def _parseDatetime(value: str) -> Optional[datetime]:
         return datetime.fromisoformat(value.replace('Z', '+00:00'))
     except (ValueError, TypeError):
         return None
-
-def validateVolumeSymbol(item: Dict) -> bool:
-    """Validate volume signal data"""
-    # Required fields must exist and have valid values
-    requiredFields = ['token_id', 'symbol', 'name', 'chain']
-    if not all(item.get(field) for field in requiredFields):
-        return False
-        
-    # Minimum thresholds
-    if item['liquidity'] < Decimal('1000'):  # $1K min liquidity
-        return False
-        
-    if item['volume24h'] < Decimal('10000'):  # $10K min 24h volume
-        return False
-        
-    return True

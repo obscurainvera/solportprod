@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Handles all Solscan API related operations including transaction processing
 """

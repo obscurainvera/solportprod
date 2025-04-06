@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Takes all the tokens in volume signals and stores them in volume_signals table and
 in case of duplicate tokens, it updates the record and records the history

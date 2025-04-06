@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 """
 Take all the tokens that came through the volume bot and persist them to the database
 
@@ -18,16 +18,13 @@ class VolumeBotScheduler:
     """Manages volume signals collection and scheduling"""
     
     def __init__(self, dbPath: str = None):
-        # The dbPath parameter is no longer needed as PortfolioDB gets config internally
-        # if dbPath is None:
-        #     dbPath = config.get("DB_PATH")
         """
         Initialize scheduler with database instance
         
         Args:
             dbPath: Path to SQLite database file (DEPRECATED)
         """
-        self.db = PortfolioDB() # Initialize without dbPath
+        self.db = PortfolioDB() 
         self.action = VolumebotAction(self.db)
         logger.info(f"Volume bot scheduler initialized using database configuration")
 

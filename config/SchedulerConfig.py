@@ -3,7 +3,7 @@ Scheduler configuration settings
 """
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from config.config import get_config
+from config.Config import get_config
 
 # Get database configuration
 config = get_config()

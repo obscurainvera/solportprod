@@ -1,4 +1,4 @@
-from config.config import get_config
+from config.Config import get_config
 from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
 from database.portsummary.PortfolioHandler import PortfolioHandler
 from database.smwalletsbehaviour.SmartMoneyWalletBehaviourHandler import SmartMoneyWalletBehaviourHandler
