@@ -39,6 +39,7 @@ from api.smwalletsbehaviour.SMWalletInvestmentRangeReportAPI import smwallet_inv
 from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_bp
 from api.attention.AttentionReportAPI import attention_report_bp
 from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
+from sqlalchemy.engine.url import URL
 
 logger = get_logger(__name__)
 
@@ -62,7 +63,6 @@ def initialize_job_storage():
             engine = create_engine(f'sqlite:///{config_instance.JOBS_DB_PATH}')
         else:
             # Use PostgreSQL for jobs database in production with explicit parameters
-            from sqlalchemy.engine.url import URL
             
             postgres_url = URL.create(
                 drivername="postgresql",
@@ -73,6 +73,8 @@ def initialize_job_storage():
                 database=config_instance.DB_NAME,
                 query={"sslmode": config_instance.DB_SSLMODE}
             )
+
+            logger.info(f"Using PostgreSQL URL: {postgres_url}")
             
             engine = create_engine(
                 postgres_url,
