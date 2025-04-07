@@ -22,12 +22,8 @@ def analyzeAttention():
         JSON response with execution status and statistics
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     startTime = time.time()
     logger.info("Manual attention analysis triggered")
@@ -41,37 +37,28 @@ def analyzeAttention():
         
         if result:
             logger.info(f"Attention analysis completed in {executionTime:.2f} seconds")
-            response = jsonify({
+            return jsonify({
                 "status": "success",
                 "message": "Attention analysis completed successfully",
                 "execution_time": f"{executionTime:.2f}s"
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
         logger.error("Attention analysis failed - no data processed")
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": "No attention data processed",
             "execution_time": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
         
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Attention analysis failed: {str(e)}"
         logger.error(errorMessage)
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": errorMessage,
             "execution_time": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @attention_bp.route('/api/attention/solana/analyze', methods=['POST', 'OPTIONS'])
 def analyzeSolanaAttention():
@@ -81,12 +68,8 @@ def analyzeSolanaAttention():
         JSON response with execution status and statistics
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     startTime = time.time()
     logger.info("Manual Solana attention analysis triggered")
@@ -100,35 +83,26 @@ def analyzeSolanaAttention():
         
         if result:
             logger.info(f"Solana attention analysis completed in {executionTime:.2f} seconds")
-            response = jsonify({
+            return jsonify({
                 "status": "success",
                 "message": "Solana attention analysis completed successfully",
                 "execution_time": f"{executionTime:.2f}s",
                 "tokens_processed": result
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
         logger.error("Solana attention analysis failed - no data processed")
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": "No Solana attention data processed",
             "execution_time": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
         
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Solana attention analysis failed: {str(e)}"
         logger.error(errorMessage)
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": errorMessage,
             "execution_time": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500

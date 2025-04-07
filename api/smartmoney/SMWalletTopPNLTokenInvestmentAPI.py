@@ -24,12 +24,7 @@ def persistInvestmentDetailsForAllTopPNLTokens():
         JSON response with success status
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get valid cookies
@@ -39,10 +34,11 @@ def persistInvestmentDetailsForAllTopPNLTokens():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for investment detail processing")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         db = PortfolioDB()
         action = SMWalletTopPNLTokensInvestmentDetailsAction(db)
@@ -50,49 +46,41 @@ def persistInvestmentDetailsForAllTopPNLTokens():
         success = action.handleInvestmentDetailsOfAllHighPNLSMWallets(cookie=validCookies[0])
         
         if success:
-            response = jsonify({
-                'success': True,
+            logger.info("Successfully updated investment details for top/bottom performing tokens")
+            return jsonify({
+                'status': 'success',
                 'message': 'Successfully updated investment details for top and bottom performing tokens of high PNL wallets'
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.error("Failed to update investment details for tokens")
+        return jsonify({
+            'status': 'error',
             'message': 'Failed to update investment details for tokens'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"API Error in persist/all: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @smwallet_top_pnl_token_investment_bp.route('/api/smwallettoppnltokeninvestment/persist/wallet', methods=['POST', 'OPTIONS'])
 def persistInvestmentDetailsForAllTopPNLTokensForASpecificWallet():
     """Update all tokens for a specific wallet"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         data = request.get_json()
         walletAddress = data.get('wallet_address')
         
         if not walletAddress:
-            response = jsonify({'error': 'Wallet address is required'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.warning("Wallet address missing in investment details request")
+            return jsonify({
+                'status': 'error',
+                'message': 'Wallet address is required'
+            }), 400
 
         # Get valid cookies
         validCookies = [
@@ -101,10 +89,11 @@ def persistInvestmentDetailsForAllTopPNLTokensForASpecificWallet():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for wallet-specific investment detail processing")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         db = PortfolioDB()
         action = SMWalletTopPNLTokensInvestmentDetailsAction(db)
@@ -112,39 +101,30 @@ def persistInvestmentDetailsForAllTopPNLTokensForASpecificWallet():
         success = action.handleInvestmentDetailsOfASpecificWallet(walletAddress, cookie=validCookies[0])
         
         if success:
-            response = jsonify({
-                'success': True,
+            logger.info(f"Successfully updated tokens for wallet {walletAddress}")
+            return jsonify({
+                'status': 'success',
                 'message': f'Successfully updated tokens for wallet {walletAddress}'
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.error(f"Failed to update tokens for wallet {walletAddress}")
+        return jsonify({
+            'status': 'error',
             'message': f'Failed to update tokens for wallet {walletAddress}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"API Error in persist/wallet: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @smwallet_top_pnl_token_investment_bp.route('/api/smwallettoppnltokeninvestment/persist/wallet/token', methods=['POST', 'OPTIONS'])
 def persistInvestmentDetailsForASpecificTokenHeldByASMWallet():
     """Update a specific token for a specific wallet"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         data = request.get_json()
@@ -152,10 +132,11 @@ def persistInvestmentDetailsForASpecificTokenHeldByASMWallet():
         tokenAddress = data.get('token_address')
         
         if not walletAddress or not tokenAddress:
-            response = jsonify({'error': 'Wallet address and token address are required'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.warning("Wallet or token address missing in token investment details request")
+            return jsonify({
+                'status': 'error',
+                'message': 'Wallet address and token address are required'
+            }), 400
 
         # Get valid cookies
         validCookies = [
@@ -164,10 +145,11 @@ def persistInvestmentDetailsForASpecificTokenHeldByASMWallet():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for specific token investment detail processing")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         db = PortfolioDB()
         action = SMWalletTopPNLTokensInvestmentDetailsAction(db)
@@ -175,28 +157,24 @@ def persistInvestmentDetailsForASpecificTokenHeldByASMWallet():
         success = action.findInvestmentDataForToken(walletAddress, tokenAddress, cookie=validCookies[0])
         
         if success:
-            response = jsonify({
-                'success': True,
+            logger.info(f"Successfully updated token {tokenAddress} for wallet {walletAddress}")
+            return jsonify({
+                'status': 'success',
                 'message': f'Successfully updated token {tokenAddress} for wallet {walletAddress}'
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.error(f"Failed to update token {tokenAddress} for wallet {walletAddress}")
+        return jsonify({
+            'status': 'error',
             'message': f'Failed to update token {tokenAddress} for wallet {walletAddress}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"API Error in persist/wallet/token: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @smwallet_top_pnl_token_investment_bp.route('/api/smwallettoppnltokeninvestment/persist/all/notokensfilter', methods=['POST', 'OPTIONS'])
 def persistInvestmentDetailsForAllTokensNoFiltering():
@@ -205,12 +183,7 @@ def persistInvestmentDetailsForAllTokensNoFiltering():
     This processes every token instead of just top 30% and bottom 20%.
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get valid cookies
@@ -220,10 +193,11 @@ def persistInvestmentDetailsForAllTokensNoFiltering():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for unfiltered investment detail processing")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         db = PortfolioDB()
         action = SMWalletTopPNLTokensInvestmentDetailsAction(db)
@@ -232,28 +206,24 @@ def persistInvestmentDetailsForAllTokensNoFiltering():
         success = action.handleInvestmentDetailsOfAllTokens(cookie=validCookies[0])
         
         if success:
-            response = jsonify({
-                'success': True,
+            logger.info("Successfully updated investment details for ALL tokens (no filtering)")
+            return jsonify({
+                'status': 'success',
                 'message': 'Successfully updated investment details for ALL tokens of high PNL wallets (no filtering)'
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.error("Failed to update investment details for unfiltered tokens")
+        return jsonify({
+            'status': 'error',
             'message': 'Failed to update investment details for tokens'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"API Error in persist/all/notokensfilter: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @smwallet_top_pnl_token_investment_bp.route('/api/smwallettoppnltokeninvestment/persist/wallet/filtered', methods=['POST', 'OPTIONS'])
 def persistInvestmentDetailsForWalletWithCustomFiltering():
@@ -262,12 +232,7 @@ def persistInvestmentDetailsForWalletWithCustomFiltering():
     Allows specifying whether to filter tokens and the percentiles to use.
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         data = request.json
@@ -277,10 +242,11 @@ def persistInvestmentDetailsForWalletWithCustomFiltering():
         bottom_percent = float(data.get('bottomPercent', 0.2))
         
         if not wallet_address:
-            response = jsonify({'error': 'Wallet address is required'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.warning("Wallet address missing in custom filtering request")
+            return jsonify({
+                'status': 'error',
+                'message': 'Wallet address is required'
+            }), 400
             
         # Get valid cookies
         validCookies = [
@@ -289,10 +255,11 @@ def persistInvestmentDetailsForWalletWithCustomFiltering():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for custom filtered investment detail processing")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         db = PortfolioDB()
         action = SMWalletTopPNLTokensInvestmentDetailsAction(db)
@@ -306,27 +273,24 @@ def persistInvestmentDetailsForWalletWithCustomFiltering():
             bottom_percent=bottom_percent
         )
         
+        filter_msg = f"top {int(top_percent*100)}% and bottom {int(bottom_percent*100)}%" if filter_tokens else "no filtering"
+        
         if success:
-            filter_msg = f"top {int(top_percent*100)}% and bottom {int(bottom_percent*100)}%" if filter_tokens else "no filtering"
-            response = jsonify({
-                'success': True,
+            logger.info(f"Successfully updated investment details for wallet {wallet_address} with {filter_msg}")
+            return jsonify({
+                'status': 'success',
                 'message': f'Successfully updated investment details for wallet {wallet_address} with {filter_msg}'
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.error(f"Failed to update investment details for wallet {wallet_address} with {filter_msg}")
+        return jsonify({
+            'status': 'error',
             'message': f'Failed to update investment details for wallet {wallet_address}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        logger.error(f"API Error in persist/wallet/filtered: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500 

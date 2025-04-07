@@ -15,6 +15,11 @@ import {
 } from 'chart.js';
 import './TokenHistoryModal.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 // Register Chart.js components
 ChartJS.register(
   CategoryScale,
@@ -41,12 +46,42 @@ const TokenHistoryModal = ({ token, show, onHide }) => {
   const fetchHistoricalData = async (tokenId) => {
     setLoading(true);
     setError(null);
+    
     try {
-      const response = await axios.get(`/api/reports/portsummary/history/${tokenId}`);
-      setHistoricalData(response.data);
+      if (isDev) {
+        console.log('Fetching history for token:', tokenId);
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/api/reports/portsummary/history/${tokenId}`);
+      
+      if (isDev) {
+        console.log('API Response:', response.data);
+      }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load historical data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+        
+      if (!Array.isArray(responseData)) {
+        if (isDev) {
+          console.warn('Expected array of history data but got:', responseData);
+        }
+        throw new Error('Invalid response format - expected an array of historical data');
+      }
+      
+      setHistoricalData(responseData);
+      
     } catch (error) {
-      console.error('Error fetching historical data:', error);
-      setError('Failed to load historical data. Please try again later.');
+      if (isDev) {
+        console.error('Error fetching historical data:', error);
+      }
+      setError(error.message || 'Failed to load historical data. Please try again later.');
       setHistoricalData([]);
     } finally {
       setLoading(false);

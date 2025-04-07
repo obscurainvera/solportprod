@@ -3,7 +3,10 @@ import axios from 'axios';
 import { FaSearch, FaFilter, FaSort, FaInfo, FaFileAlt, FaChartBar, FaTimes, FaArrowUp, FaArrowDown, FaEye, FaWallet, FaCog, FaClock, FaCalendarAlt } from 'react-icons/fa';
 import './StrategyReport.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
 
 function StrategyReport() {
   const [strategies, setStrategies] = useState([]);
@@ -30,19 +33,38 @@ function StrategyReport() {
   // Fetch all strategies data
   const fetchAllStrategies = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      const response = await axios.get(`${API_URL}/api/reports/strategyreport`);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/strategyreport`);
       
-      if (response.data && response.data.status === 'success') {
-        const allStrategies = response.data.data;
-        setStrategies(allStrategies);
-        setFilteredStrategies(allStrategies);
-        setError(null);
-      } else {
-        setError('Failed to fetch data');
+      if (isDev) {
+        console.log('API Response:', response.data);
       }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to fetch strategy data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data
+        ? response.data.data
+        : response.data;
+        
+      // Ensure we have an array of strategies
+      if (!Array.isArray(responseData)) {
+        throw new Error('Invalid response format - expected an array of strategies');
+      }
+      
+      setStrategies(responseData);
+      setFilteredStrategies(responseData);
+      
     } catch (err) {
-      setError(`Error: ${err.message}`);
+      if (isDev) {
+        console.error('Error fetching strategies:', err);
+      }
+      setError(err.message || 'Failed to load strategy data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -107,7 +129,7 @@ function StrategyReport() {
   // Fallback to API for strategy details
   const fetchStrategyDetailsFromAPI = async (strategyId) => {
     try {
-      const response = await axios.get(`${API_URL}/api/reports/strategyreport/${strategyId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/strategyreport/${strategyId}`);
       
       if (response.data && response.data.status === 'success') {
         setSelectedStrategy(response.data.data);
@@ -280,16 +302,6 @@ function StrategyReport() {
     setShowDetails(false);
     setSelectedStrategy(null);
   };
-  
-  // Initial data fetch
-  useEffect(() => {
-    fetchAllStrategies();
-  }, []);
-  
-  // Apply filters and sorting whenever they change
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [filters, sortConfig, strategies]);
   
   // Get status display name and class
   const getStatusInfo = (statusValue) => {

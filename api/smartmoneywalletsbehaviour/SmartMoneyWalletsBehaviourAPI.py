@@ -9,9 +9,12 @@ logger = get_logger(__name__)
 
 smartMoneyWalletBehaviourBp = Blueprint('smwallet_behaviour', __name__)
 
-@smartMoneyWalletBehaviourBp.route('/api/smwalletbehaviour/analyze', methods=['POST'])
+@smartMoneyWalletBehaviourBp.route('/api/smwalletbehaviour/analyze', methods=['POST', 'OPTIONS'])
 def analyzeSMWalletBehaviour():
     """Trigger SM wallet behaviour analysis manually, optionally for a specific wallet"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     startTime = time.time()
     data = request.get_json() or {}
     walletAddress = data.get('walletAddress')
@@ -40,7 +43,7 @@ def analyzeSMWalletBehaviour():
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"SM wallet behaviour analysis failed{' for wallet ' + walletAddress if walletAddress else ''}: {str(e)}"
-        logger.error(errorMessage)
+        logger.error(errorMessage, exc_info=True)
         return jsonify({
             "status": "error",
             "message": errorMessage,

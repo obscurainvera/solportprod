@@ -8,12 +8,17 @@ import StrategyPerformanceFilterForm from './StrategyPerformanceFilterForm';
 import StrategyExecutionsModal from './StrategyExecutionsModal';
 import './StrategyPerformanceReport.css';
 
-// Create axios instance with specific configs
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
+// Create an axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
-  timeout: 10000,
+  baseURL: API_BASE_URL,
+  timeout: 10000, // 10 seconds timeout
   headers: {
-    'Accept': 'application/json, text/plain, */*',
+    'Accept': 'application/json',
     'Content-Type': 'application/json'
   }
 });
@@ -23,7 +28,7 @@ const StrategyPerformanceReport = () => {
   const [viewMode, setViewMode] = useState('config'); // 'config' or 'execution'
   const [configurations, setConfigurations] = useState([]);
   const [executions, setExecutions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
@@ -31,7 +36,9 @@ const StrategyPerformanceReport = () => {
   const [filters, setFilters] = useState({
     strategy_name: '',
     sources: [],
+    source: '',
     statuses: [],
+    status: '',
     token_id: '',
     token_name: '',
     min_realized_pnl: '',
@@ -68,19 +75,41 @@ const StrategyPerformanceReport = () => {
         queryParams.append('sort_order', filters.sort_order);
       }
       
-      console.log('Fetching configurations with params:', Object.fromEntries(queryParams.entries()));
+      if (isDev) {
+        console.log('Fetching configurations with params:', Object.fromEntries(queryParams.entries()));
+      }
       
       // Use the updated endpoint from StrategyPerformanceAPI.py
       const response = await api.get(`/api/reports/strategyperformance/config?${queryParams}`);
       
-      if (response.data && response.data.data) {
-        setConfigurations(response.data.data);
+      if (isDev) {
+        console.log('API Response:', response.data);
+      }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load strategy configurations');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data
+        ? response.data.data
+        : response.data;
+      
+      // Ensure we have an array of configurations
+      if (Array.isArray(responseData)) {
+        setConfigurations(responseData);
       } else {
         setConfigurations([]);
+        if (isDev) {
+          console.warn('Expected array of configurations but got:', responseData);
+        }
       }
     } catch (err) {
-      console.error('Error fetching strategy configurations:', err);
-      setError('Failed to load strategy configurations. Please try again.');
+      if (isDev) {
+        console.error('Error fetching strategy configurations:', err);
+      }
+      setError(err.message || 'Failed to load strategy configurations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -124,19 +153,41 @@ const StrategyPerformanceReport = () => {
         queryParams.append('sort_order', filters.sort_order);
       }
       
-      console.log('Fetching executions with params:', Object.fromEntries(queryParams.entries()));
+      if (isDev) {
+        console.log('Fetching executions with params:', Object.fromEntries(queryParams.entries()));
+      }
       
       // Use the updated endpoint from StrategyPerformanceAPI.py
       const response = await api.get(`/api/reports/strategyperformance/executions?${queryParams}`);
       
-      if (response.data && response.data.data) {
-        setExecutions(response.data.data);
+      if (isDev) {
+        console.log('API Response:', response.data);
+      }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load strategy executions');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data
+        ? response.data.data
+        : response.data;
+      
+      // Ensure we have an array of executions
+      if (Array.isArray(responseData)) {
+        setExecutions(responseData);
       } else {
         setExecutions([]);
+        if (isDev) {
+          console.warn('Expected array of executions but got:', responseData);
+        }
       }
     } catch (err) {
-      console.error('Error fetching strategy executions:', err);
-      setError('Failed to load strategy executions. Please try again.');
+      if (isDev) {
+        console.error('Error fetching strategy executions:', err);
+      }
+      setError(err.message || 'Failed to load strategy executions. Please try again.');
     } finally {
       setLoading(false);
     }

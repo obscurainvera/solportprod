@@ -11,12 +11,7 @@ attention_report_bp = Blueprint('attention_report', __name__)
 @attention_report_bp.route('/api/reports/attention', methods=['GET', 'OPTIONS'])
 def get_attention_report():
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get query parameters with defaults
@@ -36,13 +31,10 @@ def get_attention_report():
         # Check if handler is None
         if handler is None:
             logger.error("Handler 'attention_report' not found")
-            response = jsonify({
-                'error': 'Configuration error',
+            return jsonify({
+                'status': 'error',
                 'message': "Handler 'attention_report' not found"
-            })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 500
+            }), 500
                 
         attentionData = handler.getAttentionReport(
             tokenId=tokenId,
@@ -55,31 +47,25 @@ def get_attention_report():
             sortOrder=sortOrder
         )
 
-        # Create response with proper CORS headers
-        response = jsonify(attentionData)
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-        return response
+        # Create standardized success response
+        return jsonify({
+            'status': 'success',
+            'data': attentionData,
+            'count': len(attentionData) if attentionData else 0,
+            'timestamp': db.get_current_timestamp()
+        })
 
     except Exception as e:
         logger.error(f"Error in attention report API: {str(e)}")
-        response = jsonify({
-            'error': 'Internal server error',
+        return jsonify({
+            'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @attention_report_bp.route('/api/reports/attention/history/<tokenId>', methods=['GET', 'OPTIONS'])
 def get_attention_history(tokenId):
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Use the handler to get the data
@@ -89,41 +75,41 @@ def get_attention_history(tokenId):
             # Check if handler is None
             if handler is None:
                 logger.error("Handler 'attention_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'attention_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response, 500
+                }), 500
                 
             historyData = handler.getAttentionHistoryById(tokenId)
 
-        # Create response with proper CORS headers
-        response = jsonify(historyData)
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
+            if not historyData:
+                logger.warning(f"No attention history found for token ID: {tokenId}")
+                return jsonify({
+                    'status': 'success',
+                    'data': [],
+                    'count': 0,
+                    'message': f"No attention history found for token ID: {tokenId}"
+                })
+
+            # Create standardized success response
+            return jsonify({
+                'status': 'success',
+                'data': historyData,
+                'count': len(historyData),
+                'timestamp': db.get_current_timestamp()
+            })
 
     except Exception as e:
         logger.error(f"Error in attention history API: {str(e)}")
-        response = jsonify({
-            'error': 'Internal server error',
+        return jsonify({
+            'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @attention_report_bp.route('/api/reports/attention/filters', methods=['GET', 'OPTIONS'])
 def get_attention_filters():
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Use the handler to get the filter options
@@ -133,13 +119,10 @@ def get_attention_filters():
             # Check if handler is None
             if handler is None:
                 logger.error("Handler 'attention_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'attention_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response, 500
+                }), 500
                 
             statusOptions = handler.getAttentionStatusOptions()
             chainOptions = handler.getChainOptions()
@@ -149,18 +132,16 @@ def get_attention_filters():
                 'chainOptions': chainOptions
             }
 
-        # Create response with proper CORS headers
-        response = jsonify(filterOptions)
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
+            # Create standardized success response
+            return jsonify({
+                'status': 'success',
+                'data': filterOptions,
+                'timestamp': db.get_current_timestamp()
+            })
 
     except Exception as e:
         logger.error(f"Error getting attention filter options: {str(e)}")
-        response = jsonify({
-            'error': 'Internal server error',
+        return jsonify({
+            'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        }), 500 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaChartLine, 
   FaArrowUp, 
@@ -21,10 +21,17 @@ import {
   FaAngleRight,
   FaChevronRight,
   FaRegLightbulb,
-  FaRegGem
+  FaRegGem,
+  FaPlus,
+  FaTrash
 } from 'react-icons/fa';
 import './FastTrackingReport.css';
 import './InputFix.css';
+
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
 
 const FastTrackingReport = () => {
   const [portfolioAmount, setPortfolioAmount] = useState(1000);
@@ -41,6 +48,12 @@ const FastTrackingReport = () => {
   const [selectedRound, setSelectedRound] = useState(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [formHidden, setFormHidden] = useState(false);
+  const [showForm, setShowForm] = useState(true);
+  const [activeTab, setActiveTab] = useState('simulator');
+
+  // Refs for scrolling
+  const resultsRef = useRef(null);
+  const timelineRef = useRef(null);
 
   const addProfitLevel = () => {
     setProfitLevels([...profitLevels, { sellPercentage: 50, priceIncrease: 50 }]);

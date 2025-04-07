@@ -11,16 +11,12 @@ logger = get_logger(__name__)
 # Create a Blueprint for portfolio endpoints
 portfolio_bp = Blueprint('portfolio', __name__)
 
-@portfolio_bp.route('/api/portsummary/update', methods=['POST', 'OPTIONS'])
+@portfolio_bp.route('/api/portfolio/update', methods=['POST', 'OPTIONS'])
 def handlePortSummaryUpdate():
     """API endpoint to manually trigger portfolio update"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         db = PortfolioDB()
@@ -30,8 +26,8 @@ def handlePortSummaryUpdate():
         logger.info("Starting manual portfolio update")
         result = portfolioScheduler.handlePortfolioSummaryUpdate()
 
-        response = jsonify({
-            'success': True,
+        return jsonify({
+            'status': 'success',
             'message': 'Portfolio summary updated successfully',
             'stats': {
                 'categoriesProcessed': result.get('categoriesProcessed', 0),
@@ -43,23 +39,20 @@ def handlePortSummaryUpdate():
                 'tokensMarkedInactive': result.get('tokensMarkedInactive', 0)
             }
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
 
     except Exception as e:
-        logger.error(f"Manual portfolio update error: {str(e)}")
-        response = jsonify({
+        logger.error(f"Manual portfolio update error: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
-@portfolio_bp.route('/api/portsummary/status', methods=['GET'])
+@portfolio_bp.route('/api/portfolio/status', methods=['GET', 'OPTIONS'])
 def getPortfolioStatusTypes():
     """API endpoint to get all portfolio status types"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     try:
         # Convert enum values to a list of dictionaries
         statuses = [
@@ -71,21 +64,15 @@ def getPortfolioStatusTypes():
             for status in PortfolioStatus
         ]
         
-        response = jsonify({
-            'success': True,
+        return jsonify({
+            'status': 'success',
             'data': statuses
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
-        logger.error(f"Error getting portfolio statuses: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error getting portfolio statuses: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 

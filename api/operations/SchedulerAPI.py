@@ -36,12 +36,8 @@ def getScheduler() -> BackgroundScheduler:
 def updateJobTiming():
     """Update the timing of a specific job"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         data = request.json
@@ -50,19 +46,21 @@ def updateJobTiming():
         value = data.get('value')
         
         if not all([jobId, timingType, value]):
-            error_response = jsonify({'error': 'Missing required parameters'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 400
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'Missing required parameters'
+            }), 400
             
         scheduler = getScheduler()
         job = scheduler.get_job(jobId)
         
         if not job:
-            error_response = jsonify({'error': f'Job {jobId} not found'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 404
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Job {jobId} not found'
+            }), 404
             
         # Map timing_type to the correct parameter name for CronTrigger
         cron_param_map = {
@@ -89,31 +87,26 @@ def updateJobTiming():
         job.reschedule(trigger='cron', **triggerArgs)
         logger.info(f"Successfully updated {cron_param} to {value} for job {jobId}")
         
-        response = jsonify({
+        return jsonify({
             'success': True,
+            'status': 'success',
             'message': f'Successfully updated {cron_param} for job {jobId}'
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error updating job timing: {e}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @scheduler_bp.route('/api/scheduler/jobs', methods=['GET', 'OPTIONS'])
 def getJobs():
     """Get list of all scheduled jobs"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         scheduler = getScheduler()
@@ -132,51 +125,47 @@ def getJobs():
                 'trigger': triggerFields
             })
         
-        response = jsonify({
+        return jsonify({
             'success': True,
             'jobs': jobList
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error fetching jobs: {e}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @scheduler_bp.route('/api/scheduler/run-job', methods=['POST', 'OPTIONS'])
 def runJob():
     """Run a specific job immediately"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         data = request.json
         jobId = data.get('job_id')
         
         if not jobId:
-            error_response = jsonify({'error': 'Missing job_id parameter'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 400
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'Missing job_id parameter'
+            }), 400
             
         # Get the global scheduler
         scheduler = getScheduler()
         job = scheduler.get_job(jobId)
         
         if not job:
-            error_response = jsonify({'error': f'Job {jobId} not found'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 404
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Job {jobId} not found'
+            }), 404
             
         # Create a JobRunner instance and run the job with the global scheduler
         logger.info(f"Manually triggering job {jobId}")
@@ -186,162 +175,147 @@ def runJob():
             success = job_runner.run_job(jobId, external_scheduler=scheduler)
             
             if success:
-                response = jsonify({
+                return jsonify({
                     'success': True,
                     'message': f'Job {jobId} executed successfully'
                 })
             else:
-                response = jsonify({
+                return jsonify({
                     'success': False,
+                    'status': 'error',
                     'message': f'Job {jobId} not found or could not be executed'
-                })
+                }), 404
                 
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
-            
         except Exception as job_error:
             logger.error(f"Error executing job {jobId}: {job_error}")
-            error_response = jsonify({
+            return jsonify({
                 'success': False,
-                'error': str(job_error),
-                'message': f'Error executing job {jobId}'
-            })
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 500
+                'status': 'error',
+                'message': f'Error executing job {jobId}: {str(job_error)}'
+            }), 500
         
     except Exception as e:
         logger.error(f"Error in runJob API: {e}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @scheduler_bp.route('/api/scheduler/pause-job', methods=['POST', 'OPTIONS'])
 def pauseJob():
     """Pause a specific job"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         data = request.json
         jobId = data.get('job_id')
         
         if not jobId:
-            error_response = jsonify({'error': 'Missing job_id parameter'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 400
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'Missing job_id parameter'
+            }), 400
             
         scheduler = getScheduler()
         job = scheduler.get_job(jobId)
         
         if not job:
-            error_response = jsonify({'error': f'Job {jobId} not found'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 404
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Job {jobId} not found'
+            }), 404
             
         # Pause the job
         scheduler.pause_job(job.id)
         logger.info(f"Paused job {jobId}")
         
-        response = jsonify({
+        return jsonify({
             'success': True,
             'message': f'Successfully paused job {jobId}'
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error pausing job: {e}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @scheduler_bp.route('/api/scheduler/resume-job', methods=['POST', 'OPTIONS'])
 def resumeJob():
     """Resume a specific job"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         data = request.json
         jobId = data.get('job_id')
         
         if not jobId:
-            error_response = jsonify({'error': 'Missing job_id parameter'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 400
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'Missing job_id parameter'
+            }), 400
             
         scheduler = getScheduler()
         job = scheduler.get_job(jobId)
         
         if not job:
-            error_response = jsonify({'error': f'Job {jobId} not found'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 404
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Job {jobId} not found'
+            }), 404
             
         # Resume the job
         scheduler.resume_job(job.id)
         logger.info(f"Resumed job {jobId}")
         
-        response = jsonify({
+        return jsonify({
             'success': True,
             'message': f'Successfully resumed job {jobId}'
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error resuming job: {e}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @scheduler_bp.route('/api/scheduler/job-history/<job_id>', methods=['GET', 'OPTIONS'])
 def getJobHistory(job_id):
     """Get execution history for a specific job"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         if not job_id:
-            error_response = jsonify({'error': 'Missing job_id parameter'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 400
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'Missing job_id parameter'
+            }), 400
             
         scheduler = getScheduler()
         job = scheduler.get_job(job_id)
         
         if not job:
-            error_response = jsonify({'error': f'Job {job_id} not found'})
-            config = get_config()
-            error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return error_response, 404
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Job {job_id} not found'
+            }), 404
             
         # Get job execution history from the database
         history = []
@@ -349,7 +323,6 @@ def getJobHistory(job_id):
         # Connect to the jobs database
         config_instance = get_config()
     
-        
         history = []
         try:
             # Direct connection to PostgreSQL
@@ -382,18 +355,16 @@ def getJobHistory(job_id):
             logger.error(f"Database error getting job history: {str(db_error)}")
             # Return empty history on error
         
-        response = jsonify({
+        return jsonify({
             'success': True,
             'job_id': job_id,
             'history': history
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error getting job history: {str(e)}")
-        error_response = jsonify({'error': str(e)})
-        config = get_config()
-        error_response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return error_response, 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500

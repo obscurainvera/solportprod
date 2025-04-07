@@ -25,12 +25,7 @@ def getTokenPrices():
         JSON response with price information for each token
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
 
     startTime = time.time()
     logger.info("Token price request received")
@@ -78,27 +73,21 @@ def getTokenPrices():
             else:
                 formattedResult[address] = None
 
-        response = jsonify({
+        return jsonify({
             "status": "success",
             "data": formattedResult,
             "executionTime": f"{executionTime:.2f}s"
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
 
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Failed to get token prices: {str(e)}"
         logger.error(errorMessage)
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": errorMessage,
             "executionTime": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @dexscrenner_bp.route('/api/price/token/<tokenAddress>', methods=['GET', 'OPTIONS'])
 def getSingleTokenPrice(tokenAddress):
@@ -110,12 +99,7 @@ def getSingleTokenPrice(tokenAddress):
         JSON response with price information for the token
     """
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
 
     startTime = time.time()
     logger.info(f"Single token price request received for {tokenAddress}")
@@ -128,7 +112,7 @@ def getSingleTokenPrice(tokenAddress):
         executionTime = time.time() - startTime
 
         if result:
-            response = jsonify({
+            return jsonify({
                 "status": "success",
                 "data": {
                     "price": result.price,
@@ -140,25 +124,18 @@ def getSingleTokenPrice(tokenAddress):
                 "executionTime": f"{executionTime:.2f}s"
             })
         else:
-            response = jsonify({
+            return jsonify({
                 "status": "error",
                 "message": "No price data found for token",
                 "executionTime": f"{executionTime:.2f}s"
             }), 404
 
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
-
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Failed to get token price: {str(e)}"
         logger.error(errorMessage)
-        response = jsonify({
+        return jsonify({
             "status": "error",
             "message": errorMessage,
             "executionTime": f"{executionTime:.2f}s"
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        }), 500 

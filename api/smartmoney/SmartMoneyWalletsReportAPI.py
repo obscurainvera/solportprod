@@ -26,13 +26,7 @@ def get_wallet_token_details(wallet_address):
         JSON response with wallet PNL data and token details
     """
     if request.method == 'OPTIONS':
-        # Handle preflight request
-        response = jsonify({'status': 'ok'})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        return response
+        return jsonify({}), 200
         
     try:
         # Get query parameters
@@ -46,13 +40,10 @@ def get_wallet_token_details(wallet_address):
             # Check if handler is None
             if handler is None:
                 logger.error("Handler 'smart_money_wallets_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'smart_money_wallets_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response, 500
+                }), 500
                 
             report_data = handler.getSmartMoneyWalletReport(
                 walletAddress=wallet_address,
@@ -60,21 +51,19 @@ def get_wallet_token_details(wallet_address):
                 sortOrder=sortOrder
             )
             
-            # Return the data
-            response = jsonify(report_data)
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
+            # Return data with standardized success response
+            return jsonify({
+                'status': 'success',
+                'data': report_data,
+                'timestamp': db.get_current_timestamp()
+            })
             
     except Exception as e:
         logger.error(f"Error in smart money wallets report API: {str(e)}")
-        response = jsonify({
-            'error': 'Server error',
+        return jsonify({
+            'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @smartMoneyWalletsReportBp.route('/api/reports/smartmoneywallets/top', methods=['GET', 'OPTIONS'])
 def get_top_smart_money_wallets():
@@ -88,13 +77,7 @@ def get_top_smart_money_wallets():
         JSON response with top smart money wallets
     """
     if request.method == 'OPTIONS':
-        # Handle preflight request
-        response = jsonify({'status': 'ok'})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        return response
+        return jsonify({}), 200
         
     try:
         # Get query parameters
@@ -107,28 +90,24 @@ def get_top_smart_money_wallets():
             # Check if handler is None
             if handler is None:
                 logger.error("Handler 'smart_money_wallets_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'smart_money_wallets_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response, 500
+                }), 500
                 
             wallets = handler.getTopSmartMoneyWallets(limit=limit)
             
-            # Return the data
-            response = jsonify({'wallets': wallets})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
+            # Return data with standardized success response
+            return jsonify({
+                'status': 'success',
+                'data': {'wallets': wallets},
+                'count': len(wallets),
+                'timestamp': db.get_current_timestamp()
+            })
             
     except Exception as e:
         logger.error(f"Error in top smart money wallets API: {str(e)}")
-        response = jsonify({
-            'error': 'Server error',
+        return jsonify({
+            'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        }), 500 

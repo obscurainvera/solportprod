@@ -4,6 +4,11 @@ import axios from 'axios';
 import { FaChartLine, FaRocket, FaPlus, FaTrash, FaChevronDown, FaCheck, FaSearch, FaTimes } from 'react-icons/fa';
 import './Analytics.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 // Dropdown Portal Component
 const TagsDropdownPortal = ({ isOpen, onClose, children }) => {
   // Always declare hooks at the top level before any conditional returns
@@ -230,91 +235,119 @@ function Analytics() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setStatus({ message: '', isError: false });
+
+    // Build profit targets array
+    const formattedProfitTargets = profitTargets.map(target => ({
+      price_target_pct: parseFloat(target.priceTargetPct),
+      sell_amount_pct: parseFloat(target.sellAmountPct)
+    })).filter(target => !isNaN(target.price_target_pct) && !isNaN(target.sell_amount_pct));
+
+    // Validate form
+    const validationErrors = [];
+    if (!strategyName) validationErrors.push('Strategy name is required');
+    if (!sourceType) validationErrors.push('Source type is required');
+    if (riskEnabled && (!stopLossPct || isNaN(parseFloat(stopLossPct)))) {
+      validationErrors.push('Valid stop loss percentage is required when risk management is enabled');
+    }
     
-    try {
-      const formattedProfitTargets = profitTargets
-        .filter(target => target.priceTargetPct && target.sellAmountPct)
-        .map(target => ({
-          price_target_pct: parseFloat(target.priceTargetPct),
-          sell_amount_pct: parseFloat(target.sellAmountPct)
-        }));
-
-      const formData = {
-        strategy_name: strategyName,
-        source_type: sourceType,
-        description: description,
-        token_conviction: tokenConviction,
-        entry_conditions: {
-          required_tags: requiredTags,
-          min_market_cap: parseFloat(minMarketCap) || 0,
-          min_liquidity: parseFloat(minLiquidity) || 0,
-          min_smart_balance: parseFloat(minSmartBalance) || 0,
-          min_age: minAge ? parseInt(minAge) : -1,
-          max_age: maxAge ? parseInt(maxAge) : -1,
-          attention_info: {
-            is_available: attentionInfo.isAvailable,
-            attention_score: parseFloat(attentionInfo.attentionScore) || 0,
-            repeats: parseInt(attentionInfo.repeats) || 0,
-            attention_status: attentionInfo.attentionStatus
-          }
-        },
-        investment_instructions: {
-          entry_type: entryType,
-          allocated_amount: parseFloat(allocatedAmount) || 0
-        },
-        profit_taking_instructions: formattedProfitTargets,
-        risk_management_instructions: {
-          enabled: riskEnabled,
-          stop_loss_pct: parseFloat(stopLossPct) || 0
-        },
-        superuser: superuser
-      };
-
-      const response = await axios.post('http://localhost:8080/api/strategy/create', formData);
-      
-      if (response.data.status === 'success') {
-        setStatus({
-          message: 'Strategy created successfully!',
-          isError: false
-        });
-        
-        // Reset form
-        setStrategyName('');
-        setSourceType('');
-        setDescription('');
-        setTokenConviction('HIGH');
-        setRequiredTags([]);
-        setMinMarketCap('');
-        setMinLiquidity('');
-        setMinSmartBalance('');
-        setMinAge('');
-        setMaxAge('');
-        setAttentionInfo({
-          isAvailable: false,
-          attentionScore: '',
-          repeats: '',
-          attentionStatus: []
-        });
-        setEntryType('');
-        setAllocatedAmount('');
-        setProfitTargets([{ priceTargetPct: '', sellAmountPct: '' }]);
-        setRiskEnabled(false);
-        setStopLossPct('');
-        setSuperuser(false);
-      } else {
-        setStatus({
-          message: `Error: ${response.data.message || 'Unknown error'}`,
-          isError: true
-        });
-      }
-    } catch (error) {
+    if (validationErrors.length > 0) {
       setStatus({
-        message: `Error: ${error.response?.data?.message || 'Error creating strategy'}`,
+        message: validationErrors.join('. '),
+        isError: true
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Build request body
+    const requestBody = {
+      strategy_name: strategyName,
+      source_type: sourceType,
+      description: description,
+      token_conviction: tokenConviction,
+      required_tags: requiredTags,
+      min_market_cap: minMarketCap ? parseFloat(minMarketCap) : null,
+      min_liquidity: minLiquidity ? parseFloat(minLiquidity) : null,
+      min_smart_balance: minSmartBalance ? parseFloat(minSmartBalance) : null,
+      min_age: minAge ? parseInt(minAge) : null,
+      max_age: maxAge ? parseInt(maxAge) : null,
+      attention_info: attentionInfo.isAvailable ? {
+        attention_score: attentionInfo.attentionScore ? parseFloat(attentionInfo.attentionScore) : null,
+        repeats: attentionInfo.repeats ? parseInt(attentionInfo.repeats) : null,
+        attention_status: attentionInfo.attentionStatus
+      } : null,
+      entry_type: entryType,
+      allocated_amount: allocatedAmount ? parseFloat(allocatedAmount) : null,
+      risk_management: riskEnabled ? {
+        stop_loss_pct: parseFloat(stopLossPct)
+      } : null,
+      profit_targets: formattedProfitTargets
+    };
+
+    try {
+      if (isDev) {
+        console.log('Submitting strategy with data:', requestBody);
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/api/analytics/strategy/create`, requestBody, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (isDev) {
+        console.log('Strategy creation response:', response.data);
+      }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to create strategy');
+      }
+      
+      // Handle success
+      setStatus({
+        message: response.data.message || 'Strategy created successfully!',
+        isError: false
+      });
+      
+      // Reset form (optional)
+      resetForm();
+    } catch (error) {
+      if (isDev) {
+        console.error('Strategy creation error:', error);
+      }
+      setStatus({
+        message: error.response?.data?.message || error.message || 'Failed to create strategy. Please try again later.',
         isError: true
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setStrategyName('');
+    setSourceType('');
+    setDescription('');
+    setTokenConviction('HIGH');
+    setRequiredTags([]);
+    setMinMarketCap('');
+    setMinLiquidity('');
+    setMinSmartBalance('');
+    setMinAge('');
+    setMaxAge('');
+    setAttentionInfo({
+      isAvailable: false,
+      attentionScore: '',
+      repeats: '',
+      attentionStatus: []
+    });
+    setEntryType('');
+    setAllocatedAmount('');
+    setRiskEnabled(false);
+    setStopLossPct('');
+    setProfitTargets([{ priceTargetPct: '', sellAmountPct: '' }]);
   };
 
   // Add a dedicated search handler function

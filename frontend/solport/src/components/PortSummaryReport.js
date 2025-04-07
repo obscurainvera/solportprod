@@ -7,9 +7,12 @@ import TokenHistoryModal from './TokenHistoryModal';
 import { FaFilter, FaChartLine, FaCoins, FaTimes } from 'react-icons/fa';
 import './PortSummaryReport.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: process.env.REACT_APP_API_BASE_URL || '',
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Accept': 'application/json',
@@ -90,32 +93,48 @@ function PortSummaryReport() {
         }
       });
 
-      console.log(`Fetching data with params: ${queryParams.toString()}`);
+      if (isDev) {
+        console.log(`Fetching data with params: ${queryParams.toString()}`);
+      }
       
       const response = await api.get(`/api/reports/portsummary?${queryParams.toString()}`);
 
       // Debug: Log the raw response data to verify structure
-      console.log('Raw API Response:', response.data);
+      if (isDev) {
+        console.log('Raw API Response:', response.data);
+      }
       
-      if (!response.data || !Array.isArray(response.data)) {
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load portfolio data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+      
+      if (!Array.isArray(responseData)) {
         throw new Error('Invalid response format from API');
       }
       
-      console.log('Parsed Data Structure:', response.data.map(item => Object.keys(item)));
+      if (isDev) {
+        console.log('Parsed Data Structure:', responseData.map(item => Object.keys(item)));
+      }
       
       // Add additional logging for tag data
-      if (response.data.length > 0) {
+      if (isDev && responseData.length > 0) {
         console.log('Sample Tags Structure:', {
-          sampleRecord: response.data[0],
-          tagType: typeof response.data[0].tags,
-          tagsSample: response.data[0].tags,
-          isArray: Array.isArray(response.data[0].tags),
+          sampleRecord: responseData[0],
+          tagType: typeof responseData[0].tags,
+          tagsSample: responseData[0].tags,
+          isArray: Array.isArray(responseData[0].tags),
           selectedTags: filters.selectedTags
         });
       }
 
       // Ensure data structure matches expected fields
-      const processedData = response.data.map(row => ({
+      const processedData = responseData.map(row => ({
         portsummaryid: row.portsummaryid || row.id, // Fallback if 'portsummaryid' is named differently
         chainname: row.chainname,
         tokenid: row.tokenid,
@@ -132,7 +151,9 @@ function PortSummaryReport() {
       setData(processedData);
       setRetryCount(0); // Reset retry count on success
     } catch (err) {
-      console.error('Fetch Error:', err);
+      if (isDev) {
+        console.error('Fetch Error:', err);
+      }
       
       // Handle different error types
       if (err.response) {
@@ -157,7 +178,7 @@ function PortSummaryReport() {
         }
       } else {
         // Something happened in setting up the request that triggered an Error
-        setError(`Error: ${err.message || 'Unknown error'}`);
+        setError(err.message || 'Unknown error');
       }
       
       setData([]);
@@ -211,7 +232,9 @@ function PortSummaryReport() {
   }, [data]);
 
   const handleApplyFilters = (newFilters) => {
-    console.log('Applying filters:', newFilters);
+    if (isDev) {
+      console.log('Applying filters:', newFilters);
+    }
     setFilters(newFilters);
     setShowFilters(false);
     // fetchData will be called automatically due to the dependency in useEffect
