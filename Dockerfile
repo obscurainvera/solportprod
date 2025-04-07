@@ -36,6 +36,12 @@ COPY --from=node-builder /app/frontend/solport/build /app/frontend/solport/build
 RUN mkdir -p logs
 RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\ncd /app\nexec gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120 app:app' > /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
 USER appuser
 
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120 app:app
+# Use the entrypoint script
+CMD ["/app/entrypoint.sh"]
