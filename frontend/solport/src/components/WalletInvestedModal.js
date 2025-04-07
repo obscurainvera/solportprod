@@ -74,7 +74,7 @@ function WalletInvestedModal({ token, onClose }) {
           console.log('Fetching wallets for token:', token.tokenid);
         }
         
-        const response = await axios.get(`${API_BASE_URL}/api/reports/walletsinvested/${token.tokenid}`);
+        const response = await axios.get(`${API_BASE_URL}/api/reports/walletsinvested/token/${token.tokenid}`);
         
         if (isDev) {
           console.log('API Response:', response.data);

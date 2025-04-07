@@ -5,8 +5,7 @@ from actions.SmartMoneyWalletsAction import SmartMoneyWalletsAction
 from config.Security import COOKIE_MAP, isValidCookie
 from logs.logger import get_logger
 from database.smartmoneywallets.WalletPNLStatusEnum import SmartWalletPnlStatus
-from scheduler.SmartMoneyWalletsScheduler import SmartMoneyWalletsScheduler
-
+from scheduler.SmartMoneyWalletScheduler import SmartMoneyWalletScheduler
 logger = get_logger(__name__)
 
 smart_money_wallets_bp = Blueprint('smart_money_wallets', __name__)
@@ -19,7 +18,7 @@ def persistAllSmartMoneyWallets():
         
     try:
         logger.info("Starting smart money wallets persistence")
-        scheduler = SmartMoneyWalletsScheduler()
+        scheduler = SmartMoneyWalletScheduler()
         result = scheduler.persistAllSmartMoneyWallets()
         
         if not result:
@@ -66,7 +65,7 @@ def persistSingleSmartMoneyWallet(wallet_address):
             }), 400
             
         logger.info(f"Starting persistence for smart money wallet: {wallet_address}")
-        scheduler = SmartMoneyWalletsScheduler()
+        scheduler = SmartMoneyWalletScheduler()
         result = scheduler.persistSingleSmartMoneyWallet(wallet_address)
         
         if not result:
