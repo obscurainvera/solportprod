@@ -10,6 +10,7 @@ from config.Security import (
     RELOGIN_BUFFER_MINUTES         # 5 minutes buffer before refresh token expires
 )
 from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+from sqlalchemy import text
 
 
 logger = get_logger(__name__)
@@ -24,19 +25,38 @@ class TokenHandler(BaseDBHandler):
     def _createTables(self):
         """Creates the auth tokens table"""
         with self.conn_manager.transaction() as cursor:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS authtokens (
-                    id SERIAL PRIMARY KEY,
-                    servicename VARCHAR(50) NOT NULL UNIQUE,
-                    accesstoken TEXT NOT NULL,
-                    refreshtoken TEXT NOT NULL,
-                    accesstokenexpiresat TIMESTAMP NOT NULL,
-                    refreshtokenexpiresat TIMESTAMP NOT NULL,
-                    logintime TIMESTAMP NOT NULL,
-                    createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            config = get_config()
+            
+            if config.DB_TYPE == 'postgres':
+                # PostgreSQL syntax
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS authtokens (
+                        id SERIAL PRIMARY KEY,
+                        servicename VARCHAR(50) NOT NULL UNIQUE,
+                        accesstoken TEXT NOT NULL,
+                        refreshtoken TEXT NOT NULL,
+                        accesstokenexpiresat TIMESTAMP NOT NULL,
+                        refreshtokenexpiresat TIMESTAMP NOT NULL,
+                        logintime TIMESTAMP NOT NULL,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+            else:
+                # SQLite syntax
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS authtokens (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        servicename VARCHAR(50) NOT NULL UNIQUE,
+                        accesstoken TEXT NOT NULL,
+                        refreshtoken TEXT NOT NULL,
+                        accesstokenexpiresat TIMESTAMP NOT NULL,
+                        refreshtokenexpiresat TIMESTAMP NOT NULL,
+                        logintime TIMESTAMP NOT NULL,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
 
     def storeTokens(self, serviceName: str, accessToken: str, refreshToken: str, isNewLogin: bool = False) -> None:
         """
@@ -48,6 +68,7 @@ class TokenHandler(BaseDBHandler):
             is_new_login: True if this is from a fresh login, False if from refresh
         """
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
                 now = datetime.now()
                 
@@ -58,11 +79,19 @@ class TokenHandler(BaseDBHandler):
                     refreshExpires = now + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS)
                 else:
                     # Get existing login time and refresh expiry
-                    cursor.execute('''
-                        SELECT logintime, refreshtokenexpiresat
-                        FROM authtokens
-                        WHERE servicename = %s
-                    ''', (serviceName,))
+                    if config.DB_TYPE == 'postgres':
+                        cursor.execute(text('''
+                            SELECT logintime, refreshtokenexpiresat
+                            FROM authtokens
+                            WHERE servicename = %s
+                        '''), (serviceName,))
+                    else:
+                        cursor.execute('''
+                            SELECT logintime, refreshtokenexpiresat
+                            FROM authtokens
+                            WHERE servicename = ?
+                        ''', (serviceName,))
+                    
                     result = cursor.fetchone()
                     if result:
                         loginTime = datetime.fromisoformat(result['logintime'])
@@ -72,29 +101,55 @@ class TokenHandler(BaseDBHandler):
                         loginTime = now
                         refreshExpires = now + timedelta(hours=12)
 
-                cursor.execute('''
-                    INSERT INTO authtokens (
-                        servicename, accesstoken, refreshtoken,
-                        accesstokenexpiresat, refreshtokenexpiresat,
-                        logintime, updatedat
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT(servicename) DO UPDATE SET
-                        accesstoken=EXCLUDED.accesstoken,
-                        refreshtoken=EXCLUDED.refreshtoken,
-                        accesstokenexpiresat=EXCLUDED.accesstokenexpiresat,
-                        refreshtokenexpiresat=EXCLUDED.refreshtokenexpiresat,
-                        logintime=EXCLUDED.logintime,
-                        updatedat=EXCLUDED.updatedat
-                ''', (
-                    serviceName,
-                    accessToken,
-                    refreshToken,
-                    # Use ACCESS_TOKEN_EXPIRY_MINUTES (15 minutes) for access token
-                    now + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES),
-                    refreshExpires,
-                    loginTime,
-                    now
-                ))
+                # Access token expires in ACCESS_TOKEN_EXPIRY_MINUTES (15 minutes)
+                accessExpires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
+                
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        INSERT INTO authtokens (
+                            servicename, accesstoken, refreshtoken,
+                            accesstokenexpiresat, refreshtokenexpiresat,
+                            logintime, updatedat
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT(servicename) DO UPDATE SET
+                            accesstoken=EXCLUDED.accesstoken,
+                            refreshtoken=EXCLUDED.refreshtoken,
+                            accesstokenexpiresat=EXCLUDED.accesstokenexpiresat,
+                            refreshtokenexpiresat=EXCLUDED.refreshtokenexpiresat,
+                            logintime=EXCLUDED.logintime,
+                            updatedat=EXCLUDED.updatedat
+                    '''), (
+                        serviceName,
+                        accessToken,
+                        refreshToken,
+                        accessExpires,
+                        refreshExpires,
+                        loginTime,
+                        now
+                    ))
+                else:
+                    cursor.execute('''
+                        INSERT INTO authtokens (
+                            servicename, accesstoken, refreshtoken,
+                            accesstokenexpiresat, refreshtokenexpiresat,
+                            logintime, updatedat
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(servicename) DO UPDATE SET
+                            accesstoken=excluded.accesstoken,
+                            refreshtoken=excluded.refreshtoken,
+                            accesstokenexpiresat=excluded.accesstokenexpiresat,
+                            refreshtokenexpiresat=excluded.refreshtokenexpiresat,
+                            logintime=excluded.logintime,
+                            updatedat=excluded.updatedat
+                    ''', (
+                        serviceName,
+                        accessToken,
+                        refreshToken,
+                        accessExpires,
+                        refreshExpires,
+                        loginTime,
+                        now
+                    ))
         except Exception as e:
             logger.error(f"Failed to store tokens: {str(e)}")
             raise
@@ -102,17 +157,30 @@ class TokenHandler(BaseDBHandler):
     def getValidTokens(self, serviceName: str) -> Optional[Dict]:
         """Get valid tokens for a service"""
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    SELECT 
-                        accesstoken,
-                        refreshtoken,
-                        accesstokenexpiresat,
-                        refreshtokenexpiresat,
-                        logintime
-                    FROM authtokens
-                    WHERE servicename = %s
-                ''', (serviceName,))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        SELECT 
+                            accesstoken,
+                            refreshtoken,
+                            accesstokenexpiresat,
+                            refreshtokenexpiresat,
+                            logintime
+                        FROM authtokens
+                        WHERE servicename = %s
+                    '''), (serviceName,))
+                else:
+                    cursor.execute('''
+                        SELECT 
+                            accesstoken,
+                            refreshtoken,
+                            accesstokenexpiresat,
+                            refreshtokenexpiresat,
+                            logintime
+                        FROM authtokens
+                        WHERE servicename = ?
+                    ''', (serviceName,))
                 
                 result = cursor.fetchone()
                 if not result:

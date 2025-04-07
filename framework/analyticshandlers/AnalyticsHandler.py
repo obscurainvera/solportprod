@@ -93,68 +93,6 @@ class AnalyticsHandler(BaseDBHandler):
                         FOREIGN KEY (executionid) REFERENCES strategyexecution(executionid)
                     )
                 ''')
-            else:
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS strategyconfig (
-                        strategyid INTEGER PRIMARY KEY AUTOINCREMENT,
-                        strategyname TEXT NOT NULL,
-                        source TEXT NOT NULL,
-                        description TEXT,
-                        strategyentryconditions TEXT NOT NULL,
-                        chartconditions TEXT,
-                        investmentinstructions TEXT NOT NULL,
-                        profittakinginstructions TEXT NOT NULL,
-                        riskmanagementinstructions TEXT NOT NULL,
-                        moonbaginstructions TEXT,
-                        additionalinstructions TEXT,
-                        status INTEGER DEFAULT 1,
-                        active INTEGER DEFAULT 1,
-                        superuser INTEGER DEFAULT 0,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Strategy execution table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS strategyexecution (
-                        executionid INTEGER PRIMARY KEY AUTOINCREMENT,
-                        strategyid INTEGER NOT NULL,
-                        description TEXT,
-                        tokenid TEXT NOT NULL,
-                        tokenname TEXT NOT NULL,
-                        avgentryprice DECIMAL,
-                        remainingcoins DECIMAL,
-                        allotedamount DECIMAL NOT NULL,
-                        investedamount DECIMAL,
-                        amounttakenout DECIMAL,
-                        realizedpnl DECIMAL,
-                        realizedpnlpercent DECIMAL,
-                        status INTEGER NOT NULL,
-                        notes TEXT,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (strategyid) REFERENCES strategyconfig(strategyid)
-                    )
-                ''')
-                
-                # Trade log table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS tradelog (
-                        tradeid INTEGER PRIMARY KEY AUTOINCREMENT,
-                        executionid INTEGER NOT NULL,
-                        tokenid TEXT NOT NULL,
-                        tokenname TEXT NOT NULL,
-                        tradetype TEXT NOT NULL,
-                        amount DECIMAL NOT NULL,
-                        tokenprice DECIMAL NOT NULL,
-                        coins DECIMAL NOT NULL,
-                        description TEXT,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (executionid) REFERENCES strategyexecution(executionid)
-                    )
-                ''')
             
             logger.info("Analytics tables created successfully")
 

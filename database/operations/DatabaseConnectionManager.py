@@ -54,32 +54,23 @@ class DatabaseConnectionManager:
                 # Store configuration for use in connection methods
                 cls._instance.config = config
                 
-                if config.DB_TYPE == 'sqlite':
-                    # SQLite support retained for development
-                    from sqlalchemy import create_engine
-                    from sqlalchemy.orm import sessionmaker
-                    
-                    cls._instance.db_url = f'sqlite:///{config.DB_PATH}'
-                    cls._instance.engine = create_engine(cls._instance.db_url)
-                    cls._instance.Session = sessionmaker(bind=cls._instance.engine)
-                    cls._instance.connection_type = 'sqlite'
-                else:
-                    # Use psycopg2 connection pooling for PostgreSQL
-                    try:
-                        cls._instance.pool = psycopg2.pool.ThreadedConnectionPool(
-                            minconn=1,
-                            maxconn=config.DB_POOL_SIZE,
-                            user=config.DB_USER,
-                            password=config.DB_PASSWORD,
-                            host=config.DB_HOST,
+            
+                # Use psycopg2 connection pooling for PostgreSQL
+                try:
+                    cls._instance.pool = psycopg2.pool.ThreadedConnectionPool(
+                        minconn=1,
+                        maxconn=config.DB_POOL_SIZE,
+                        user=config.DB_USER,
+                        password=config.DB_PASSWORD,
+                        host=config.DB_HOST,
                             port=config.DB_PORT,
                             dbname=config.DB_NAME
-                        )
-                        cls._instance.connection_type = 'postgres'
-                        logger.info(f"Initialized PostgreSQL connection pool to {config.DB_HOST}")
-                    except Exception as e:
-                        logger.error(f"Failed to initialize PostgreSQL connection pool: {e}")
-                        raise
+                    )
+                    cls._instance.connection_type = 'postgres'
+                    logger.info(f"Initialized PostgreSQL connection pool to {config.DB_HOST}")
+                except Exception as e:
+                    logger.error(f"Failed to initialize PostgreSQL connection pool: {e}")
+                    raise
             
             return cls._instance
 

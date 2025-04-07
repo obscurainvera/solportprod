@@ -44,7 +44,6 @@ class SMWalletTopPNLTokenHandler(BaseDBHandler):
                         createdtime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         lastupdatedtime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         status INTEGER DEFAULT {TokenStatus.LOW_PNL_TOKEN.value},
-                        FOREIGN KEY (walletaddress) REFERENCES wallet_behaviour(walletaddress),
                         UNIQUE(walletaddress, tokenid)
                     )
                 ''')
@@ -64,7 +63,6 @@ class SMWalletTopPNLTokenHandler(BaseDBHandler):
                         createdtime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         lastupdatedtime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         status INTEGER DEFAULT {TokenStatus.LOW_PNL_TOKEN.value},
-                        FOREIGN KEY (walletaddress) REFERENCES wallet_behaviour(walletaddress),
                         UNIQUE(walletaddress, tokenid)
                     )
                 ''')

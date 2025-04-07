@@ -12,6 +12,7 @@ from database.operations.BaseDBHandler import BaseDBHandler
 from database.operations.schema import Notification, NotificationButton
 from framework.notificationframework.NotificationEnums import NotificationStatus
 from logs.logger import get_logger
+from sqlalchemy import text
 
 
 logger = get_logger(__name__)
@@ -31,28 +32,55 @@ class NotificationHandler(BaseDBHandler):
     
     def _ensureTableExists(self) -> None:
         """Ensure the notification table exists"""
-        with self.transaction() as cursor:
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS {self.tableName} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    source TEXT NOT NULL,
-                    chatgroup TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT '{NotificationStatus.PENDING.value}',
-                    servicetype TEXT,
-                    errordetails TEXT,
-                    buttons TEXT,
-                    createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updatedat TIMESTAMP,
-                    sentat TIMESTAMP
-                )
-            ''')
-            
-            # Create index for faster queries
-            cursor.execute(f'''
-                CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
-                ON {self.tableName} (status)
-            ''')
+        config = get_config()
+        
+        with self.conn_manager.transaction() as cursor:
+            if config.DB_TYPE == 'postgres':
+                # PostgreSQL syntax
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS {self.tableName} (
+                        id SERIAL PRIMARY KEY,
+                        source TEXT NOT NULL,
+                        chatgroup TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT '{NotificationStatus.PENDING.value}',
+                        servicetype TEXT,
+                        errordetails TEXT,
+                        buttons TEXT,
+                        createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP,
+                        sentat TIMESTAMP
+                    )
+                ''')
+                
+                # Create index for faster queries
+                cursor.execute(f'''
+                    CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
+                    ON {self.tableName} (status)
+                ''')
+            else:
+                # SQLite syntax
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS {self.tableName} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL,
+                        chatgroup TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT '{NotificationStatus.PENDING.value}',
+                        servicetype TEXT,
+                        errordetails TEXT,
+                        buttons TEXT,
+                        createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP,
+                        sentat TIMESTAMP
+                    )
+                ''')
+                
+                # Create index for faster queries
+                cursor.execute(f'''
+                    CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
+                    ON {self.tableName} (status)
+                ''')
     
     def createNotification(self, notification: Notification) -> Optional[Notification]:
         """
@@ -65,7 +93,9 @@ class NotificationHandler(BaseDBHandler):
             Optional[Notification]: Saved notification with ID or None if failed
         """
         try:
-            with self.transaction() as cursor:
+            config = get_config()
+            
+            with self.conn_manager.transaction() as cursor:
                 now = self.getCurrentIstTime()
                 
                 # Set timestamps
@@ -76,25 +106,46 @@ class NotificationHandler(BaseDBHandler):
                 buttons_json = json.dumps([{"text": btn.text, "url": btn.url} for btn in notification.buttons]) if notification.buttons else None
                 
                 # Insert into database
-                cursor.execute(f'''
-                    INSERT INTO {self.tableName} 
-                    (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    notification.source,
-                    notification.chatgroup,
-                    notification.content,
-                    notification.status,
-                    notification.servicetype,
-                    notification.errordetails,
-                    buttons_json,
-                    notification.createdat,
-                    notification.updatedat,
-                    notification.sentat
-                ))
-                
-                # Get the ID of the inserted row
-                notification.id = cursor.lastrowid
+                if config.DB_TYPE == 'postgres':
+                    result = cursor.execute(text(f'''
+                        INSERT INTO {self.tableName} 
+                        (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    '''), (
+                        notification.source,
+                        notification.chatgroup,
+                        notification.content,
+                        notification.status,
+                        notification.servicetype,
+                        notification.errordetails,
+                        buttons_json,
+                        notification.createdat,
+                        notification.updatedat,
+                        notification.sentat
+                    ))
+                    row = result.fetchone()
+                    notification.id = row[0] if row else None
+                else:
+                    cursor.execute(f'''
+                        INSERT INTO {self.tableName} 
+                        (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        notification.source,
+                        notification.chatgroup,
+                        notification.content,
+                        notification.status,
+                        notification.servicetype,
+                        notification.errordetails,
+                        buttons_json,
+                        notification.createdat,
+                        notification.updatedat,
+                        notification.sentat
+                    ))
+                    
+                    # Get the ID of the inserted row
+                    notification.id = cursor.lastrowid
                 
                 return notification
                 
@@ -113,11 +164,13 @@ class NotificationHandler(BaseDBHandler):
             bool: True if update was successful, False otherwise
         """
         try:
+            config = get_config()
+            
             if not notification.id:
                 logger.error("Cannot update notification without an ID")
                 return False
             
-            with self.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 # Update timestamp
                 notification.updatedat = self.getCurrentIstTime()
                 
@@ -125,30 +178,56 @@ class NotificationHandler(BaseDBHandler):
                 buttons_json = json.dumps([{"text": btn.text, "url": btn.url} for btn in notification.buttons]) if notification.buttons else None
                 
                 # Update record
-                cursor.execute(f'''
-                    UPDATE {self.tableName}
-                    SET source = ?,
-                        chatgroup = ?,
-                        content = ?,
-                        status = ?,
-                        servicetype = ?,
-                        errordetails = ?,
-                        buttons = ?,
-                        updatedat = ?,
-                        sentat = ?
-                    WHERE id = ?
-                ''', (
-                    notification.source,
-                    notification.chatgroup,
-                    notification.content,
-                    notification.status,
-                    notification.servicetype,
-                    notification.errordetails,
-                    buttons_json,
-                    notification.updatedat,
-                    notification.sentat,
-                    notification.id
-                ))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text(f'''
+                        UPDATE {self.tableName}
+                        SET source = %s,
+                            chatgroup = %s,
+                            content = %s,
+                            status = %s,
+                            servicetype = %s,
+                            errordetails = %s,
+                            buttons = %s,
+                            updatedat = %s,
+                            sentat = %s
+                        WHERE id = %s
+                    '''), (
+                        notification.source,
+                        notification.chatgroup,
+                        notification.content,
+                        notification.status,
+                        notification.servicetype,
+                        notification.errordetails,
+                        buttons_json,
+                        notification.updatedat,
+                        notification.sentat,
+                        notification.id
+                    ))
+                else:
+                    cursor.execute(f'''
+                        UPDATE {self.tableName}
+                        SET source = ?,
+                            chatgroup = ?,
+                            content = ?,
+                            status = ?,
+                            servicetype = ?,
+                            errordetails = ?,
+                            buttons = ?,
+                            updatedat = ?,
+                            sentat = ?
+                        WHERE id = ?
+                    ''', (
+                        notification.source,
+                        notification.chatgroup,
+                        notification.content,
+                        notification.status,
+                        notification.servicetype,
+                        notification.errordetails,
+                        buttons_json,
+                        notification.updatedat,
+                        notification.sentat,
+                        notification.id
+                    ))
                 
                 return cursor.rowcount > 0
                 
@@ -167,13 +246,23 @@ class NotificationHandler(BaseDBHandler):
             Optional[Notification]: Notification object if found, None otherwise
         """
         try:
-            with self.transaction() as cursor:
-                cursor.execute(f'''
-                    SELECT id, source, chatgroup, content, status, servicetype, 
-                           errordetails, buttons, createdat, updatedat, sentat
-                    FROM {self.tableName}
-                    WHERE id = ?
-                ''', (notificationId,))
+            config = get_config()
+            
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE id = %s
+                    '''), (notificationId,))
+                else:
+                    cursor.execute(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE id = ?
+                    ''', (notificationId,))
                 
                 row = cursor.fetchone()
                 if not row:
@@ -196,15 +285,27 @@ class NotificationHandler(BaseDBHandler):
             List[Notification]: List of pending notifications
         """
         try:
-            with self.transaction() as cursor:
-                cursor.execute(f'''
-                    SELECT id, source, chatgroup, content, status, servicetype, 
-                           errordetails, buttons, createdat, updatedat, sentat
-                    FROM {self.tableName}
-                    WHERE status = ?
-                    ORDER BY createdat ASC
-                    LIMIT ?
-                ''', (NotificationStatus.PENDING.value, limit))
+            config = get_config()
+            
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE status = %s
+                        ORDER BY createdat ASC
+                        LIMIT %s
+                    '''), (NotificationStatus.PENDING.value, limit))
+                else:
+                    cursor.execute(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE status = ?
+                        ORDER BY createdat ASC
+                        LIMIT ?
+                    ''', (NotificationStatus.PENDING.value, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]
@@ -224,15 +325,27 @@ class NotificationHandler(BaseDBHandler):
             List[Notification]: List of failed notifications
         """
         try:
-            with self.transaction() as cursor:
-                cursor.execute(f'''
-                    SELECT id, source, chatgroup, content, status, servicetype, 
-                           errordetails, buttons, createdat, updatedat, sentat
-                    FROM {self.tableName}
-                    WHERE status = ?
-                    ORDER BY updatedat DESC
-                    LIMIT ?
-                ''', (NotificationStatus.FAILED.value, limit))
+            config = get_config()
+            
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE status = %s
+                        ORDER BY updatedat DESC
+                        LIMIT %s
+                    '''), (NotificationStatus.FAILED.value, limit))
+                else:
+                    cursor.execute(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE status = ?
+                        ORDER BY updatedat DESC
+                        LIMIT ?
+                    ''', (NotificationStatus.FAILED.value, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]
@@ -253,15 +366,27 @@ class NotificationHandler(BaseDBHandler):
             List[Notification]: List of notifications from the specified source
         """
         try:
-            with self.transaction() as cursor:
-                cursor.execute(f'''
-                    SELECT id, source, chatgroup, content, status, servicetype, 
-                           errordetails, buttons, createdat, updatedat, sentat
-                    FROM {self.tableName}
-                    WHERE source = ?
-                    ORDER BY createdat DESC
-                    LIMIT ?
-                ''', (source, limit))
+            config = get_config()
+            
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE source = %s
+                        ORDER BY createdat DESC
+                        LIMIT %s
+                    '''), (source, limit))
+                else:
+                    cursor.execute(f'''
+                        SELECT id, source, chatgroup, content, status, servicetype, 
+                               errordetails, buttons, createdat, updatedat, sentat
+                        FROM {self.tableName}
+                        WHERE source = ?
+                        ORDER BY createdat DESC
+                        LIMIT ?
+                    ''', (source, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]

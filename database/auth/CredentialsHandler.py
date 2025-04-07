@@ -6,6 +6,7 @@ from datetime import datetime
 from logs.logger import get_logger
 import json
 from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+from sqlalchemy import text
 
 logger = get_logger(__name__)
 
@@ -24,27 +25,52 @@ class CredentialsHandler(BaseDBHandler):
     def _createTables(self):
         """Creates the credentials tables"""
         with self.conn_manager.transaction() as cursor:
-            # Main credentials table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS servicecredentials (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    servicename VARCHAR(100) NOT NULL,
-                    credentialtype VARCHAR(20) NOT NULL,
-                    isactive BOOLEAN DEFAULT 1,
-                    metadata TEXT,
-                    apikey TEXT,   
-                    apisecret TEXT,
-                    availablecredits INTEGER,
-                    username TEXT,
-                    password TEXT,
-                    createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    lastusedat TIMESTAMP,
-                    expiresat TIMESTAMP,                    
-                    UNIQUE(servicename, apikey),
-                    UNIQUE(servicename, username)
-                )
-            ''')
+            config = get_config()
+            
+            if config.DB_TYPE == 'postgres':
+                # PostgreSQL syntax
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS servicecredentials (
+                        id SERIAL PRIMARY KEY,
+                        servicename VARCHAR(100) NOT NULL,
+                        credentialtype VARCHAR(20) NOT NULL,
+                        isactive BOOLEAN DEFAULT TRUE,
+                        metadata TEXT,
+                        apikey TEXT,   
+                        apisecret TEXT,
+                        availablecredits INTEGER,
+                        username TEXT,
+                        password TEXT,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        lastusedat TIMESTAMP,
+                        expiresat TIMESTAMP,                    
+                        UNIQUE(servicename, apikey),
+                        UNIQUE(servicename, username)
+                    )
+                ''')
+            else:
+                # SQLite syntax
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS servicecredentials (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        servicename VARCHAR(100) NOT NULL,
+                        credentialtype VARCHAR(20) NOT NULL,
+                        isactive BOOLEAN DEFAULT 1,
+                        metadata TEXT,
+                        apikey TEXT,   
+                        apisecret TEXT,
+                        availablecredits INTEGER,
+                        username TEXT,
+                        password TEXT,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        lastusedat TIMESTAMP,
+                        expiresat TIMESTAMP,                    
+                        UNIQUE(servicename, apikey),
+                        UNIQUE(servicename, username)
+                    )
+                ''')
 
     def storeApiCredentials(self, serviceName: str, apiKey: str, 
                           apiSecret: Optional[str] = None,
@@ -53,24 +79,44 @@ class CredentialsHandler(BaseDBHandler):
                           expiresAt: Optional[datetime] = None) -> bool:
         """Store or update API key-based credentials"""
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    INSERT INTO servicecredentials (
-                        servicename, credentialtype, apikey, apisecret,
-                        availablecredits, metadata, expiresat, updatedat
-                    ) VALUES (?, 'API_KEY', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(servicename, apikey) DO UPDATE SET
-                        apisecret=excluded.apisecret,
-                        availablecredits=excluded.availablecredits,
-                        metadata=excluded.metadata,
-                        expiresat=excluded.expiresat,
-                        updatedat=CURRENT_TIMESTAMP
-                ''', (
-                    serviceName, apiKey, apiSecret,
-                    availableCredits,
-                    json.dumps(metadata) if metadata else None,
-                    expiresAt
-                ))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, apikey, apisecret,
+                            availablecredits, metadata, expiresat, updatedat
+                        ) VALUES (%s, 'API_KEY', %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT(servicename, apikey) DO UPDATE SET
+                            apisecret=EXCLUDED.apisecret,
+                            availablecredits=EXCLUDED.availablecredits,
+                            metadata=EXCLUDED.metadata,
+                            expiresat=EXCLUDED.expiresat,
+                            updatedat=CURRENT_TIMESTAMP
+                    '''), (
+                        serviceName, apiKey, apiSecret,
+                        availableCredits,
+                        json.dumps(metadata) if metadata else None,
+                        expiresAt
+                    ))
+                else:
+                    cursor.execute('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, apikey, apisecret,
+                            availablecredits, metadata, expiresat, updatedat
+                        ) VALUES (?, 'API_KEY', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(servicename, apikey) DO UPDATE SET
+                            apisecret=excluded.apisecret,
+                            availablecredits=excluded.availablecredits,
+                            metadata=excluded.metadata,
+                            expiresat=excluded.expiresat,
+                            updatedat=CURRENT_TIMESTAMP
+                    ''', (
+                        serviceName, apiKey, apiSecret,
+                        availableCredits,
+                        json.dumps(metadata) if metadata else None,
+                        expiresAt
+                    ))
                 return True
         except Exception as e:
             logger.error(f"Failed to store API credentials for {serviceName}: {str(e)}")
@@ -81,22 +127,40 @@ class CredentialsHandler(BaseDBHandler):
                              expiresAt: Optional[datetime] = None) -> bool:
         """Store or update username/password credentials"""
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    INSERT INTO servicecredentials (
-                        servicename, credentialtype, username, password,
-                        metadata, expiresat, updatedat
-                    ) VALUES (?, 'USER_PASS', ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(servicename, username) DO UPDATE SET
-                        password=excluded.password,
-                        metadata=excluded.metadata,
-                        expiresat=excluded.expiresat,
-                        updatedat=CURRENT_TIMESTAMP
-                ''', (
-                    serviceName, username, password,
-                    json.dumps(metadata) if metadata else None,
-                    expiresAt
-                ))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, username, password,
+                            metadata, expiresat, updatedat
+                        ) VALUES (%s, 'USER_PASS', %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT(servicename, username) DO UPDATE SET
+                            password=EXCLUDED.password,
+                            metadata=EXCLUDED.metadata,
+                            expiresat=EXCLUDED.expiresat,
+                            updatedat=CURRENT_TIMESTAMP
+                    '''), (
+                        serviceName, username, password,
+                        json.dumps(metadata) if metadata else None,
+                        expiresAt
+                    ))
+                else:
+                    cursor.execute('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, username, password,
+                            metadata, expiresat, updatedat
+                        ) VALUES (?, 'USER_PASS', ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(servicename, username) DO UPDATE SET
+                            password=excluded.password,
+                            metadata=excluded.metadata,
+                            expiresat=excluded.expiresat,
+                            updatedat=CURRENT_TIMESTAMP
+                    ''', (
+                        serviceName, username, password,
+                        json.dumps(metadata) if metadata else None,
+                        expiresAt
+                    ))
                 return True
         except Exception as e:
             logger.error(f"Failed to store user credentials for {serviceName}: {str(e)}")
@@ -108,22 +172,40 @@ class CredentialsHandler(BaseDBHandler):
         returns specific credentials, otherwise returns the first active credentials.
         """
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
                 if identifier:
-                    cursor.execute('''
-                        SELECT * FROM servicecredentials
-                        WHERE servicename = ?
-                        AND (apikey = ? OR username = ?)
-                        AND isactive = 1
-                    ''', (serviceName, identifier, identifier))
+                    if config.DB_TYPE == 'postgres':
+                        cursor.execute(text('''
+                            SELECT * FROM servicecredentials
+                            WHERE servicename = %s
+                            AND (apikey = %s OR username = %s)
+                            AND isactive = TRUE
+                        '''), (serviceName, identifier, identifier))
+                    else:
+                        cursor.execute('''
+                            SELECT * FROM servicecredentials
+                            WHERE servicename = ?
+                            AND (apikey = ? OR username = ?)
+                            AND isactive = 1
+                        ''', (serviceName, identifier, identifier))
                 else:
-                    cursor.execute('''
-                        SELECT * FROM servicecredentials
-                        WHERE servicename = ?
-                        AND isactive = 1
-                        ORDER BY updatedat DESC
-                        LIMIT 1
-                    ''', (serviceName,))
+                    if config.DB_TYPE == 'postgres':
+                        cursor.execute(text('''
+                            SELECT * FROM servicecredentials
+                            WHERE servicename = %s
+                            AND isactive = TRUE
+                            ORDER BY updatedat DESC
+                            LIMIT 1
+                        '''), (serviceName,))
+                    else:
+                        cursor.execute('''
+                            SELECT * FROM servicecredentials
+                            WHERE servicename = ?
+                            AND isactive = 1
+                            ORDER BY updatedat DESC
+                            LIMIT 1
+                        ''', (serviceName,))
                 
                 result = cursor.fetchone()
                 if result:
@@ -139,13 +221,23 @@ class CredentialsHandler(BaseDBHandler):
     def updateCredits(self, serviceName: str, apiKey: str, credits: int) -> bool:
         """Update available credits for an API key"""
         try:
+            config = get_config()
+            current_time = datetime.now()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    UPDATE servicecredentials
-                    SET availablecredits = ?,
-                        updatedat = ?
-                    WHERE servicename = ? AND apikey = ?
-                ''', (credits, datetime.now(), serviceName, apiKey))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        UPDATE servicecredentials
+                        SET availablecredits = %s,
+                            updatedat = %s
+                        WHERE servicename = %s AND apikey = %s
+                    '''), (credits, current_time, serviceName, apiKey))
+                else:
+                    cursor.execute('''
+                        UPDATE servicecredentials
+                        SET availablecredits = ?,
+                            updatedat = ?
+                        WHERE servicename = ? AND apikey = ?
+                    ''', (credits, current_time, serviceName, apiKey))
                 return True
         except Exception as e:
             logger.error(f"Failed to update credits for {serviceName}: {str(e)}")
@@ -154,13 +246,23 @@ class CredentialsHandler(BaseDBHandler):
     def deactivateCredentials(self, serviceName: str, identifier: str) -> bool:
         """Deactivate specific credentials (by api_key or username)"""
         try:
+            config = get_config()
+            current_time = datetime.now()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    UPDATE servicecredentials
-                    SET isactive = 0,
-                        updatedat = ?
-                    WHERE servicename = ? AND (apikey = ? OR username = ?)
-                ''', (datetime.now(), serviceName, identifier, identifier))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        UPDATE servicecredentials
+                        SET isactive = FALSE,
+                            updatedat = %s
+                        WHERE servicename = %s AND (apikey = %s OR username = %s)
+                    '''), (current_time, serviceName, identifier, identifier))
+                else:
+                    cursor.execute('''
+                        UPDATE servicecredentials
+                        SET isactive = 0,
+                            updatedat = ?
+                        WHERE servicename = ? AND (apikey = ? OR username = ?)
+                    ''', (current_time, serviceName, identifier, identifier))
                 return True
         except Exception as e:
             logger.error(f"Failed to deactivate credentials for {serviceName}: {str(e)}")
@@ -178,15 +280,26 @@ class CredentialsHandler(BaseDBHandler):
             Optional[Dict[str, Any]]: Credential data or None if not found
         """
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    SELECT * FROM servicecredentials
-                    WHERE servicename = ?
-                    AND credentialtype = ?
-                    AND isactive = 1
-                    ORDER BY updatedat DESC
-                    LIMIT 1
-                ''', (serviceName, credentialType))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        SELECT * FROM servicecredentials
+                        WHERE servicename = %s
+                        AND credentialtype = %s
+                        AND isactive = TRUE
+                        ORDER BY updatedat DESC
+                        LIMIT 1
+                    '''), (serviceName, credentialType))
+                else:
+                    cursor.execute('''
+                        SELECT * FROM servicecredentials
+                        WHERE servicename = ?
+                        AND credentialtype = ?
+                        AND isactive = 1
+                        ORDER BY updatedat DESC
+                        LIMIT 1
+                    ''', (serviceName, credentialType))
                 
                 result = cursor.fetchone()
                 if result:
@@ -211,17 +324,30 @@ class CredentialsHandler(BaseDBHandler):
             bool: True if credits were successfully reduced, False otherwise
         """
         try:
+            config = get_config()
+            current_time = datetime.now()
             with self.conn_manager.transaction() as cursor:
                 # First, get current credits
-                cursor.execute('''
-                    SELECT id, availablecredits 
-                    FROM servicecredentials
-                    WHERE servicename = ?
-                    AND credentialtype = 'API_KEY'
-                    AND isactive = 1
-                    ORDER BY updatedat DESC
-                    LIMIT 1
-                ''', (serviceName,))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        SELECT id, availablecredits 
+                        FROM servicecredentials
+                        WHERE servicename = %s
+                        AND credentialtype = 'API_KEY'
+                        AND isactive = TRUE
+                        ORDER BY updatedat DESC
+                        LIMIT 1
+                    '''), (serviceName,))
+                else:
+                    cursor.execute('''
+                        SELECT id, availablecredits 
+                        FROM servicecredentials
+                        WHERE servicename = ?
+                        AND credentialtype = 'API_KEY'
+                        AND isactive = 1
+                        ORDER BY updatedat DESC
+                        LIMIT 1
+                    ''', (serviceName,))
                 
                 result = cursor.fetchone()
                 if not result:
@@ -238,13 +364,22 @@ class CredentialsHandler(BaseDBHandler):
                     return False
                     
                 # Update credits
-                cursor.execute('''
-                    UPDATE servicecredentials
-                    SET availablecredits = availablecredits - ?,
-                        updatedat = ?,
-                        lastusedat = ?
-                    WHERE id = ?
-                ''', (amount, datetime.now(),datetime.now(), result['id']))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        UPDATE servicecredentials
+                        SET availablecredits = availablecredits - %s,
+                            updatedat = %s,
+                            lastusedat = %s
+                        WHERE id = %s
+                    '''), (amount, current_time, current_time, result['id']))
+                else:
+                    cursor.execute('''
+                        UPDATE servicecredentials
+                        SET availablecredits = availablecredits - ?,
+                            updatedat = ?,
+                            lastusedat = ?
+                        WHERE id = ?
+                    ''', (amount, current_time, current_time, result['id']))
                 
                 return True
                 
@@ -264,17 +399,30 @@ class CredentialsHandler(BaseDBHandler):
             Optional[Dict]: API key details if found, None otherwise
         """
         try:
+            config = get_config()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    SELECT id, apikey, availablecredits 
-                    FROM servicecredentials
-                    WHERE servicename = ?
-                    AND credentialtype = 'API_KEY'
-                    AND isactive = 1
-                    AND availablecredits >= ?
-                    ORDER BY lastusedat ASC
-                    LIMIT 1
-                ''', (serviceName, requiredCredits))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        SELECT id, apikey, availablecredits 
+                        FROM servicecredentials
+                        WHERE servicename = %s
+                        AND credentialtype = 'API_KEY'
+                        AND isactive = TRUE
+                        AND availablecredits >= %s
+                        ORDER BY lastusedat ASC NULLS FIRST
+                        LIMIT 1
+                    '''), (serviceName, requiredCredits))
+                else:
+                    cursor.execute('''
+                        SELECT id, apikey, availablecredits 
+                        FROM servicecredentials
+                        WHERE servicename = ?
+                        AND credentialtype = 'API_KEY'
+                        AND isactive = 1
+                        AND availablecredits >= ?
+                        ORDER BY lastusedat ASC
+                        LIMIT 1
+                    ''', (serviceName, requiredCredits))
                 
                 result = cursor.fetchone()
                 return dict(result) if result else None
@@ -295,13 +443,23 @@ class CredentialsHandler(BaseDBHandler):
             bool: True if update successful, False otherwise
         """
         try:
+            config = get_config()
+            current_time = datetime.now()
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    UPDATE servicecredentials
-                    SET availablecredits = availablecredits - ?,
-                        lastusedat = ?
-                    WHERE id = ?
-                ''', (creditsUsed, datetime.now(), keyId))
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        UPDATE servicecredentials
+                        SET availablecredits = availablecredits - %s,
+                            lastusedat = %s
+                        WHERE id = %s
+                    '''), (creditsUsed, current_time, keyId))
+                else:
+                    cursor.execute('''
+                        UPDATE servicecredentials
+                        SET availablecredits = availablecredits - ?,
+                            lastusedat = ?
+                        WHERE id = ?
+                    ''', (creditsUsed, current_time, keyId))
                 return True
         except Exception as e:
             logger.error(f"Failed to update API key credits for key {keyId}: {str(e)}")
@@ -329,6 +487,7 @@ class CredentialsHandler(BaseDBHandler):
             bool: True if successful, False otherwise
         """
         try:
+            config = get_config()
             now = datetime.now()
             
             # Validate service exists
@@ -343,25 +502,43 @@ class CredentialsHandler(BaseDBHandler):
             if metadata:
                 metadata_json = json.dumps(metadata)
             
-            with self.transaction() as cursor:
-                cursor.execute(f'''
-                    INSERT INTO {self.tableName} (
-                        service_name, credential_type, apikey, 
-                        api_secret, credits_remaining, metadata, 
-                        expires_at, created_at, updated_at, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    serviceName, 
-                    credentialType,
-                    apiKey, 
-                    apiSecret, 
-                    availableCredits,
-                    metadata_json,
-                    expiresAt,
-                    now,
-                    now,
-                    self.activeStatus
-                ))
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, apikey, 
+                            apisecret, availablecredits, metadata, 
+                            expiresat, createdat, updatedat, isactive
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                    '''), (
+                        serviceName, 
+                        credentialType,
+                        apiKey, 
+                        apiSecret, 
+                        availableCredits,
+                        metadata_json,
+                        expiresAt,
+                        now,
+                        now
+                    ))
+                else:
+                    cursor.execute('''
+                        INSERT INTO servicecredentials (
+                            servicename, credentialtype, apikey, 
+                            apisecret, availablecredits, metadata, 
+                            expiresat, createdat, updatedat, isactive
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    ''', (
+                        serviceName, 
+                        credentialType,
+                        apiKey, 
+                        apiSecret, 
+                        availableCredits,
+                        metadata_json,
+                        expiresAt,
+                        now,
+                        now
+                    ))
                 
                 return True
                 

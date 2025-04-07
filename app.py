@@ -7,6 +7,21 @@ import threading
 import os
 from sqlalchemy import create_engine, text
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from database.attention.AttentionHandler import AttentionHandler
+from database.auth.CredentialsHandler import CredentialsHandler
+from database.auth.TokenHandler import TokenHandler
+from database.job.job_handler import JobHandler
+from database.notification.NotificationHandler import NotificationHandler
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+from database.portsummary.PortfolioHandler import PortfolioHandler
+from database.pumpfun.PumpfunHandler import PumpFunHandler
+from database.smartmoneywallets.SMWalletTopPNLTokenHandler import SMWalletTopPNLTokenHandler
+from database.smartmoneywallets.SmartMoneyPerformanceReportHandler import SmartMoneyPerformanceReportHandler
+from database.smartmoneywallets.SmartMoneyWalletsHandler import SmartMoneyWalletsHandler
+from database.smwalletsbehaviour.SmartMoneyWalletBehaviourHandler import SmartMoneyWalletBehaviourHandler
+from database.volume.VolumeHandler import VolumeHandler
+from database.walletinvested.WalletsInvestedHandler import WalletsInvestedHandler
+from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
 from api.walletsinvested.WalletsInvestedAPI import wallets_invested_bp
 from api.walletsinvested.WalletsInvestedInvestmentDetailsAPI import wallets_invested_investement_details_bp
@@ -42,11 +57,11 @@ from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 from sqlalchemy.engine.url import URL
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from database.operations.PortfolioDB import PortfolioDB
 
 logger = get_logger(__name__)
 
 from scheduler.JobRunner import JobRunner
-from database.operations.PortfolioDB import PortfolioDB
 
 logger = get_logger(__name__)
 
@@ -109,6 +124,148 @@ def initialize_job_storage():
         logger.warning("Application will continue with memory-based job storage")
         # Don't raise the exception - let the application continue with in-memory storage
 
+def initialize_all_tables():
+    """
+    Initialize all database tables by creating an instance of PortfolioDB.
+    PortfolioDB's constructor will initialize all database handlers,
+    which in turn will create their respective tables.
+    """
+    try:
+        logger.info("Initializing all database tables...")
+        
+        # Initialize handlers one by one to identify which one has the issue    
+        conn_manager = DatabaseConnectionManager()
+        
+        # Dictionary to track initialization status
+        init_status = {}
+        
+        # Initialize each handler individually to isolate errors
+        try:
+            logger.info("Initializing PortfolioHandler...")
+            PortfolioHandler(conn_manager)
+            init_status['PortfolioHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing PortfolioHandler: {e}")
+            init_status['PortfolioHandler'] = f"Failed: {str(e)}"
+        
+        try:
+            logger.info("Initializing WalletsInvestedHandler...")
+            WalletsInvestedHandler(conn_manager)
+            init_status['WalletsInvestedHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing WalletsInvestedHandler: {e}")
+            init_status['WalletsInvestedHandler'] = f"Failed: {str(e)}"
+        
+        try:        
+            logger.info("Initializing JobHandler...")
+            JobHandler(conn_manager)
+            init_status['JobHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing JobHandler: {e}")
+            init_status['JobHandler'] = f"Failed: {str(e)}"
+        
+        try:    
+            logger.info("Initializing SmartMoneyWalletsHandler...")
+            SmartMoneyWalletsHandler(conn_manager)
+            init_status['SmartMoneyWalletsHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing SmartMoneyWalletsHandler: {e}")
+            init_status['SmartMoneyWalletsHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing SMWalletTopPNLTokenHandler...")
+            SMWalletTopPNLTokenHandler(conn_manager)
+            init_status['SMWalletTopPNLTokenHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing SMWalletTopPNLTokenHandler: {e}")
+            init_status['SMWalletTopPNLTokenHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing SmartMoneyPerformanceReportHandler...")
+            SmartMoneyPerformanceReportHandler(conn_manager)
+            init_status['SmartMoneyPerformanceReportHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing SmartMoneyPerformanceReportHandler: {e}")
+            init_status['SmartMoneyPerformanceReportHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing AttentionHandler...")
+            AttentionHandler(conn_manager)
+            init_status['AttentionHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing AttentionHandler: {e}")
+            init_status['AttentionHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing VolumeHandler...")
+            VolumeHandler(conn_manager)
+            init_status['VolumeHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing VolumeHandler: {e}")
+            init_status['VolumeHandler'] = f"Failed: {str(e)}"
+            
+        try:    
+            logger.info("Initializing PumpFunHandler...")
+            PumpFunHandler(conn_manager)
+            init_status['PumpFunHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing PumpFunHandler: {e}")
+            init_status['PumpFunHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing TokenHandler...")
+            TokenHandler(conn_manager)
+            init_status['TokenHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing TokenHandler: {e}")
+            init_status['TokenHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing CredentialsHandler...")
+            CredentialsHandler(conn_manager)
+            init_status['CredentialsHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing CredentialsHandler: {e}")
+            init_status['CredentialsHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing AnalyticsHandler...")
+            AnalyticsHandler(conn_manager)
+            init_status['AnalyticsHandler'] = "Success" 
+        except Exception as e:
+            logger.error(f"Error initializing AnalyticsHandler: {e}")
+            init_status['AnalyticsHandler'] = f"Failed: {str(e)}"
+            
+        try:
+            logger.info("Initializing NotificationHandler...")
+            NotificationHandler(conn_manager)
+            init_status['NotificationHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing NotificationHandler: {e}")
+            init_status['NotificationHandler'] = f"Failed: {str(e)}"
+            
+        try:    
+            logger.info("Initializing SmartMoneyWalletBehaviourHandler...")
+            SmartMoneyWalletBehaviourHandler(conn_manager)
+            init_status['SmartMoneyWalletBehaviourHandler'] = "Success"
+        except Exception as e:
+            logger.error(f"Error initializing SmartMoneyWalletBehaviourHandler: {e}")
+            init_status['SmartMoneyWalletBehaviourHandler'] = f"Failed: {str(e)}"
+        
+        # Summary of initialization status
+        success_count = sum(1 for status in init_status.values() if status == "Success")
+        total_count = len(init_status)
+        
+        logger.info(f"Database initialization completed: {success_count}/{total_count} handlers successful")
+        if success_count < total_count:
+            logger.warning("Some handlers failed to initialize. Check the logs for details.")
+        else:
+            logger.info("All database tables initialized successfully")
+            
+    except Exception as e:
+        logger.error(f"Error during database initialization: {e}")
+        # Don't raise the exception, allow the app to continue
+
 class PortfolioApp:
     """
     Main application class that manages the Flask web server and background jobs.
@@ -132,6 +289,7 @@ class PortfolioApp:
         
         # Initialize components with graceful error handling
         initialize_job_storage()  # This now handles its own errors
+        initialize_all_tables()   # Initialize all database tables
 
         try:
             self.job_runner = JobRunner()
