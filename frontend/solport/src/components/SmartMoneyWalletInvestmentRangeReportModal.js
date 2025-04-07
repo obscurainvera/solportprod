@@ -16,6 +16,11 @@ import {
 import TokenDetailsModal from './TokenDetailsModal';
 import './SmartMoneyWalletInvestmentRangeReportModal.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,24 +66,42 @@ function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
       setError(null);
       
       try {
-        const response = await axios.get(`http://localhost:8080/api/smwalletbehaviour/investmentrange/${wallet.walletaddress}`, {
+        if (isDev) {
+          console.log(`Fetching investment range report for wallet: ${wallet.walletaddress}`);
+        }
+        
+        const response = await axios.get(`${API_BASE_URL}/api/smwalletbehaviour/investmentrange/${wallet.walletaddress}`, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
         });
         
-        console.log('Investment range report data:', response.data);
-        
-        // Check if ranges have IDs
-        if (response.data.data && response.data.data.ranges) {
-          console.log('Ranges with IDs:', response.data.data.ranges.map(r => ({ label: r.label, id: r.id })));
+        if (isDev) {
+          console.log('Investment range report response:', response.data);
         }
         
-        setReportData(response.data.data || null);
+        // Check for API error response
+        if (response.data.status === 'error') {
+          throw new Error(response.data.message || 'Failed to load investment range report');
+        }
+        
+        // Extract data from the standardized response format
+        const responseData = response.data.status === 'success' && response.data.data 
+          ? response.data.data 
+          : response.data;
+        
+        // Check if ranges have IDs in development mode
+        if (isDev && responseData && responseData.ranges) {
+          console.log('Ranges with IDs:', responseData.ranges.map(r => ({ label: r.label, id: r.id })));
+        }
+        
+        setReportData(responseData || null);
       } catch (err) {
-        console.error('Error fetching investment range report:', err);
-        setError(err.response?.data?.message || 'Failed to load investment range report');
+        if (isDev) {
+          console.error('Error fetching investment range report:', err);
+        }
+        setError(err.response?.data?.message || err.message || 'Failed to load investment range report');
       } finally {
         setLoading(false);
       }

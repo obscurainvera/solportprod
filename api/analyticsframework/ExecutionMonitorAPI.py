@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 # Create a Blueprint for execution monitoring endpoints
 execution_monitor_bp = Blueprint('execution_monitor', __name__)
 
-@execution_monitor_bp.route('/api/analyticsframework/triggerexecutionmonitoring', methods=['POST'])
+@execution_monitor_bp.route('/api/analyticsframework/triggerexecutionmonitoring', methods=['POST', 'OPTIONS'])
 def triggerExecutionMonitoring():
     """
     API endpoint to manually trigger execution monitoring
@@ -24,6 +24,9 @@ def triggerExecutionMonitoring():
     Returns:
         JSON response with monitoring statistics and execution status
     """
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     startTime = time.time()
     logger.info("Manual execution monitoring triggered via API")
     

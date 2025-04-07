@@ -1,6 +1,5 @@
 from config.Config import get_config
 from flask import Blueprint, request, jsonify
-from flask_cors import CORS
 from database.strategyreport.StrategyPerformanceHandler import StrategyPerformanceHandler
 from database.operations.PortfolioDB import PortfolioDB
 from logs.logger import get_logger
@@ -13,62 +12,12 @@ logger = get_logger(__name__)
 
 # Create blueprint
 strategyperformance_bp = Blueprint('strategyperformance', __name__)
-CORS(strategyperformance_bp)
 
 # Constants
 DEFAULT_SORT_BY = "strategyname"
 DEFAULT_SORT_ORDER = "asc"
 DEFAULT_EXECUTION_SORT_BY = "createdat"
 DEFAULT_EXECUTION_SORT_ORDER = "desc"
-
-# Utility functions for API responses
-def generate_cors_preflight_response():
-    """Generate a CORS preflight response."""
-    response = jsonify({})
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "*")
-    response.headers.add("Access-Control-Allow-Methods", "*")
-    return response
-
-def generate_success_response(data: Any, timing: float) -> Dict[str, Any]:
-    """
-    Generate a standardized success response.
-    
-    Args:
-        data: The data to return in the response
-        timing: Response time in milliseconds
-        
-    Returns:
-        Dict containing response data and metadata
-    """
-    return {
-        "success": True,
-        "data": data,
-        "timing": timing
-    }
-
-def generate_error_response(message: str, error: Exception = None) -> Dict[str, Any]:
-    """
-    Generate a standardized error response.
-    
-    Args:
-        message: Error message
-        error: Optional exception object
-        
-    Returns:
-        Dict containing error information
-    """
-    response = {
-        "success": False,
-        "error": message
-    }
-    
-    if error:
-        logger.error(f"{message}: {str(error)}")
-    else:
-        logger.error(message)
-        
-    return response
 
 # Parameter parsing utilities
 def parse_numeric_param(param_value: Optional[str], default: Optional[float] = None) -> Optional[float]:
@@ -181,7 +130,7 @@ def ensure_pnl_calculations(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def strategy_config_report():
     """Endpoint to get strategy configuration report with performance metrics."""
     if request.method == "OPTIONS":
-        return generate_cors_preflight_response()
+        return jsonify({}), 200
         
     start_time = time.time()
     
@@ -199,31 +148,36 @@ def strategy_config_report():
                 source=params["source"],
                 min_realized_pnl=params["min_realized_pnl"],
                 min_total_pnl=params["min_total_pnl"],
-                sortBy=params["sort_by"] or DEFAULT_SORT_BY,
-                sortOrder=params["sort_order"]
+                sort_by=params["sort_by"] or DEFAULT_SORT_BY,
+                sort_order=params["sort_order"]
             )
             
-            # Update with current token prices
-            if strategies:
-                strategies = handler.updateStrategyTokenPrices(strategies)
-                
-                # Apply consistent PNL calculations
-                strategies = ensure_pnl_calculations(strategies)
-        
-        # Generate response
-        timing = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Strategy config report generated in {timing}ms with {len(strategies)} results.")
-        
-        return jsonify(generate_success_response(strategies, timing))
-        
+            # Fix PNL calculations if needed
+            strategies = ensure_pnl_calculations(strategies)
+            
+            # Return response
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
+            logger.info(f"Strategy config report generated in {processing_time:.2f}ms, found {len(strategies)} strategies")
+            
+            return jsonify({
+                "status": "success",
+                "data": strategies,
+                "count": len(strategies),
+                "timing": f"{processing_time:.2f}ms"
+            })
+            
     except Exception as e:
-        return jsonify(generate_error_response("Failed to generate strategy config report", e))
+        logger.error(f"Error generating strategy config report: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal server error: {str(e)}"
+        }), 500
 
 @strategyperformance_bp.route('/api/reports/strategyperformance/executions', methods=['GET', 'OPTIONS'])
 def strategy_executions():
-    """Endpoint to get all strategy executions with optional filters."""
+    """Endpoint to get all strategy executions."""
     if request.method == "OPTIONS":
-        return generate_cors_preflight_response()
+        return jsonify({}), 200
         
     start_time = time.time()
     
@@ -235,79 +189,94 @@ def strategy_executions():
         with PortfolioDB() as db:
             handler = StrategyPerformanceHandler(db)
             
-            # Get executions
-            executions = handler.getAllExecutions(
-                strategy_name=params["strategy_name"],
-                source=params["source"],
+            # Get strategy executions
+            executions = handler.getStrategyExecutions(
+                strategy_id=None,  # All executions
                 token_id=params["token_id"],
                 token_name=params["token_name"],
+                status=params["status"],
                 min_realized_pnl=params["min_realized_pnl"],
                 min_total_pnl=params["min_total_pnl"],
-                sortBy=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
-                sortOrder=params["sort_order"] or DEFAULT_EXECUTION_SORT_ORDER
+                sort_by=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
+                sort_order=params["sort_order"]
             )
             
-            # Update with current token prices
-            if executions:
-                executions = handler.updateExecutionPrices(executions)
-                
-                # Apply consistent PNL calculations
-                executions = ensure_pnl_calculations(executions)
-        
-        # Generate response
-        timing = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Strategy executions report generated in {timing}ms with {len(executions)} results.")
-        
-        return jsonify(generate_success_response(executions, timing))
-        
+            # Fix PNL calculations if needed
+            executions = ensure_pnl_calculations(executions)
+            
+            # Return response
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
+            logger.info(f"Strategy executions report generated in {processing_time:.2f}ms, found {len(executions)} executions")
+            
+            return jsonify({
+                "status": "success",
+                "data": executions,
+                "count": len(executions),
+                "timing": f"{processing_time:.2f}ms"
+            })
+            
     except Exception as e:
-        return jsonify(generate_error_response("Failed to generate strategy executions report", e))
+        logger.error(f"Error generating strategy executions report: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal server error: {str(e)}"
+        }), 500
 
 @strategyperformance_bp.route('/api/reports/strategyperformance/config/<int:strategy_id>/executions', methods=['GET', 'OPTIONS'])
 def strategy_executions_by_id(strategy_id):
-    """Endpoint to get executions for a specific strategy."""
+    """Endpoint to get executions for a specific strategy by ID."""
     if request.method == "OPTIONS":
-        return generate_cors_preflight_response()
+        return jsonify({}), 200
         
     start_time = time.time()
     
     try:
         # Extract query parameters
-        min_realized_pnl = parse_numeric_param(request.args.get("minRealizedPnl"))
-        min_total_pnl = parse_numeric_param(request.args.get("minTotalPnl"))
+        params = extract_query_params()
         
         # Connect to database and get handler
         with PortfolioDB() as db:
             handler = StrategyPerformanceHandler(db)
             
-            # Get executions for the strategy
+            # Get strategy executions for specific strategy
             executions = handler.getStrategyExecutions(
-                strategyId=strategy_id,
-                min_realized_pnl=min_realized_pnl,
-                min_total_pnl=min_total_pnl
+                strategy_id=strategy_id,
+                token_id=params["token_id"],
+                token_name=params["token_name"],
+                status=params["status"],
+                min_realized_pnl=params["min_realized_pnl"],
+                min_total_pnl=params["min_total_pnl"],
+                sort_by=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
+                sort_order=params["sort_order"]
             )
             
-            # Update with current token prices
-            if executions:
-                executions = handler.updateExecutionPrices(executions)
-                
-                # Apply consistent PNL calculations
-                executions = ensure_pnl_calculations(executions)
-        
-        # Generate response
-        timing = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Strategy executions for ID {strategy_id} generated in {timing}ms with {len(executions)} results.")
-        
-        return jsonify(generate_success_response(executions, timing))
-        
+            # Fix PNL calculations if needed
+            executions = ensure_pnl_calculations(executions)
+            
+            # Return response
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
+            logger.info(f"Executions for strategy {strategy_id} generated in {processing_time:.2f}ms, found {len(executions)} executions")
+            
+            return jsonify({
+                "status": "success",
+                "data": executions,
+                "count": len(executions),
+                "strategy_id": strategy_id,
+                "timing": f"{processing_time:.2f}ms"
+            })
+            
     except Exception as e:
-        return jsonify(generate_error_response(f"Failed to generate executions for strategy ID {strategy_id}", e))
+        logger.error(f"Error generating executions for strategy {strategy_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal server error: {str(e)}"
+        }), 500
 
 @strategyperformance_bp.route('/api/reports/strategyperformance/config/<int:strategy_id>', methods=['GET', 'OPTIONS'])
 def strategy_config_by_id(strategy_id):
-    """Endpoint to get detailed configuration for a specific strategy."""
+    """Endpoint to get strategy configuration details by ID."""
     if request.method == "OPTIONS":
-        return generate_cors_preflight_response()
+        return jsonify({}), 200
         
     start_time = time.time()
     
@@ -320,13 +289,29 @@ def strategy_config_by_id(strategy_id):
             strategy = handler.getStrategyConfigById(strategy_id)
             
             if not strategy:
-                return jsonify(generate_error_response(f"Strategy with ID {strategy_id} not found"))
-                
-        # Generate response
-        timing = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Strategy config for ID {strategy_id} retrieved in {timing}ms")
-        
-        return jsonify(generate_success_response(strategy, timing))
-        
+                logger.warning(f"Strategy with ID {strategy_id} not found")
+                return jsonify({
+                    "status": "error",
+                    "message": f"Strategy with ID {strategy_id} not found"
+                }), 404
+            
+            # Fix PNL calculations if needed
+            strategy = ensure_pnl_calculations([strategy])[0]
+            
+            # Return response
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
+            logger.info(f"Strategy config details for ID {strategy_id} generated in {processing_time:.2f}ms")
+            
+            return jsonify({
+                "status": "success",
+                "data": strategy,
+                "strategy_id": strategy_id,
+                "timing": f"{processing_time:.2f}ms"
+            })
+            
     except Exception as e:
-        return jsonify(generate_error_response(f"Failed to retrieve strategy configuration for ID {strategy_id}", e)) 
+        logger.error(f"Error retrieving strategy configuration for ID {strategy_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal server error: {str(e)}"
+        }), 500 

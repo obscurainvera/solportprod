@@ -28,6 +28,11 @@ import './SmartMoneyWalletModal.css';
 import SmartMoneyWalletBehaviourModal from './SmartMoneyWalletBehaviourModal';
 import SmartMoneyWalletInvestmentRangeReportModal from './SmartMoneyWalletInvestmentRangeReportModal';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 function SmartMoneyWalletModal({ wallet, onClose }) {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,60 +84,86 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
 
   useEffect(() => {
     const fetchWalletTokens = async () => {
-      if (!wallet || !wallet.walletaddress) return;
-      
       setLoading(true);
       setError(null);
       
       try {
-        // Fetch wallet token details from the API
-        const apiUrl = `http://localhost:8080/api/reports/smartmoneywallet/${wallet.walletaddress}`;
-        const response = await axios.get(apiUrl, {
-          params: {
-            sort_by: sortConfig ? sortConfig.key : 'profitAndLoss',
-            sort_order: sortConfig ? sortConfig.direction : sortDirection
-          },
+        if (!wallet || !wallet.address) {
+          throw new Error('Wallet address is required');
+        }
+        
+        if (isDev) {
+          console.log(`Fetching smart money wallet data for: ${wallet.address}`);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/reports/smartmoneywallet/${wallet.address}`, {
+          method: 'GET',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
         });
         
-        console.log('Smart money wallet report response:', response.data);
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (isDev) {
+          console.log('Smart money wallet report response:', data);
+        }
+        
+        // Check for API error response
+        if (data.status === 'error') {
+          throw new Error(data.message || 'Failed to load wallet data');
+        }
+        
+        // Extract data from the standardized response format
+        const responseData = data.status === 'success' && data.data
+          ? data.data
+          : data;
         
         // Set wallet data - this includes the overall PNL from smartmoneywallet table
-        if (response.data.wallet) {
-          setWalletData(response.data.wallet);
+        if (responseData.wallet) {
+          setWalletData(responseData.wallet);
           // Use the PNL from the smart money wallet table
-          setTotalPnl(parseFloat(response.data.wallet.profitAndLoss) || 0);
+          setTotalPnl(parseFloat(responseData.wallet.profitAndLoss) || 0);
         }
         
         // Set token data - this includes token-specific PNL from smwallettoppnltoken table
-        if (response.data.tokens && Array.isArray(response.data.tokens)) {
+        if (responseData.tokens && Array.isArray(responseData.tokens)) {
           // Log token data for debugging
-          console.log('Token data received:', response.data.tokens);
+          if (isDev) {
+            console.log('Token data received:', responseData.tokens);
+          }
           
           // Count profitable and loss-making tokens for debugging
-          const profitableTokens = response.data.tokens.filter(token => parseFloat(token.profitAndLoss) >= 0);
-          const lossTokens = response.data.tokens.filter(token => parseFloat(token.profitAndLoss) < 0);
-          console.log(`Profitable tokens: ${profitableTokens.length}, Loss-making tokens: ${lossTokens.length}`);
+          const profitableTokens = responseData.tokens.filter(token => parseFloat(token.profitAndLoss) >= 0);
+          const lossTokens = responseData.tokens.filter(token => parseFloat(token.profitAndLoss) < 0);
           
-          setTokens(response.data.tokens);
+          if (isDev) {
+            console.log(`Profitable tokens: ${profitableTokens.length}, Loss-making tokens: ${lossTokens.length}`);
+          }
+          
+          setTokens(responseData.tokens);
         } else {
           setTokens([]);
         }
       } catch (err) {
-        console.error('Error fetching smart money wallet report:', err);
+        if (isDev) {
+          console.error('Error fetching smart money wallet report:', err);
+        }
         
         // If API is not available, fall back to mock data for development
-        if (process.env.NODE_ENV === 'development') {
+        if (isDev) {
           console.log('Falling back to mock data in development mode');
           const mockTokens = generateMockTokenData(wallet);
           const calculatedTotalPnl = mockTokens.reduce((sum, token) => sum + token.profitAndLoss, 0);
           setTotalPnl(calculatedTotalPnl);
           setTokens(mockTokens);
         } else {
-          setError('Failed to load wallet token data. API endpoint may not be implemented yet.');
+          setError(err.message || 'Failed to load wallet data. Please try again later.');
         }
       } finally {
         setLoading(false);
@@ -140,11 +171,11 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     };
     
     fetchWalletTokens();
-  }, [wallet, sortDirection, sortConfig]);
+  }, [wallet]);
 
   // Add debugging useEffect to log token data whenever it changes
   useEffect(() => {
-    if (tokens.length > 0) {
+    if (tokens.length > 0 && isDev) {
       console.log('Current tokens state:', tokens);
       
       // Analyze token data

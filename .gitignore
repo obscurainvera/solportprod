@@ -66,4 +66,14 @@ instance/
 
 # Temporary files
 *.tmp
-*~ 
+*~
+
+# Production files
+frontend/solport/build/
+nginx/ssl/
+.env.production
+.env
+
+# Cache
+__pycache__/
+.cache/ 

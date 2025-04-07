@@ -13,3 +13,7 @@ SQLAlchemy==2.0.30         # Updated from 1.4.23, major update with better perfo
 sqlalchemy-utils==0.41.2   # Updated from 0.38.2, aligned with SQLAlchemy 2.0
 urllib3==2.2.1             # Updated from 1.26.7, security and performance updates
 requests==2.31.0           # Updated from 2.28.1, improved HTTP handling and features
+gevent==24.2.1             # For async workers in Gunicorn
+greenlet==3.0.3            # Required by gevent
+prometheus-client==0.19.0  # For metrics collection
+pyOpenSSL==24.0.0          # For secure connections

@@ -13,12 +13,7 @@ strategy_report_bp = Blueprint('strategy_report', __name__)
 def get_strategy_report():
     """API endpoint to get strategy report data with optional filtering"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get query parameters with defaults
@@ -50,38 +45,27 @@ def get_strategy_report():
             )
         
         # Return the response
-        response = jsonify({
+        return jsonify({
             'status': 'success',
             'data': strategies,
             'count': len(strategies),
             'timestamp': datetime.now().isoformat()
-        })
-        
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-        return response, 200
+        }), 200
         
     except Exception as e:
-        logger.error(f"Error in get_strategy_report: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error in get_strategy_report: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': str(e),
             'timestamp': datetime.now().isoformat()
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 
 @strategy_report_bp.route('/api/reports/strategyreport/<int:strategy_id>', methods=['GET', 'OPTIONS'])
 def get_strategy_detail(strategy_id):
     """API endpoint to get detailed information about a specific strategy"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get data from handler
@@ -90,48 +74,33 @@ def get_strategy_detail(strategy_id):
             strategy = handler.getStrategyById(strategy_id)
             
         if not strategy:
-            response = jsonify({
+            return jsonify({
                 'status': 'error',
                 'message': f'Strategy with ID {strategy_id} not found',
                 'timestamp': datetime.now().isoformat()
-            })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 404
+            }), 404
         
         # Return the response
-        response = jsonify({
+        return jsonify({
             'status': 'success',
             'data': strategy,
             'timestamp': datetime.now().isoformat()
-        })
-        
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 200
+        }), 200
         
     except Exception as e:
-        logger.error(f"Error in get_strategy_detail: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error in get_strategy_detail: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': str(e),
             'timestamp': datetime.now().isoformat()
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 
 @strategy_report_bp.route('/api/reports/strategyexecutions', methods=['GET', 'OPTIONS'])
 def get_strategy_executions_count():
     """API endpoint to get count of executions for each strategy"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get data from handler
@@ -140,24 +109,17 @@ def get_strategy_executions_count():
             data = handler.getStrategyExecutionsCount()
         
         # Return the response
-        response = jsonify({
+        return jsonify({
             'status': 'success',
             'data': data,
             'count': len(data),
             'timestamp': datetime.now().isoformat()
-        })
-        
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 200
+        }), 200
         
     except Exception as e:
-        logger.error(f"Error in get_strategy_executions_count: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error in get_strategy_executions_count: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': str(e),
             'timestamp': datetime.now().isoformat()
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        }), 500 

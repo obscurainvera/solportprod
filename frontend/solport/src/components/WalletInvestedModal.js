@@ -16,6 +16,11 @@ import {
 import './WalletInvestedModal.css';
 import SmartMoneyWalletModal from './SmartMoneyWalletModal';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 function WalletInvestedModal({ token, onClose }) {
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,18 +70,36 @@ function WalletInvestedModal({ token, onClose }) {
       setError(null);
       
       try {
-        const response = await axios.get(`http://localhost:8080/api/walletsinvested/token/${token.tokenid}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
+        if (isDev) {
+          console.log('Fetching wallets for token:', token.tokenid);
+        }
         
-        console.log('Wallet data:', response.data);
-        setWallets(response.data.wallets || []);
+        const response = await axios.get(`${API_BASE_URL}/api/reports/walletsinvested/${token.tokenid}`);
+        
+        if (isDev) {
+          console.log('API Response:', response.data);
+        }
+        
+        // Check for API error response
+        if (response.data.status === 'error') {
+          throw new Error(response.data.message || 'Failed to load wallet data');
+        }
+        
+        // Extract data from the standardized response format
+        const responseData = response.data.status === 'success' && response.data.data 
+          ? response.data.data 
+          : response.data;
+          
+        if (!Array.isArray(responseData)) {
+          throw new Error('Invalid response format - expected an array of wallets');
+        }
+        
+        setWallets(responseData);
       } catch (err) {
-        console.error('Error fetching wallet data:', err);
-        setError(err.response?.data?.message || 'Failed to load wallet data');
+        if (isDev) {
+          console.error('Error fetching wallets:', err);
+        }
+        setError(err.message || 'Failed to load wallet data. Please try again later.');
       } finally {
         setLoading(false);
       }

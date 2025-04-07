@@ -15,6 +15,11 @@ import {
 } from 'chart.js';
 import './AttentionReport.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
@@ -44,9 +49,9 @@ const AttentionReport = () => {
   }, []);
 
   useEffect(() => {
-    console.log('selectedToken changed to:', selectedToken);
+    if (isDev) console.log('selectedToken changed to:', selectedToken);
     if (selectedToken) {
-      console.log('Fetching history for selected token');
+      if (isDev) console.log('Fetching history for selected token');
       fetchHistoryData(selectedToken);
     }
   }, [selectedToken]);
@@ -55,7 +60,7 @@ const AttentionReport = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/api/reports/attention', {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/attention`, {
         params: {
           name: filters.tokenName || undefined,
           chain: filters.chain || undefined,
@@ -63,43 +68,70 @@ const AttentionReport = () => {
           minAttentionCount: filters.minCount || undefined,
         }
       });
-      setAttentionData(response.data);
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load attention data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+        
+      setAttentionData(responseData);
     } catch (err) {
-      console.error('Error fetching attention data:', err);
-      setError('Failed to load attention data. Please try again later.');
+      if (isDev) console.error('Error fetching attention data:', err);
+      setError(err.message || 'Failed to load attention data. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   const fetchHistoryData = async (tokenId) => {
-    console.log('Starting fetchHistoryData for tokenId:', tokenId);
+    if (isDev) console.log('Starting fetchHistoryData for tokenId:', tokenId);
     try {
-      console.log('Making API call to:', `/api/reports/attention/history/${tokenId}`);
-      const response = await axios.get(`/api/reports/attention/history/${tokenId}`);
-      console.log('API Response received:', response);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
+      if (isDev) console.log('Making API call to:', `${API_BASE_URL}/api/reports/attention/history/${tokenId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/attention/history/${tokenId}`);
+      if (isDev) {
+        console.log('API Response received:', response);
+        console.log('Response status:', response.status);
+        console.log('Response data:', response.data);
+      }
       
-      if (!response.data || response.data.length === 0) {
-        console.log('No history data received');
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load history data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+      
+      if (!responseData || responseData.length === 0) {
+        if (isDev) console.log('No history data received');
         setHistoryData([]);
         return;
       }
       
-      setHistoryData(response.data);
-      console.log('Updated historyData state:', response.data);
+      setHistoryData(responseData);
+      if (isDev) console.log('Updated historyData state:', responseData);
     } catch (err) {
-      console.error('Error in fetchHistoryData:', err);
-      console.error('Error details:', err.response?.data || err.message);
-      setError('Failed to load history data. Please try again later.');
+      if (isDev) {
+        console.error('Error in fetchHistoryData:', err);
+        console.error('Error details:', err.response?.data || err.message);
+      }
+      setError(err.message || 'Failed to load history data. Please try again later.');
       setHistoryData([]);
     }
   };
 
   const handleTokenSelect = (tokenId) => {
-    console.log('handleTokenSelect called with tokenId:', tokenId);
-    console.log('handleTokenSelect function is defined:', !!handleTokenSelect);
+    if (isDev) {
+      console.log('handleTokenSelect called with tokenId:', tokenId);
+      console.log('handleTokenSelect function is defined:', !!handleTokenSelect);
+    }
     setHistoryData([]); // Clear previous data to prevent stale data
     setSelectedToken(tokenId);
   };

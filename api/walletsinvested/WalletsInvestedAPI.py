@@ -17,22 +17,16 @@ wallets_invested_bp = Blueprint('wallets_invested', __name__)
 def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
     """API endpoint to trigger wallets invested analysis"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         if not token_id:
-            response = jsonify({
+            logger.warning("Token ID missing in request")
+            return jsonify({
                 'status': 'error',
                 'message': 'Token ID is required'
-            })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            }), 400
     
         db = PortfolioDB()
         walletInvestedAction = WalletsInvestedAction(db)
@@ -40,13 +34,11 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
         # 1. Check if token exists in portsummary
         tokenInfo = db.portfolio.getTokenDataFromPortSummary(token_id)
         if not tokenInfo:
-            response = jsonify({
+            logger.warning(f"Token {token_id} not found in portfolio summary")
+            return jsonify({
                 'status': 'error',
                 'message': f'Token {token_id} not found in portfolio summary'
-            })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 404
+            }), 404
 
         # 2. Get valid cookie for token analysis
         validCookies = [
@@ -55,13 +47,11 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
         ]
 
         if not validCookies:
-            response = jsonify({
+            logger.error("No valid cookies available for wallets invested analysis")
+            return jsonify({
                 'status': 'error',
                 'message': 'No valid cookies available for wallets invested analysis'
-            })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            }), 400
 
         # 3. Execute token analysis
         logger.info(f"Starting wallets invested analysis for {token_id}")
@@ -72,8 +62,8 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
         )
 
         if result:
-            logger.info(f"Wallets invested analysis completed for {token_id}")
-            response = jsonify({
+            logger.info(f"Wallets invested analysis completed for {token_id}, found {len(result)} wallets")
+            return jsonify({
                 'status': 'success',
                 'message': f'Wallets invested analysis completed for {token_id}',
                 'data': {
@@ -82,39 +72,26 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                     'analysis_count': len(result)
                 }
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
         logger.error(f"Failed to get analysis data for token {token_id}")
-        response = jsonify({
+        return jsonify({
             'status': 'error',
             'message': f'Failed to get analysis data for token {token_id}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
     except Exception as e:
-        logger.error(f"Error in wallets invested analysis: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error in wallets invested analysis: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @wallets_invested_bp.route('/api/walletsinvested/persist/all', methods=['POST', 'OPTIONS'])
 def persistAllSMWalletsInvestedInAnyPortSummaryToken():
     """API endpoint to trigger wallets invested analysis for all tokens"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
         # Execute analysis for all tokens
@@ -123,36 +100,28 @@ def persistAllSMWalletsInvestedInAnyPortSummaryToken():
         scheduler = WalletsInvestedScheduler()
         scheduler.handleWalletsInvestedInPortSummaryTokens()
         
-        response = jsonify({
+        logger.info("Wallets invested analysis initiated for all tokens")
+        return jsonify({
             'status': 'success',
             'message': 'Wallets invested analysis initiated for all tokens'
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
 
     except Exception as e:
-        logger.error(f"Error in wallets invested analysis for all tokens: {str(e)}")
-        response = jsonify({
+        logger.error(f"Error in wallets invested analysis for all tokens: {str(e)}", exc_info=True)
+        return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        }), 500
 
 @wallets_invested_bp.route('/api/walletsinvested/token/<token_id>', methods=['GET', 'OPTIONS'])
 def getWalletsInvestedInToken(token_id):
     """Get all wallets invested in a specific token with their investment details"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        # Let Flask-CORS handle OPTIONS response
+        return jsonify({}), 200
         
     try:
+        logger.info(f"Retrieving wallets invested in token {token_id}")
         with PortfolioDB() as db:
             # Get all wallets invested in this token
             # We use a very small minimum balance to get all wallets
@@ -163,14 +132,12 @@ def getWalletsInvestedInToken(token_id):
             
             if not wallets:
                 logger.warning(f"No wallets found for token {token_id}")
-                response = jsonify({
-                    'wallets': [],
+                return jsonify({
+                    'status': 'success',
+                    'data': [],
                     'token_id': token_id,
                     'count': 0
                 })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response
         
             # Get detailed information for each wallet
             detailed_wallets = []
@@ -198,21 +165,17 @@ def getWalletsInvestedInToken(token_id):
             # Sort by smartholding in descending order
             detailed_wallets.sort(key=lambda x: float(x.get('smartholding', 0) or 0), reverse=True)
             
-            response = jsonify({
-                'wallets': detailed_wallets,
+            logger.info(f"Retrieved {len(detailed_wallets)} wallets for token {token_id}")
+            return jsonify({
+                'status': 'success',
+                'data': detailed_wallets,
                 'token_id': token_id,
                 'count': len(detailed_wallets)
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
             
     except Exception as e:
-        logger.error(f"Error getting wallets for token {token_id}: {str(e)}")
-        response = jsonify({
-            'error': 'Failed to retrieve wallets',
-            'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        logger.error(f"Error getting wallets for token {token_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to retrieve wallets: {str(e)}'
+        }), 500 

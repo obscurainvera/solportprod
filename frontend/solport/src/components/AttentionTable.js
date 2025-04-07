@@ -27,11 +27,18 @@ ChartJS.register(
   Filler
 );
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 const AttentionTable = ({ data }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({
     key: 'attentionCount',
     direction: 'desc'
@@ -56,11 +63,30 @@ const AttentionTable = ({ data }) => {
 
   const fetchHistoricalData = async (tokenId) => {
     setLoadingHistory(true);
+    setError(null);
     try {
-      const response = await axios.get(`/api/reports/attention/history/${tokenId}`);
-      setHistoricalData(response.data);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/attention/history/${tokenId}`);
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to load historical data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+        
+      setHistoricalData(responseData);
+      
+      if (isDev) {
+        console.log('Historical data received:', responseData);
+      }
     } catch (error) {
-      console.error('Error fetching historical data:', error);
+      if (isDev) {
+        console.error('Error fetching historical data:', error);
+      }
+      setError(error.message || 'Failed to load historical data. Please try again.');
       setHistoricalData([]);
     } finally {
       setLoadingHistory(false);
@@ -393,6 +419,11 @@ const AttentionTable = ({ data }) => {
                   <div className="chart-loading">
                     <Spinner animation="border" variant="light" />
                     <div>Loading historical data...</div>
+                  </div>
+                ) : error ? (
+                  <div className="error-message">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    {error}
                   </div>
                 ) : historicalData.length > 0 ? (
                   <div className="chart-wrapper">

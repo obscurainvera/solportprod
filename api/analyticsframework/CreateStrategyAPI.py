@@ -77,7 +77,7 @@ def addStrategy():
         }), 500
 
 @strategy_bp.route('/api/strategy/<int:strategy_id>', methods=['PUT'])
-def updateStrategy(strategyId):
+def updateStrategy(strategy_id):
     """Update an existing strategy"""
     try:
         data = request.get_json()
@@ -91,54 +91,59 @@ def updateStrategy(strategyId):
         analyticsHandler = AnalyticsHandler()
         strategyApi = CreateStrategyAPI(analyticsHandler)
         
-        success = strategyApi.updateStrategy(strategyId, data)
+        success = strategyApi.updateStrategy(strategy_id, data)
         
         if success:
+            logger.info(f"Successfully updated strategy with ID: {strategy_id}")
             return jsonify({
                 'status': 'success',
                 'message': 'Strategy updated successfully'
             })
         else:
+            logger.error(f"Failed to update strategy with ID: {strategy_id}")
             return jsonify({
                 'status': 'error',
                 'message': 'Failed to update strategy'
             }), 500
             
     except ValueError as e:
+        logger.warning(f"Validation error updating strategy {strategy_id}: {str(e)}")
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 400
     except Exception as e:
-        logger.error(f"Error updating strategy: {e}")
+        logger.error(f"Error updating strategy {strategy_id}: {e}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'message': 'Internal server error'
+            'message': f'Internal server error: {str(e)}'
         }), 500
 
 @strategy_bp.route('/api/strategy/<int:strategy_id>/activate', methods=['POST'])
-def activateStrategy(strategyId):
+def activateStrategy(strategy_id):
     """Activate a strategy"""
     try:
         analyticsHandler = AnalyticsHandler()
         strategyApi = CreateStrategyAPI(analyticsHandler)
         
-        success = strategyApi.activateStrategy(strategyId)
+        success = strategyApi.activateStrategy(strategy_id)
         
         if success:
+            logger.info(f"Successfully activated strategy with ID: {strategy_id}")
             return jsonify({
                 'status': 'success',
                 'message': 'Strategy activated successfully'
             })
         else:
+            logger.error(f"Failed to activate strategy with ID: {strategy_id}")
             return jsonify({
                 'status': 'error',
                 'message': 'Failed to activate strategy'
             }), 500
             
     except Exception as e:
-        logger.error(f"Error activating strategy: {e}")
+        logger.error(f"Error activating strategy {strategy_id}: {e}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'message': 'Internal server error'
+            'message': f'Internal server error: {str(e)}'
         }), 500

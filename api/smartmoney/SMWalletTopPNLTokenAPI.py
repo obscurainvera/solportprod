@@ -14,52 +14,41 @@ smwallet_top_pnl_token_bp = Blueprint('smwallet_top_pnl_token', __name__)
 def persistAllSMWalletTopPNLTokens():
     """Persist all top PNL tokens for all the smart money wallets"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         scheduler = SMWalletTopPNLTokenScheduler()
         scheduler.persistAllTopPNLTokensForHighPNLSMWallets()
         
-        response = jsonify({
-            'success': True,
+        logger.info("Successfully triggered top PNL token analysis for all eligible wallets")
+        return jsonify({
+            'status': 'success',
             'message': 'Successfully triggered top PNL token analysis for all eligible wallets'
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"API Error in persistAllSMWalletTopPNLTokens: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @smwallet_top_pnl_token_bp.route('/api/smwallettoppnltoken/wallet/persist', methods=['POST', 'OPTIONS'])
 def analyzeTopPNLTokensForASpecificWallet():
     """Persist all top PNL tokens for a specific smart money wallet"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         data = request.get_json()
         walletAddress = data.get('wallet_address')
         
         if not walletAddress:
-            response = jsonify({'error': 'Wallet address is required'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.warning("Wallet address missing in request")
+            return jsonify({
+                'status': 'error',
+                'message': 'Wallet address is required'
+            }), 400
 
         # Get valid cookies
         validCookies = [
@@ -68,10 +57,11 @@ def analyzeTopPNLTokensForASpecificWallet():
         ]
 
         if not validCookies:
-            response = jsonify({'error': 'No valid cookies available'})
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response, 400
+            logger.error("No valid cookies available for smwallettoppnltoken")
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid cookies available'
+            }), 400
 
         # Initialize action and execute
         db = PortfolioDB()
@@ -84,26 +74,22 @@ def analyzeTopPNLTokensForASpecificWallet():
         )
         
         if result:
-            response = jsonify({
-                'success': True,
+            logger.info(f"Successfully analyzed top PNL tokens for wallet {walletAddress}, found {len(result)} tokens")
+            return jsonify({
+                'status': 'success',
                 'message': f'Successfully analyzed top PNL tokens for wallet {walletAddress}',
                 'tokens_analyzed': len(result)
             })
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
         
-        response = jsonify({
-            'success': False,
+        logger.warning(f"No tokens found or analysis failed for wallet {walletAddress}")
+        return jsonify({
+            'status': 'error',
             'message': f'No tokens found or analysis failed for wallet {walletAddress}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 404
+        }), 404
 
     except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        response = jsonify({'error': str(e)})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        logger.error(f"API Error in analyzeTopPNLTokensForASpecificWallet: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500 

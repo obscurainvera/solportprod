@@ -29,8 +29,10 @@ import {
 import './Operations.css';
 
 function Operations() {
-  // Base API URL
-  const API_BASE_URL = 'http://localhost:8080';
+  // Environment detection
+  const isDev = process.env.NODE_ENV === 'development';
+  // Base API URL - Use environment variable or empty string for same-domain relative requests
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
   
   // State for floating navigation
   const [showFloatingNav, setShowFloatingNav] = useState(true);
@@ -175,13 +177,7 @@ function Operations() {
   const fetchJobs = async () => {
     try {
       // Try the correct API endpoint
-      console.log('Fetching jobs from:', `${API_BASE_URL}/api/scheduler/jobs`);
-      
-      // Add debugging for the request
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      });
+      if (isDev) console.log('Fetching jobs from:', `${API_BASE_URL}/api/scheduler/jobs`);
       
       const response = await fetch(`${API_BASE_URL}/api/scheduler/jobs`, {
         method: 'GET',
@@ -191,76 +187,25 @@ function Operations() {
         }
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-        if (!response.ok) {
-        throw new Error(`Failed to fetch jobs: ${response.statusText}`);
+      if (isDev) {
+        console.log('Response status:', response.status);
       }
       
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Error parsing JSON:', parseError);
-        throw new Error(`Failed to parse response: ${parseError.message}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
       }
       
-      console.log('Jobs API response:', data);
+      const data = await response.json();
+      if (isDev) console.log('Jobs data:', data);
       
-      // Check if data is an array directly
-      if (Array.isArray(data)) {
-        console.log('Response is an array, using directly');
-        
-        // Log each job to debug
-        data.forEach(job => {
-          console.log('Job details:', {
-            id: job.id,
-            status: job.status,
-            next_run: job.next_run,
-            trigger: job.trigger
-          });
-        });
-        
-        setJobs(data);
-      } else if (data.jobs && Array.isArray(data.jobs)) {
-        // Log each job to debug
-        data.jobs.forEach(job => {
-          console.log('Job details:', {
-            id: job.id,
-            status: job.status,
-            next_run: job.next_run,
-            trigger: job.trigger
-          });
-        });
-        
+      if (data.success && data.jobs) {
         setJobs(data.jobs);
-        console.log('Fetched jobs:', data.jobs);
       } else {
-        console.error('Invalid response format:', data);
-        // Try to extract jobs if data has any properties
-        const possibleJobs = Object.values(data).find(val => Array.isArray(val));
-        if (possibleJobs) {
-          console.log('Found possible jobs array:', possibleJobs);
-          setJobs(possibleJobs);
-        } else {
-          setJobs([]);
-        }
+        if (isDev) console.warn('Job data structure unexpected:', data);
       }
     } catch (error) {
-      console.error('Error fetching jobs:', error);
-      setStatusMessages(prev => ({
-        ...prev,
-        'job-schedule-status': {
-          visible: true,
-          isError: true,
-          message: `Error fetching jobs: ${error.message}`
-        }
-      }));
-      setJobs([]);
+      if (isDev) console.error('Error fetching jobs:', error);
+      // Don't show a status message for background fetching
     }
   };
 
@@ -299,215 +244,196 @@ function Operations() {
     }
   };
 
-  // Alternative API call using XMLHttpRequest
-  const updatePortfolioXHR = () => {
-    showLoading('portfolio');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/portsummary/update`);
-    
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/portsummary/update`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
-      console.log('XHR response:', xhr.responseText);
-      
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('portfolio-status', 'Portfolio updated successfully!');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('portfolio-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('portfolio-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
-      }
-      hideLoading('portfolio');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('portfolio-status', 'Network error occurred', true);
-      hideLoading('portfolio');
-    };
-    
-    xhr.send(JSON.stringify({}));
-  };
-
   // Original API call functions
-  const updatePortfolio = () => {
-    // Use the XHR version instead
-    return updatePortfolioXHR();
+  const updatePortfolio = async () => {
+    showLoading('portfolio');
+    console.log(`Sending fetch request to: ${API_BASE_URL}/api/portfolio/update`);
     
-    // First try with 'cors' mode
-    // ... existing code ...
-  };
-
-  const persistAllSMWalletsInvestedInAnyPortSummaryToken = () => {
-    showLoading('all-tokens');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/walletsinvested/persist/all`);
-    
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/walletsinvested/persist/all`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('token-analysis-status', 'Successfully initiated analysis for all active tokens!');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('token-analysis-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('token-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-      hideLoading('all-tokens');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('token-analysis-status', 'Network error occurred', true);
-      hideLoading('all-tokens');
-    };
-    
-    xhr.send(JSON.stringify({}));
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      showStatus('portfolio-status', 'Portfolio updated successfully!');
+    } catch (error) {
+      console.error('Error updating portfolio:', error);
+      showStatus('portfolio-status', `Error: ${error.message}`, true);
+    } finally {
+      hideLoading('portfolio');
+    }
   };
 
-  const persistAllSMWalletsInvestedInASpecificToken = () => {
+  const persistAllSMWalletsInvestedInAnyPortSummaryToken = async () => {
+    showLoading('all-tokens');
+    if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletsinvested/persist/all`);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/walletsinvested/persist/all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (isDev) console.log('Response data:', data);
+      showStatus('token-analysis-status', 'Successfully initiated analysis for all active tokens!');
+    } catch (error) {
+      if (isDev) console.error('Error analyzing tokens:', error);
+      showStatus(
+        'token-analysis-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
+      hideLoading('all-tokens');
+    }
+  };
+
+  const persistAllSMWalletsInvestedInASpecificToken = async () => {
     if (!tokenId) {
       showStatus('specific-token-analysis-status', 'Please enter a token ID', true);
       return;
     }
 
     showLoading('specific-token');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`);
+    if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('specific-token-analysis-status', `Successfully initiated analysis for token ID: ${tokenId}`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('specific-token-analysis-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('specific-token-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Response data:', data);
+      showStatus('specific-token-analysis-status', `Successfully initiated analysis for token ID: ${tokenId}`);
+    } catch (error) {
+      if (isDev) console.error('Error analyzing specific token:', error);
+      showStatus(
+        'specific-token-analysis-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('specific-token');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('specific-token-analysis-status', 'Network error occurred', true);
-      hideLoading('specific-token');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
-  const analyzeInvestmentForSpecificWalletAndToken = () => {
+  const analyzeInvestmentForSpecificWalletAndToken = async () => {
     if (!walletAddress || !transTokenId) {
       showStatus('wallet-token-analysis-status', 'Please enter both wallet address and token ID', true);
       return;
     }
 
     showLoading('wallet-token');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`);
+    if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          wallet_address: walletAddress,
+          token_id: transTokenId
+        })
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('wallet-token-analysis-status', `Successfully analyzed investment for wallet: ${walletAddress} and token: ${transTokenId}`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('wallet-token-analysis-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('wallet-token-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Response data:', data);
+      showStatus('wallet-token-analysis-status', `Successfully analyzed investment for wallet: ${walletAddress} and token: ${transTokenId}`);
+    } catch (error) {
+      if (isDev) console.error('Error analyzing wallet investment:', error);
+      showStatus(
+        'wallet-token-analysis-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('wallet-token');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('wallet-token-analysis-status', 'Network error occurred', true);
-      hideLoading('wallet-token');
-    };
-    
-    xhr.send(JSON.stringify({
-      wallet_address: walletAddress,
-      token_id: transTokenId
-    }));
+    }
   };
 
-  const analyzeAllWalletsAboveCertainHoldings = () => {
+  const analyzeAllWalletsAboveCertainHoldings = async () => {
     if (!minSmartHolding) {
       showStatus('min-holding-status', 'Please enter minimum smart holding', true);
       return;
     }
 
     showLoading('min-holding');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/all`);
+    if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/all`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/walletinvestement/investmentdetails/all`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/walletinvestement/investmentdetails/all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          min_holding: minSmartHolding
+        })
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('min-holding-status', `Successfully analyzed wallets with holdings above ${minSmartHolding}`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('min-holding-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('min-holding-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Response data:', data);
+      showStatus('min-holding-status', `Successfully analyzed wallets with holdings above ${minSmartHolding}`);
+    } catch (error) {
+      if (isDev) console.error('Error analyzing wallets holdings:', error);
+      showStatus(
+        'min-holding-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('min-holding');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('min-holding-status', 'Network error occurred', true);
-      hideLoading('min-holding');
-    };
-    
-    xhr.send(JSON.stringify({
-      min_holding: minSmartHolding
-    }));
+    }
   };
 
   const analyzeInvestmentsOfAllWalletsForASpecificToken = () => {
@@ -592,120 +518,117 @@ function Operations() {
   };
 
   // Top PNL Token Analysis functions
-  const analyzeAllTopPnlTokensForAllHighPNLSMWallets = () => {
+  const analyzeAllTopPnlTokensForAllHighPNLSMWallets = async () => {
     showLoading('analyze-top-pnl-tokens');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwallettoppnltoken/persist`);
-    
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/smwallettoppnltoken/persist`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
-      
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('analyze-top-pnl-tokens-status', 'Successfully initiated analysis of top PNL tokens for all high PNL smart money wallets');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('analyze-top-pnl-tokens-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('analyze-top-pnl-tokens-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwallettoppnltoken/persist`);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smwallettoppnltoken/persist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+
+      if (isDev) console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('analyze-top-pnl-tokens-status', 'Successfully initiated analysis of top PNL tokens for all high PNL smart money wallets');
+    } catch (error) {
+      if (isDev) console.error('Error analyzing top PNL tokens:', error);
+      showStatus(
+        'analyze-top-pnl-tokens-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('analyze-top-pnl-tokens');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('analyze-top-pnl-tokens-status', 'Network error occurred', true);
-      hideLoading('analyze-top-pnl-tokens');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
-  const analyzeAllTopPNLTokensForASpecificWallet = () => {
+  const analyzeAllTopPNLTokensForASpecificWallet = async () => {
     if (!pnlWalletAddress) {
       showStatus('specific-wallet-pnl-status', 'Please enter a wallet address', true);
       return;
     }
 
     showLoading('specific-wallet-pnl');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          wallet_address: pnlWalletAddress
+        })
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('specific-wallet-pnl-status', `Successfully analyzed top PNL tokens for wallet: ${pnlWalletAddress}`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('specific-wallet-pnl-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('specific-wallet-pnl-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('specific-wallet-pnl-status', `Successfully analyzed top PNL tokens for wallet: ${pnlWalletAddress}`);
+    } catch (error) {
+      if (isDev) console.error('Error analyzing wallet PNL tokens:', error);
+      showStatus(
+        'specific-wallet-pnl-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('specific-wallet-pnl');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('specific-wallet-pnl-status', 'Network error occurred', true);
-      hideLoading('specific-wallet-pnl');
-    };
-    
-    xhr.send(JSON.stringify({
-      wallet_address: pnlWalletAddress
-    }));
+    }
   };
 
   // Top PNL Investment Details functions
-  const persistInvestementDataForAllTopPNLTokens = () => {
+  const persistInvestementDataForAllTopPNLTokens = async () => {
     showLoading('persist-all-pnl-tokens');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('persist-all-pnl-tokens-status', 'Successfully initiated persistence of investment data for all top PNL tokens');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('persist-all-pnl-tokens-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('persist-all-pnl-tokens-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('persist-all-pnl-tokens-status', 'Successfully initiated persistence of investment data for all top PNL tokens');
+    } catch (error) {
+      if (isDev) console.error('Error persisting all PNL tokens:', error);
+      showStatus(
+        'persist-all-pnl-tokens-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('persist-all-pnl-tokens');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('persist-all-pnl-tokens-status', 'Network error occurred', true);
-      hideLoading('persist-all-pnl-tokens');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
   const persistInvestmentDataForAllTopPNLForASpecficWallet = () => {
@@ -806,229 +729,207 @@ function Operations() {
 
   // Volume Bot functions
   const scheduleVolumeFetch = () => {
-    showLoading('volume-fetch');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/volumebot/fetch`);
+    showLoading('volume-fetch-btn');
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/volumebot/fetch`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
-      
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('volume-fetch-status', 'Successfully scheduled volume fetch');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('volume-fetch-status', 'Error parsing response', true);
+    fetch(`${API_BASE_URL}/api/volumebot/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        interval: volumeInterval
+      })
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
         }
-      } else {
-        showStatus('volume-fetch-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
-      }
-      hideLoading('volume-fetch');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('volume-fetch-status', 'Network error occurred', true);
-      hideLoading('volume-fetch');
-    };
-    
-    xhr.send(JSON.stringify({}));
+        return response.json();
+      })
+      .then(data => {
+        hideLoading('volume-fetch-btn');
+        
+        if (data.status === 'error') {
+          // Handle error response from API
+          showStatus('volume-fetch-status', data.message || 'Failed to schedule volume fetch', true);
+          return;
+        }
+        
+        // Success response
+        showStatus('volume-fetch-status', data.message || 'Volume fetch has been scheduled');
+        
+        // Refresh jobs list since we scheduled a new job
+        fetchJobs();
+      })
+      .catch(error => {
+        hideLoading('volume-fetch-btn');
+        showStatus('volume-fetch-status', `Error: ${error.message}`, true);
+        console.error('Error scheduling volume fetch:', error);
+      });
   };
 
   // Pump Fun Bot functions
-  const schedulePumpFunFetch = () => {
+  const schedulePumpFunFetch = async () => {
     showLoading('pumpfun-fetch');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/pumpfun/fetch`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/pumpfun/fetch`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/pumpfun/fetch`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pumpfun/fetch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('pumpfun-fetch-status', 'Successfully scheduled PumpFun fetch');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('pumpfun-fetch-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('pumpfun-fetch-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('pumpfun-fetch-status', 'Successfully scheduled PumpFun fetch');
+    } catch (error) {
+      if (isDev) console.error('Error scheduling PumpFun fetch:', error);
+      showStatus(
+        'pumpfun-fetch-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('pumpfun-fetch');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('pumpfun-fetch-status', 'Network error occurred', true);
-      hideLoading('pumpfun-fetch');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
   // Attention Analysis functions
-  const analyzeAttention = () => {
+  const analyzeAttention = async () => {
     showLoading('attention-analysis');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/attention/analyze`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/attention/analyze`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/attention/analyze`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/attention/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('attention-analysis-status', 'Successfully initiated attention analysis');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('attention-analysis-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('attention-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('attention-analysis-status', 'Successfully initiated attention analysis');
+    } catch (error) {
+      if (isDev) console.error('Error initiating attention analysis:', error);
+      showStatus(
+        'attention-analysis-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('attention-analysis');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('attention-analysis-status', 'Network error occurred', true);
-      hideLoading('attention-analysis');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
   // Solana Attention Analysis function
-  const analyzeSolanaAttention = () => {
+  const analyzeSolanaAttention = async () => {
     showLoading('solana-attention-analysis');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/attention/solana/analyze`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/attention/solana/analyze`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/attention/solana/analyze`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/attention/solana/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          const tokenCount = data.tokens_processed || 'Unknown';
-          showStatus('solana-attention-analysis-status', `Successfully processed ${tokenCount} tokens for Solana attention analysis`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('solana-attention-analysis-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('solana-attention-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      const tokenCount = data.tokens_processed || 'Unknown';
+      showStatus('solana-attention-analysis-status', `Successfully processed ${tokenCount} tokens for Solana attention analysis`);
+    } catch (error) {
+      if (isDev) console.error('Error processing Solana attention analysis:', error);
+      showStatus(
+        'solana-attention-analysis-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('solana-attention-analysis');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('solana-attention-analysis-status', 'Network error occurred', true);
-      hideLoading('solana-attention-analysis');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
   // Scheduler functions
   const updateJobSchedule = async () => {
-    if (!selectedJobId) {
-      setStatusMessages(prev => ({
-        ...prev,
-        'job-schedule-status': {
-          visible: true,
-          isError: true,
-          message: 'Please select a job first'
-        }
-      }));
+    // Validate inputs
+    if (!jobId) {
+      showStatus('scheduler-status', 'Please enter a job ID', true);
       return;
     }
     
     if (!timingValue) {
-      setStatusMessages(prev => ({
-        ...prev,
-        'job-schedule-status': {
-          visible: true,
-          isError: true,
-          message: 'Please enter a timing value'
-        }
-      }));
+      showStatus('scheduler-status', 'Please enter a timing value', true);
       return;
     }
     
-    setLoading(prev => ({ ...prev, 'update-timing': true }));
-    
-    const requestBody = {
-      job_id: selectedJobId,
-      timing_type: timingType,
-      value: timingValue
-    };
-    
-    console.log('Updating job schedule with:', requestBody);
+    showLoading('scheduler');
+    if (isDev) console.log(`Updating job ${jobId} schedule with timing type ${timingType} and value ${timingValue}`);
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/scheduler/update-timing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          job_id: jobId,
+          timing_type: timingType,
+          value: timingValue
+        })
       });
+      
+      if (isDev) console.log('Response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to update job schedule: ${response.statusText}`);
+        throw new Error(errorData.message || `Error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Update job schedule response:', data);
-      
-      setStatusMessages(prev => ({
-        ...prev,
-        'update-timing-status': {
-          visible: true,
-          isError: false,
-          message: `Job schedule updated successfully: ${data.message || ''}`
-        }
-      }));
+      if (isDev) console.log('Response data:', data);
       
       // Refresh the job list
-      fetchJobs();
+      await fetchJobs();
+      
+      showStatus('scheduler-status', `Successfully updated job ${jobId} schedule`);
     } catch (error) {
-      console.error('Error updating job schedule:', error);
-      setStatusMessages(prev => ({
-        ...prev,
-        'update-timing-status': {
-          visible: true,
-          isError: true,
-          message: `Error updating job schedule: ${error.message}`
-        }
-      }));
+      if (isDev) console.error('Error updating job schedule:', error);
+      showStatus(
+        'scheduler-status', 
+        `Failed to update job schedule: ${error.message}. Check timing values or contact support.`, 
+        true
+      );
     } finally {
-      setLoading(prev => ({ ...prev, 'update-timing': false }));
+      hideLoading('scheduler');
     }
   };
 
@@ -1421,83 +1322,81 @@ function Operations() {
   };
 
   // SM Wallet Behaviour Analysis functions
-  const analyzeAllWalletsBehaviour = () => {
+  const analyzeAllWalletsBehaviour = async () => {
     showLoading('analyze-all-wallets-behaviour');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/smwalletbehaviour/analyze`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smwalletbehaviour/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('wallet-behaviour-status', 'Successfully analyzed behaviour for all wallets');
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('wallet-behaviour-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('wallet-behaviour-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('wallet-behaviour-status', 'Successfully analyzed behaviour for all wallets');
+    } catch (error) {
+      if (isDev) console.error('Error analyzing all wallets behaviour:', error);
+      showStatus(
+        'wallet-behaviour-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('analyze-all-wallets-behaviour');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('wallet-behaviour-status', 'Network error occurred', true);
-      hideLoading('analyze-all-wallets-behaviour');
-    };
-    
-    xhr.send(JSON.stringify({}));
+    }
   };
 
-  const analyzeSpecificWalletBehaviour = () => {
+  const analyzeSpecificWalletBehaviour = async () => {
     if (!walletBehaviourAddress) {
       showStatus('specific-wallet-behaviour-status', 'Please enter a wallet address', true);
       return;
     }
 
     showLoading('analyze-specific-wallet-behaviour');
-    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
+    if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/smwalletbehaviour/analyze`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      console.log('XHR status:', xhr.status);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smwalletbehaviour/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          walletAddress: walletBehaviourAddress
+        })
+      });
       
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          console.log('XHR parsed data:', data);
-          showStatus('specific-wallet-behaviour-status', `Successfully analyzed behaviour for wallet: ${walletBehaviourAddress}`);
-        } catch (e) {
-          console.error('Error parsing response:', e);
-          showStatus('specific-wallet-behaviour-status', 'Error parsing response', true);
-        }
-      } else {
-        showStatus('specific-wallet-behaviour-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      if (isDev) console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      if (isDev) console.log('Parsed response data:', data);
+      showStatus('specific-wallet-behaviour-status', `Successfully analyzed behaviour for wallet: ${walletBehaviourAddress}`);
+    } catch (error) {
+      if (isDev) console.error('Error analyzing specific wallet behaviour:', error);
+      showStatus(
+        'specific-wallet-behaviour-status', 
+        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        true
+      );
+    } finally {
       hideLoading('analyze-specific-wallet-behaviour');
-    };
-    
-    xhr.onerror = function() {
-      console.error('XHR error occurred');
-      showStatus('specific-wallet-behaviour-status', 'Network error occurred', true);
-      hideLoading('analyze-specific-wallet-behaviour');
-    };
-    
-    xhr.send(JSON.stringify({
-      walletAddress: walletBehaviourAddress
-    }));
+    }
   };
 
   return (

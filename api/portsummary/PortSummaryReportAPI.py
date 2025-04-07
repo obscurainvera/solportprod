@@ -14,12 +14,7 @@ port_summary_report_bp = Blueprint('port_summary_report', __name__)
 @port_summary_report_bp.route('/api/reports/portsummary', methods=['GET', 'OPTIONS'])
 def get_port_summary():
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get query parameters with defaults
@@ -45,13 +40,10 @@ def get_port_summary():
             # Check if handler is None
             if handler is None:
                 logger.error("Handler 'port_summary_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'port_summary_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-                return response, 500
+                }), 500
                 
             portSummaryData = handler.getPortSummaryReport(
                 tokenId=tokenId,
@@ -116,32 +108,24 @@ def get_port_summary():
                     tags = record.get('tags', [])
                     logger.info(f"Record {i+1} tags type: {type(tags)}, value: {tags}")
 
-        # Create response with proper CORS headers
-        response = jsonify(portSummaryData)
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-        return response
+        # Return data as JSON
+        return jsonify({
+            "status": "success",
+            "data": portSummaryData
+        })
 
     except Exception as e:
-        logger.error(f"Error in port summary report API: {str(e)}")
-        response = jsonify({
-            'error': 'Internal server error',
-            'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')  # Allow any origin for development
-        return response, 500
+        logger.error(f"Error in port summary report API: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
 
 @port_summary_report_bp.route('/api/reports/portsummary/history/<token_id>', methods=['GET', 'OPTIONS'])
 def get_token_history(token_id):
     """Get historical data for a specific token to display in the overlay chart."""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         logger.info(f"Fetching history data for token ID: {token_id}")
@@ -151,23 +135,20 @@ def get_token_history(token_id):
             
             if handler is None:
                 logger.error("Handler 'port_summary_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
+                return jsonify({
+                    'status': 'error',
                     'message': "Handler 'port_summary_report' not found"
-                })
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response, 500
+                }), 500
                 
             # Get historical data for the token
             history_data = handler.getTokenHistory(token_id)
             
             if not history_data:
                 logger.warning(f"No history data found for token ID: {token_id}")
-                response = jsonify([])
-                config = get_config()
-                response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-                return response
+                return jsonify({
+                    'status': 'success',
+                    'data': []
+                })
                 
             logger.info(f"Retrieved {len(history_data)} history records for token ID: {token_id}")
             
@@ -188,17 +169,14 @@ def get_token_history(token_id):
                 if len(formatted_data) > 1:
                     logger.info(f"Last record: {formatted_data[-1]}")
             
-            response = jsonify(formatted_data)
-            config = get_config()
-            response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-            return response
+            return jsonify({
+                'status': 'success',
+                'data': formatted_data
+            })
             
     except Exception as e:
-        logger.error(f"Error fetching token history: {str(e)}")
-        response = jsonify({
-            'error': 'Internal server error',
-            'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500
+        logger.error(f"Error fetching token history: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500

@@ -6,6 +6,11 @@ import SmartMoneyWalletModal from './SmartMoneyWalletModal';
 import { FaFilter, FaWallet } from 'react-icons/fa';
 import './SmartMoneyPerformanceReport.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 function SmartMoneyPerformanceReport() {
   const [filters, setFilters] = useState({});
   const [data, setData] = useState([]);
@@ -14,7 +19,7 @@ function SmartMoneyPerformanceReport() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [sortConfig, setSortConfig] = useState({
-    sort_by: 'profitandloss',
+    sort_by: 'total_pnl',
     sort_order: 'desc'
   });
 
@@ -36,19 +41,43 @@ function SmartMoneyPerformanceReport() {
 
       const queryParams = new URLSearchParams(apiFilters).toString();
       
-      const response = await axios.get(`http://localhost:8080/api/reports/smartmoneyperformance?${queryParams}`, {
+      if (isDev) {
+        console.log('Fetching smart money performance with params:', queryParams);
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/api/reports/smartmoneyperformance?${queryParams}`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
       });
 
-      console.log('Raw API Response:', response.data);
-      setData(response.data);
+      if (isDev) {
+        console.log('Raw API Response:', response.data);
+      }
+      
+      // Check for API error response
+      if (response.data.status === 'error') {
+        throw new Error(response.data.message || 'Failed to fetch smart money performance data');
+      }
+      
+      // Extract data from the standardized response format
+      const responseData = response.data.status === 'success' && response.data.data 
+        ? response.data.data 
+        : response.data;
+        
+      if (!Array.isArray(responseData)) {
+        throw new Error('Invalid response format - expected an array of wallet data');
+      }
+      
+      setData(responseData);
+      
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred while fetching data');
+      if (isDev) {
+        console.error('Fetch Error:', err);
+      }
+      setError(err.message || 'An error occurred while fetching data');
       setData([]);
-      console.error('Fetch Error:', err);
     } finally {
       setLoading(false);
     }
@@ -59,7 +88,9 @@ function SmartMoneyPerformanceReport() {
   }, [fetchData]);
 
   const handleApplyFilters = (newFilters) => {
-    console.log('Applying filters:', newFilters);
+    if (isDev) {
+      console.log('Applying filters:', newFilters);
+    }
     setFilters(newFilters);
     setShowFilters(false);
   };

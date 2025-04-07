@@ -11,7 +11,7 @@ parser.add_argument('--port', type=int, help='Port to run the application on')
 args = parser.parse_args()
 
 from config.Config import get_config
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 import time
 import signal
@@ -298,8 +298,11 @@ class PortfolioApp:
                          static_folder='frontend/solport/build/static',
                          template_folder='frontend/solport/build')
         
-        # Configure CORS
-        CORS(self.app, resources={r"/api/*": {"origins": "*"}})
+        # Configure CORS for production
+        # Get allowed origins from environment variable, fall back to * in development
+        allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
+        origins = [origin.strip() for origin in allowed_origins.split(',')] if allowed_origins != '*' else '*'
+        CORS(self.app, resources={r"/api/*": {"origins": origins}})
         
         # Initialize components with graceful error handling
         initialize_job_storage()  # This now handles its own errors
@@ -467,7 +470,21 @@ class PortfolioApp:
 
 def create_app():
     """Factory function for creating application instance"""
-    return PortfolioApp()
+    portfolio_app = PortfolioApp()
+    
+    # Add a catch-all route to serve the React frontend for all non-API routes
+    @portfolio_app.app.route('/', defaults={'path': ''})
+    @portfolio_app.app.route('/<path:path>')
+    def serve_react(path):
+        """Serve the React app for any path not matched by API routes"""
+        if path != "" and os.path.exists(os.path.join(portfolio_app.app.static_folder, path)):
+            # If requesting a static file that exists, serve it directly
+            return send_from_directory(portfolio_app.app.static_folder, path)
+        else:
+            # Otherwise serve the index.html for client-side routing
+            return render_template('index.html')
+    
+    return portfolio_app
 
 if __name__ == '__main__':
     app = create_app()

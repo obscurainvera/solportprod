@@ -18,6 +18,11 @@ import {
 } from 'react-icons/fa';
 import './SmartMoneyWalletBehaviourModal.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 function SmartMoneyWalletBehaviourModal({ wallet, onClose }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,8 +67,12 @@ function SmartMoneyWalletBehaviourModal({ wallet, onClose }) {
       setError(null);
       
       try {
+        if (isDev) {
+          console.log(`Fetching wallet behaviour report for: ${wallet.walletaddress}`);
+        }
+        
         // Fetch wallet behaviour report from API
-        const apiUrl = `http://localhost:8080/api/smwalletbehaviour/report/${wallet.walletaddress}`;
+        const apiUrl = `${API_BASE_URL}/api/smwalletbehaviour/report/${wallet.walletaddress}`;
         const response = await axios.get(apiUrl, {
           headers: {
             'Accept': 'application/json',
@@ -71,19 +80,30 @@ function SmartMoneyWalletBehaviourModal({ wallet, onClose }) {
           }
         });
         
-        console.log('Wallet behaviour report:', response.data);
+        if (isDev) {
+          console.log('Wallet behaviour report response:', response.data);
+        }
         
+        // Check for API error response
+        if (response.data.status === 'error') {
+          throw new Error(response.data.message || 'Failed to load wallet behaviour data');
+        }
+        
+        // Extract data from the standardized response format
         if (response.data.status === 'success' && response.data.data) {
           setReport(response.data.data);
         } else {
-          throw new Error(response.data.message || 'Failed to fetch report');
+          // Fallback to the old response format if needed
+          setReport(response.data);
         }
       } catch (err) {
-        console.error('Error fetching wallet behaviour report:', err);
-        setError(err.response?.data?.message || 'Failed to load wallet behaviour data');
+        if (isDev) {
+          console.error('Error fetching wallet behaviour report:', err);
+        }
+        setError(err.response?.data?.message || err.message || 'Failed to load wallet behaviour data');
         
         // If API is not available, fall back to mock data for development
-        if (process.env.NODE_ENV === 'development') {
+        if (isDev) {
           console.log('Falling back to mock behaviour data in development mode');
           const mockReport = generateMockReport(wallet);
           setReport(mockReport);

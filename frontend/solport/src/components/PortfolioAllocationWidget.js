@@ -3,14 +3,26 @@ import { FaChartPie, FaTimes } from 'react-icons/fa';
 import PortfolioAllocationModal from './PortfolioAllocationModal';
 import './Home.css';
 
+// Environment detection
+const isDev = process.env.NODE_ENV === 'development';
+
+// Base API URL - Use environment variable or relative path
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
 const PortfolioAllocationWidget = () => {
   const [showModal, setShowModal] = useState(false);
 
   const openModal = () => {
+    if (isDev) {
+      console.log('Opening portfolio allocation modal');
+    }
     setShowModal(true);
   };
 
   const closeModal = () => {
+    if (isDev) {
+      console.log('Closing portfolio allocation modal');
+    }
     setShowModal(false);
   };
 

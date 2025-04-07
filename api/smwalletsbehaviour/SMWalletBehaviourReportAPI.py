@@ -11,9 +11,12 @@ logger = get_logger(__name__)
 # Create Blueprint for wallet behaviour reports
 smwalletBehaviourReportBp = Blueprint('smwallet_behaviour_report', __name__)
 
-@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/report/<wallet_address>', methods=['GET'])
+@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/report/<wallet_address>', methods=['GET', 'OPTIONS'])
 def getWalletBehaviourReport(wallet_address):
     """API endpoint to retrieve behaviour report for a specific wallet"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     startTime = time.time()
     logger.info(f"Request received for wallet behaviour report: {wallet_address}")
     
@@ -45,16 +48,19 @@ def getWalletBehaviourReport(wallet_address):
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Failed to retrieve wallet behaviour report for {wallet_address}: {str(e)}"
-        logger.error(errorMessage)
+        logger.error(errorMessage, exc_info=True)
         return jsonify({
             "status": "error",
             "message": errorMessage,
             "executionTime": f"{executionTime:.2f}s"
         }), 500
 
-@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/reports', methods=['GET'])
+@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/reports', methods=['GET', 'OPTIONS'])
 def getAllWalletsBehaviourSummary():
     """API endpoint to retrieve behaviour summaries for all wallets with pagination"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     startTime = time.time()
     
     # Get pagination parameters from query string
@@ -88,16 +94,19 @@ def getAllWalletsBehaviourSummary():
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Failed to retrieve wallet behaviour summaries: {str(e)}"
-        logger.error(errorMessage)
+        logger.error(errorMessage, exc_info=True)
         return jsonify({
             "status": "error",
             "message": errorMessage,
             "executionTime": f"{executionTime:.2f}s"
         }), 500
 
-@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/history/<wallet_address>', methods=['GET'])
+@smwalletBehaviourReportBp.route('/api/smwalletbehaviour/history/<wallet_address>', methods=['GET', 'OPTIONS'])
 def getWalletBehaviourHistory(wallet_address):
     """API endpoint to retrieve historical behaviour reports for a specific wallet"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     startTime = time.time()
     
     # Get limit parameter from query string
@@ -130,7 +139,7 @@ def getWalletBehaviourHistory(wallet_address):
     except Exception as e:
         executionTime = time.time() - startTime
         errorMessage = f"Failed to retrieve wallet behaviour history for {wallet_address}: {str(e)}"
-        logger.error(errorMessage)
+        logger.error(errorMessage, exc_info=True)
         return jsonify({
             "status": "error",
             "message": errorMessage,

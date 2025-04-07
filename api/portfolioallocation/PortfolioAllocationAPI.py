@@ -12,12 +12,7 @@ portfolio_allocation_bp = Blueprint('portfolioAllocation', __name__)
 def handlePortfolioAllocationSuggestions():
     """API endpoint to get portfolio allocation suggestions"""
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
-        return response, 200
+        return jsonify({}), 200
         
     try:
         # Get input data from request
@@ -71,30 +66,21 @@ def handlePortfolioAllocationSuggestions():
         result = portfolioAllocation(inputData)
         
         # Return result
-        response = jsonify({
+        return jsonify({
             'status': 'success',
             'data': result
         })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response
 
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
-        response = jsonify({
+        return jsonify({
             'status': 'error',
             'message': str(e)
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 400
+        }), 400
         
     except Exception as e:
         logger.error(f"Portfolio allocation error: {str(e)}")
-        response = jsonify({
+        return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'
-        })
-        config = get_config()
-        response.headers.add('Access-Control-Allow-Origin', config.CORS_ORIGINS[0] if config.CORS_ORIGINS else '*')
-        return response, 500 
+        }), 500 
