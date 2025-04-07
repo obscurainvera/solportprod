@@ -91,7 +91,7 @@ from api.attention.AttentionReportAPI import attention_report_bp
 from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 
 logger = get_logger(__name__)
-
+ ̰
 def initialize_job_storage():
     """
     Initialize job storage database tables for scheduled job tracking.
