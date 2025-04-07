@@ -38,4 +38,4 @@ RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-CMD gunicorn --bind 0.0.0.0:${PORT} --workers 4 --threads 2 --timeout 120 app:app
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120 app:app
