@@ -34,7 +34,7 @@ class CredentialsHandler(BaseDBHandler):
                         id SERIAL PRIMARY KEY,
                         servicename VARCHAR(100) NOT NULL,
                         credentialtype VARCHAR(20) NOT NULL,
-                        isactive BOOLEAN DEFAULT TRUE,
+                        isactive INTEGER DEFAULT 1,
                         metadata TEXT,
                         apikey TEXT,   
                         apisecret TEXT,
@@ -180,7 +180,7 @@ class CredentialsHandler(BaseDBHandler):
                             SELECT * FROM servicecredentials
                             WHERE servicename = %s
                             AND (apikey = %s OR username = %s)
-                            AND isactive = TRUE
+                            AND isactive = 1
                         '''), (serviceName, identifier, identifier))
                     else:
                         cursor.execute('''
@@ -194,7 +194,7 @@ class CredentialsHandler(BaseDBHandler):
                         cursor.execute(text('''
                             SELECT * FROM servicecredentials
                             WHERE servicename = %s
-                            AND isactive = TRUE
+                            AND isactive = 1
                             ORDER BY updatedat DESC
                             LIMIT 1
                         '''), (serviceName,))

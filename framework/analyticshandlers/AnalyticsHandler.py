@@ -654,7 +654,7 @@ class AnalyticsHandler(BaseDBHandler):
                 if config.DB_TYPE == 'postgres':
                     query = text('''
                         SELECT * FROM strategyconfig 
-                        WHERE source = %s AND active = TRUE AND status = %s
+                        WHERE source = %s AND active = 1 AND status = %s
                     ''')
                     cursor.execute(query, params)
                 else:

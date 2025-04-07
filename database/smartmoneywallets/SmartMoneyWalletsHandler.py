@@ -43,12 +43,12 @@ class SmartMoneyWalletsHandler(BaseDBHandler):
                         wincount INTEGER,
                         losscount INTEGER,
                         totaldeals INTEGER,
-                        verified BOOLEAN,
+                        verified INTEGER,
                         chain TEXT,
                         status INTEGER DEFAULT 1,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        issmartmoney BOOLEAN DEFAULT TRUE
+                        issmartmoney INTEGER DEFAULT 1
                     )
                 ''')
             else:
@@ -65,12 +65,12 @@ class SmartMoneyWalletsHandler(BaseDBHandler):
                         wincount INTEGER,
                         losscount INTEGER,
                         totaldeals INTEGER,
-                        verified BOOLEAN,
+                        verified INTEGER,
                         chain TEXT,
                         status INTEGER DEFAULT 1,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        issmartmoney BOOLEAN DEFAULT TRUE
+                        issmartmoney INTEGER DEFAULT 1
                     )
                 ''')
 

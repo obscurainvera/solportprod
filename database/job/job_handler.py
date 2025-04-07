@@ -30,123 +30,143 @@ class JobHandler(BaseDBHandler):
 
     def _create_tables(self):
         """Create necessary tables if they don't exist"""
-        with self.conn_manager.transaction() as cursor:
-            config = get_config()
-            
-            # Check if we're using PostgreSQL or SQLite
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS jobs (
-                        id SERIAL PRIMARY KEY,
-                        job_id TEXT NOT NULL UNIQUE,
-                        name TEXT NOT NULL,
-                        description TEXT,
-                        params TEXT,
-                        status INTEGER NOT NULL,
-                        schedule TEXT,
-                        last_run TIMESTAMP,
-                        next_run TIMESTAMP,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                '''))
+        try:
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
                 
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS job_executions (
-                        id SERIAL PRIMARY KEY,
-                        job_id TEXT NOT NULL,
-                        start_time TIMESTAMP NOT NULL,
-                        end_time TIMESTAMP,
-                        status INTEGER NOT NULL,
-                        result TEXT,
-                        error TEXT,
-                        FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
-                    )
-                '''))
-            else:
-                # SQLite syntax
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS jobs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        job_id TEXT NOT NULL UNIQUE,
-                        name TEXT NOT NULL,
-                        description TEXT,
-                        params TEXT,
-                        status INTEGER NOT NULL,
-                        schedule TEXT,
-                        last_run TIMESTAMP,
-                        next_run TIMESTAMP,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                '''))
-                
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS job_executions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        job_id TEXT NOT NULL,
-                        start_time TIMESTAMP NOT NULL,
-                        end_time TIMESTAMP,
-                        status INTEGER NOT NULL,
-                        result TEXT,
-                        error TEXT,
-                        FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
-                    )
-                '''))
+                # Check if we're using PostgreSQL or SQLite
+                if config.DB_TYPE == 'postgres':
+                    try:
+                        cursor.execute(text('''
+                            CREATE TABLE IF NOT EXISTS jobs (
+                                id SERIAL PRIMARY KEY,
+                                job_id TEXT NOT NULL UNIQUE,
+                                name TEXT NOT NULL,
+                                description TEXT,
+                                params TEXT,
+                                status INTEGER NOT NULL,
+                                schedule TEXT,
+                                last_run TIMESTAMP,
+                                next_run TIMESTAMP,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        '''))
+                        
+                        cursor.execute(text('''
+                            CREATE TABLE IF NOT EXISTS job_executions (
+                                id SERIAL PRIMARY KEY,
+                                job_id TEXT NOT NULL,
+                                start_time TIMESTAMP NOT NULL,
+                                end_time TIMESTAMP,
+                                status INTEGER NOT NULL,
+                                result TEXT,
+                                error TEXT,
+                                FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+                            )
+                        '''))
+                    except Exception as e:
+                        logger.error(f"Error creating PostgreSQL tables: {str(e)}")
+                        # Allow to continue - tables might already exist or have different schema
+                else:
+                    # SQLite syntax
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS jobs (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            job_id TEXT NOT NULL UNIQUE,
+                            name TEXT NOT NULL,
+                            description TEXT,
+                            params TEXT,
+                            status INTEGER NOT NULL,
+                            schedule TEXT,
+                            last_run TIMESTAMP,
+                            next_run TIMESTAMP,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    '''))
+                    
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS job_executions (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            job_id TEXT NOT NULL,
+                            start_time TIMESTAMP NOT NULL,
+                            end_time TIMESTAMP,
+                            status INTEGER NOT NULL,
+                            result TEXT,
+                            error TEXT,
+                            FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+                        )
+                    '''))
+        except Exception as e:
+            logger.error(f"Error in _create_tables: {str(e)}")
+            # Continue execution - the app might work with limited functionality
 
     def get_all_jobs(self) -> List[Dict]:
         """Get all job records"""
         config = get_config()
         
-        with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text("""
-                    SELECT * FROM jobs ORDER BY created_at DESC
-                """))
-            else:
-                cursor.execute(text("""
-                    SELECT * FROM jobs ORDER BY created_at DESC
-                """))
-            
-            return [dict(row) for row in cursor.fetchall()]
+        try:
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text("""
+                        SELECT * FROM jobs ORDER BY created_at DESC
+                    """))
+                else:
+                    cursor.execute(text("""
+                        SELECT * FROM jobs ORDER BY created_at DESC
+                    """))
+                
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting all jobs: {e}")
+            return []
 
     def get_job_by_id(self, job_id: str) -> Optional[Dict]:
         """Get job by ID"""
         config = get_config()
         
-        with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text("""
-                    SELECT * FROM jobs WHERE job_id = %s
-                """), (job_id,))
-            else:
-                cursor.execute(text("""
-                    SELECT * FROM jobs WHERE job_id = ?
-                """), (job_id,))
-                
-            row = cursor.fetchone()
-            return dict(row) if row else None
+        try:
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text("""
+                        SELECT * FROM jobs WHERE job_id = %s
+                    """), (job_id,))
+                else:
+                    cursor.execute(text("""
+                        SELECT * FROM jobs WHERE job_id = ?
+                    """), (job_id,))
+                    
+                row = cursor.fetchone()
+                return dict(row) if row else None
+        except Exception as e:
+            logger.error(f"Error getting job by ID: {e}")
+            return None
 
     def get_pending_jobs(self) -> List[Dict]:
         """Get all pending jobs due for execution"""
         config = get_config()
         current_time = datetime.now()
         
-        with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text("""
-                    SELECT * FROM jobs 
-                    WHERE (status = %s OR status = %s) 
-                    AND (next_run IS NULL OR next_run <= %s)
-                """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
-            else:
-                cursor.execute(text("""
-                    SELECT * FROM jobs 
-                    WHERE (status = ? OR status = ?) 
-                    AND (next_run IS NULL OR next_run <= ?)
-                """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
-                
-            return [dict(row) for row in cursor.fetchall()]
+        try:
+            with self.conn_manager.transaction() as cursor:
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text("""
+                        SELECT * FROM jobs 
+                        WHERE (status = %s OR status = %s) 
+                        AND (next_run IS NULL OR next_run <= %s)
+                    """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
+                else:
+                    cursor.execute(text("""
+                        SELECT * FROM jobs 
+                        WHERE (status = ? OR status = ?) 
+                        AND (next_run IS NULL OR next_run <= ?)
+                    """), (JobStatus.PENDING.value, JobStatus.RECURRING.value, current_time))
+                    
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting pending jobs: {e}")
+            return []
 
     def insert_job(self, job_data: Dict) -> Optional[str]:
         """Insert a new job"""

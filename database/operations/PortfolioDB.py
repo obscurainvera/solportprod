@@ -162,18 +162,16 @@ class PortfolioDB:
 
     def close(self):
         """
-        Properly close all database connections.
-        
-        What it does:
-        1. Closes the shared connection manager
-        2. Ensures all database resources are released
-        
-        When to use:
-        - When shutting down the application
-        - When cleaning up resources
-        - In context managers
+        Close database connections. This should only be called 
+        during application shutdown, not between requests.
         """
-        self.conn_manager.close()
+        
+        # Only close if this is explicitly called during shutdown
+        if hasattr(self, 'conn_manager'):
+            logger.info("PortfolioDB close() called during application shutdown")
+            self.conn_manager.close()
+        else:
+            logger.warning("Attempt to close PortfolioDB but no connection manager found")
 
     def execute_query(self, query: str, params=None):
         """

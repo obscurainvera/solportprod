@@ -114,7 +114,7 @@ class VolumeHandler(BaseDBHandler):
                         occurrencecount INTEGER NOT NULL,      -- Times seen by bot
                         percentilerankpeats DECIMAL,           -- Ranking by occurrences
                         percentileranksol DECIMAL,             -- Ranking by SOL buys
-                        dexstatus BOOLEAN NOT NULL,            -- Trading status
+                        dexstatus INTEGER NOT NULL,            -- Trading status
                         change1hpct DECIMAL NOT NULL,          -- 1hr price change
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
                         lastupdatedat TIMESTAMP,               -- Last update time
@@ -136,7 +136,7 @@ class VolumeHandler(BaseDBHandler):
                         occurrencecount INTEGER NOT NULL,
                         percentilerankpeats DECIMAL,
                         percentileranksol DECIMAL,
-                        dexstatus BOOLEAN NOT NULL,
+                        dexstatus INTEGER NOT NULL,
                         change1hpct DECIMAL NOT NULL,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
@@ -175,7 +175,7 @@ class VolumeHandler(BaseDBHandler):
                         occurrencecount INTEGER NOT NULL,      -- Times seen by bot
                         percentilerankpeats DECIMAL,           -- Ranking by occurrences
                         percentileranksol DECIMAL,             -- Ranking by SOL buys
-                        dexstatus BOOLEAN NOT NULL,            -- Trading status
+                        dexstatus INTEGER NOT NULL,            -- Trading status
                         change1hpct DECIMAL NOT NULL,          -- 1hr price change
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
                         lastupdatedat TIMESTAMP,               -- Last update time
@@ -197,7 +197,7 @@ class VolumeHandler(BaseDBHandler):
                         occurrencecount INTEGER NOT NULL,
                         percentilerankpeats DECIMAL,
                         percentileranksol DECIMAL,
-                        dexstatus BOOLEAN NOT NULL,
+                        dexstatus INTEGER NOT NULL,
                         change1hpct DECIMAL NOT NULL,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
