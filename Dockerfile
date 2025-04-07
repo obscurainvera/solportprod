@@ -33,13 +33,19 @@ FROM python-base AS final
 COPY . .
 COPY --from=node-builder /app/frontend/solport/build /app/frontend/solport/build
 
-# Copy entrypoint script
-COPY solportprod/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 RUN mkdir -p logs
 RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+cd /app\n\
+PORT_VALUE=${PORT:-8000}\n\
+echo "Starting server on port $PORT_VALUE"\n\
+exec gunicorn "app:create_app().app" --bind "0.0.0.0:$PORT_VALUE" --workers 4 --threads 2 --timeout 120\n\
+' > /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
 USER appuser
 
 # Use the entrypoint script
