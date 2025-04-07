@@ -43,7 +43,9 @@ try:
                     password=config.DB_PASSWORD,
                     host=config.DB_HOST,
                     port=config.DB_PORT,
-                    dbname=config.DB_NAME
+                    dbname=config.DB_NAME,
+                    sslmode=config.DB_SSLMODE,
+                    gssencmode=config.DB_GSSENCMODE
                 )
                 conn.close()
                 logger.info(f"Successfully connected to PostgreSQL with user {config.DB_USER}")

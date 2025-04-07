@@ -35,7 +35,8 @@ class Config:
     DB_USER = os.getenv('DB_USER', 'postgres')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     DB_PATH = os.getenv('DB_PATH', os.path.join(PROJECT_ROOT, 'portfolio.db'))
-    DB_SSLMODE = os.getenv('DB_SSLMODE', 'disable')  # SSL mode for PostgreSQL cloud connections
+    DB_SSLMODE = os.getenv('DB_SSLMODE', 'require')  # SSL mode for PostgreSQL cloud connections
+    DB_GSSENCMODE = os.getenv('DB_GSSENCMODE', 'disable')  # GSSAPI encryption mode for PostgreSQL
     
     # Handle empty values for connection pooling parameters
     _DB_POOL_SIZE = os.getenv('DB_POOL_SIZE', '5')
@@ -107,6 +108,10 @@ class Config:
             if self.DB_SSLMODE:
                 conn_string += f'?sslmode={self.DB_SSLMODE}'
                 
+                # Add GSSAPI encryption mode if specified
+                if self.DB_GSSENCMODE:
+                    conn_string += f'&gssencmode={self.DB_GSSENCMODE}'
+            
             return conn_string
     
     def to_dict(self) -> Dict[str, Any]:
@@ -126,6 +131,7 @@ class Config:
             'DB_USER': self.DB_USER,
             'DB_PATH': self.DB_PATH,
             'DB_SSLMODE': self.DB_SSLMODE,
+            'DB_GSSENCMODE': self.DB_GSSENCMODE,
             'DB_POOL_SIZE': self.DB_POOL_SIZE,
             'DB_MAX_OVERFLOW': self.DB_MAX_OVERFLOW,
             'DB_POOL_TIMEOUT': self.DB_POOL_TIMEOUT,

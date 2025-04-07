@@ -1,3 +1,15 @@
+from dotenv import load_dotenv
+import os
+import argparse
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Run the portfolio monitoring application')
+parser.add_argument('--port', type=int, help='Port to run the application on')
+args = parser.parse_args()
+
 from config.Config import get_config
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
@@ -80,7 +92,9 @@ def initialize_job_storage():
                     password=config_instance.DB_PASSWORD,
                     host=config_instance.DB_HOST,
                     port=config_instance.DB_PORT,
-                    dbname=config_instance.DB_NAME
+                    dbname=config_instance.DB_NAME,
+                    sslmode=config_instance.DB_SSLMODE,
+                    gssencmode=config_instance.DB_GSSENCMODE
                 )
                 
                 # Create tables with psycopg2
@@ -332,6 +346,23 @@ class PortfolioApp:
         self.app.register_blueprint(attention_report_bp)
         self.app.register_blueprint(dexscrenner_bp)
         
+        # Add before_request handler to ensure connection pool is available
+        @self.app.before_request
+        def ensure_db_connection():
+            """Ensure database connection pool is available before each request"""
+            try:
+                # Get a singleton instance of the connection manager
+                conn_manager = DatabaseConnectionManager()
+                
+                # Check if pool is closed and reinitialize if needed
+                if conn_manager.is_pool_closed():
+                    logger.warning("Connection pool is closed before request, attempting to reinitialize")
+                    conn_manager.reinitialize_pool_if_closed()
+            except Exception as e:
+                logger.error(f"Error checking database connection: {e}")
+                # Don't fail the request - let it proceed and possibly
+                # fail with a more specific error if it needs the database
+        
         # Add a dedicated healthcheck endpoint for container orchestration
         @self.app.route('/healthcheck', methods=['GET'])
         def healthcheck():
@@ -400,17 +431,19 @@ class PortfolioApp:
             except Exception as e:
                 logger.error(f"Error closing database: {e}")
 
-    def run(self, host='0.0.0.0', port=8080):
+    def run(self):
         """
         Start the application:
         1. Setup signal handlers for graceful shutdown
         2. Start background jobs
         3. Launch Flask web server
-        
-        Args:
-            host: Network interface to bind to
-            port: Port number to listen on
         """
+        config_instance = get_config()
+        
+        # Get port from command line args, env var, or config
+        port = args.port if args.port else int(os.getenv('API_PORT', config_instance.API_PORT))
+        host = config_instance.API_HOST
+        
         try:
             self._setup_signal_handlers()
             self.job_runner.start()
@@ -437,6 +470,5 @@ def create_app():
     return PortfolioApp()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
     app = create_app()
-    app.run(port=port)
+    app.run()

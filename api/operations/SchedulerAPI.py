@@ -358,7 +358,9 @@ def getJobHistory(job_id):
                 password=config_instance.DB_PASSWORD,
                 host=config_instance.DB_HOST,
                 port=config_instance.DB_PORT,
-                dbname=config_instance.DB_NAME
+                dbname=config_instance.DB_NAME,
+                sslmode=config_instance.DB_SSLMODE,
+                gssencmode=config_instance.DB_GSSENCMODE
             )
             
             # Use RealDictCursor to get dictionary-like results
