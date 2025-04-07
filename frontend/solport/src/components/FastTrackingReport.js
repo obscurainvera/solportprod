@@ -1,16 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import { 
-  Container, Row, Col, Table, Button, Form, 
-  InputGroup, FormControl, Card, Badge, Alert,
-  Spinner, OverlayTrigger, Tooltip
-} from 'react-bootstrap';
-import { 
-  FaFilter, FaSort, FaSortUp, FaSortDown, 
-  FaChartLine, FaExclamationCircle, FaCheckCircle, 
-  FaRegClock, FaRegCalendarAlt, FaSearch 
+  FaChartLine, 
+  FaArrowUp, 
+  FaArrowDown, 
+  FaCoins, 
+  FaCheck, 
+  FaTimes, 
+  FaInfoCircle, 
+  FaCalculator, 
+  FaExternalLinkAlt, 
+  FaWallet,
+  FaEye,
+  FaEyeSlash,
+  FaPercentage,
+  FaExchangeAlt,
+  FaMoneyBillWave,
+  FaBalanceScale,
+  FaChartPie,
+  FaTrophy,
+  FaAngleRight,
+  FaChevronRight,
+  FaRegLightbulb,
+  FaRegGem,
+  FaPlus,
+  FaTrash
 } from 'react-icons/fa';
 import './FastTrackingReport.css';
 import './InputFix.css';
@@ -30,32 +43,17 @@ const FastTrackingReport = () => {
     { sellPercentage: 50, priceIncrease: 30 }
   ]);
   const [simulationResults, setSimulationResults] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedRound, setSelectedRound] = useState(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [formHidden, setFormHidden] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const [activeTab, setActiveTab] = useState('simulator');
-  const [fastTrackingData, setFastTrackingData] = useState([]);
-  const [sortConfig, setSortConfig] = useState({
-    key: 'updated_at',
-    direction: 'desc'
-  });
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 14)), // Default to 14 days ago
-    endDate: new Date(),
-    tokenSearch: '',
-    minTrackingScore: '',
-    statusFilter: '',
-    sourceFilter: ''
-  });
-  
+
   // Refs for scrolling
   const resultsRef = useRef(null);
   const timelineRef = useRef(null);
-  const tableRef = useRef(null);
 
   const addProfitLevel = () => {
     setProfitLevels([...profitLevels, { sellPercentage: 50, priceIncrease: 50 }]);
@@ -528,159 +526,6 @@ const FastTrackingReport = () => {
           </div>
         </div>
       </div>
-    );
-  };
-
-  // Effect to fetch data on component mount and when filters or sort config change
-  useEffect(() => {
-    fetchData();
-  }, [filters, sortConfig]);
-  
-  // Function to fetch data from API
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Build query parameters based on filters
-      const params = new URLSearchParams();
-      
-      if (filters.startDate) {
-        params.append('start_date', filters.startDate.toISOString().split('T')[0]);
-      }
-      
-      if (filters.endDate) {
-        params.append('end_date', filters.endDate.toISOString().split('T')[0]);
-      }
-      
-      if (filters.tokenSearch) {
-        params.append('token_search', filters.tokenSearch);
-      }
-      
-      if (filters.minTrackingScore) {
-        params.append('min_tracking_score', filters.minTrackingScore);
-      }
-      
-      if (filters.statusFilter) {
-        params.append('status', filters.statusFilter);
-      }
-      
-      if (filters.sourceFilter) {
-        params.append('source', filters.sourceFilter);
-      }
-      
-      // Add sorting parameters
-      if (sortConfig.key) {
-        params.append('sort_by', sortConfig.key);
-        params.append('sort_order', sortConfig.direction);
-      }
-      
-      // Log params in development mode
-      if (isDev) {
-        console.log('Fetching fast tracking data with params:', params.toString());
-      }
-      
-      // Make the API request
-      const response = await axios.get(`${API_BASE_URL}/api/reports/fasttracking`, {
-        params: params
-      });
-
-      if (isDev) {
-        console.log('Raw API Response:', response.data);
-      }
-      
-      // Check for API error response
-      if (response.data.status === 'error') {
-        throw new Error(response.data.message || 'Failed to fetch fast tracking data');
-      }
-      
-      // Extract data from the standardized response format
-      const responseData = response.data.status === 'success' && response.data.data 
-        ? response.data.data 
-        : response.data;
-        
-      setFastTrackingData(responseData);
-      
-    } catch (err) {
-      if (isDev) {
-        console.error('Error fetching fast tracking data:', err);
-      }
-      setError(err.message || 'Failed to load fast tracking data. Please try again later.');
-      setFastTrackingData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Function to handle sorting
-  const handleSort = (key) => {
-    setSortConfig((prevConfig) => {
-      if (prevConfig.key === key) {
-        return {
-          ...prevConfig,
-          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
-        };
-      }
-      return { key, direction: 'desc' };
-    });
-  };
-  
-  // Function to render sort indicator
-  const getSortDirectionIcon = (key) => {
-    if (sortConfig.key !== key) return <FaSort className="text-muted" />;
-    return sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />;
-  };
-  
-  // Function to apply filters
-  const applyFilters = (e) => {
-    e.preventDefault();
-    
-    if (isDev) {
-      console.log('Applying filters:', filters);
-    }
-    
-    // Fetch data with updated filters
-    fetchData();
-    
-    // Hide the filters panel
-    setShowFilters(false);
-  };
-  
-  // Function to reset filters
-  const resetFilters = () => {
-    setFilters({
-      startDate: new Date(new Date().setDate(new Date().getDate() - 14)),
-      endDate: new Date(),
-      tokenSearch: '',
-      minTrackingScore: '',
-      statusFilter: '',
-      sourceFilter: ''
-    });
-  };
-  
-  // Function to render status badge
-  const renderStatusBadge = (status) => {
-    if (!status) return null;
-    
-    const status_lower = status.toLowerCase();
-    let variant = 'secondary';
-    let icon = null;
-    
-    if (status_lower === 'active') {
-      variant = 'success';
-      icon = <FaCheckCircle className="mr-1" />;
-    } else if (status_lower === 'pending') {
-      variant = 'warning';
-      icon = <FaRegClock className="mr-1" />;
-    } else if (status_lower === 'failed' || status_lower === 'error') {
-      variant = 'danger';
-      icon = <FaExclamationCircle className="mr-1" />;
-    }
-    
-    return (
-      <Badge variant={variant} className="status-badge">
-        {icon}{status}
-      </Badge>
     );
   };
 

@@ -148,8 +148,8 @@ def strategy_config_report():
                 source=params["source"],
                 min_realized_pnl=params["min_realized_pnl"],
                 min_total_pnl=params["min_total_pnl"],
-                sort_by=params["sort_by"] or DEFAULT_SORT_BY,
-                sort_order=params["sort_order"]
+                sortBy=params["sort_by"] or DEFAULT_SORT_BY,
+                sortOrder=params["sort_order"]
             )
             
             # Fix PNL calculations if needed
@@ -189,16 +189,16 @@ def strategy_executions():
         with PortfolioDB() as db:
             handler = StrategyPerformanceHandler(db)
             
-            # Get strategy executions
-            executions = handler.getStrategyExecutions(
-                strategy_id=None,  # All executions
+            # Use getAllExecutions instead of getStrategyExecutions for all executions with filters
+            executions = handler.getAllExecutions(
+                strategy_name=params["strategy_name"],
+                source=params["source"],
                 token_id=params["token_id"],
                 token_name=params["token_name"],
-                status=params["status"],
                 min_realized_pnl=params["min_realized_pnl"],
                 min_total_pnl=params["min_total_pnl"],
-                sort_by=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
-                sort_order=params["sort_order"]
+                sortBy=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
+                sortOrder=params["sort_order"]
             )
             
             # Fix PNL calculations if needed
@@ -240,14 +240,9 @@ def strategy_executions_by_id(strategy_id):
             
             # Get strategy executions for specific strategy
             executions = handler.getStrategyExecutions(
-                strategy_id=strategy_id,
-                token_id=params["token_id"],
-                token_name=params["token_name"],
-                status=params["status"],
+                strategyId=strategy_id,
                 min_realized_pnl=params["min_realized_pnl"],
-                min_total_pnl=params["min_total_pnl"],
-                sort_by=params["sort_by"] or DEFAULT_EXECUTION_SORT_BY,
-                sort_order=params["sort_order"]
+                min_total_pnl=params["min_total_pnl"]
             )
             
             # Fix PNL calculations if needed
