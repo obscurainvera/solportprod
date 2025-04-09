@@ -9,4 +9,7 @@ echo "Current directory: $(pwd)"
 echo "Files in current directory: $(ls -la)"
 
 # Run Gunicorn with the specified port and arguments
-exec gunicorn wsgi:app -b 0.0.0.0:$PORT -w 4 -t 120
+exec gunicorn wsgi:app \
+    --bind 0.0.0.0:$PORT \
+    --workers 4 \
+    --timeout 120
