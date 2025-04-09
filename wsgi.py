@@ -21,15 +21,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Get port from command line args, environment variable, or default to 5000
-    port = args.port if args.port else int(os.getenv('PORT', 5000))
+    port = args.port if args.port else int(os.getenv('PORT', 10000))
     # Get host from command line args or default to 0.0.0.0 for Docker
     host = args.host if args.host else "0.0.0.0"
 
     # Run the Flask app directly
-    app.run(
-        host=host,
-        port=port,
-        debug=False,       # Disable debug mode for production
-        use_reloader=False, # Prevent duplicate processes in Docker
-        threaded=True      # Enable concurrent request handling
-    )
+    app.run(host=host,port=port)
