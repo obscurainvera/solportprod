@@ -2,4 +2,4 @@
 
 PORT=${PORT:-10000}
 echo "Starting Waitress on port $PORT"
-exec waitress-serve --host=0.0.0.0 --port=$PORT wsgi:app
+/usr/local/bin/waitress-serve --listen=0.0.0.0:$PORT wsgi:app
