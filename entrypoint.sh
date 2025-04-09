@@ -1,5 +1,5 @@
 #!/bin/bash
 
 PORT=${PORT:-10000}
-echo "Starting Waitress on port $PORT"
-/usr/local/bin/waitress-serve --listen=0.0.0.0:$PORT wsgi:app
+echo "Starting Flask on port $PORT"
+exec python wsgi.py --host=0.0.0.0 --port=$PORT
