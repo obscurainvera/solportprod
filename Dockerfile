@@ -38,4 +38,4 @@ RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-CMD ["/bin/sh", "-c", "gunicorn -b 0.0.0.0:${PORT:-5000} --workers 4 --threads 2 --timeout 120 wsgi:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "wsgi:app"]
