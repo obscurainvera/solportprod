@@ -38,4 +38,8 @@ RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "--workers", "4", "--threads", "2", "--timeout", "120", "app:app"]
+# Show where we might land (just for fun)
+EXPOSE 5000
+
+# Tell the rocket how to fly with the shell’s help
+CMD exec gunicorn -b 0.0.0.0:${PORT:-5000} --workers 4 --threads 2 --timeout 120 app:app
