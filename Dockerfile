@@ -37,13 +37,10 @@ RUN mkdir -p logs
 RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 
-# Copy the entrypoint script into the container
+# Copy and set up the entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
-
-# Ensure the script is executable
 RUN chmod +x /app/entrypoint.sh
 
 USER appuser
 
-# Set the entrypoint to run the script
 ENTRYPOINT ["/app/entrypoint.sh"]
