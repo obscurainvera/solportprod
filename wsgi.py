@@ -18,10 +18,4 @@ if __name__ == "__main__":
     host = "0.0.0.0"  # Bind to all interfaces for Docker
 
     # Run the Flask app directly
-    app.run(
-        host=host,
-        port=port,
-        debug=False,       # Disable debug mode for production
-        use_reloader=False, # Prevent duplicate processes in Docker
-        threaded=True      # Enable concurrent request handling
-    )
+    app.run()
