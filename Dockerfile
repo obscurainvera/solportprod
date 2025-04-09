@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     curl \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -39,8 +40,9 @@ RUN chown -R appuser:appuser /app
 
 # Copy and set up the entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh && \
+    sed -i 's/\r$//' /app/entrypoint.sh
 
 USER appuser
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
