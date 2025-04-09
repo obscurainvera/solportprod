@@ -434,7 +434,7 @@ class PortfolioApp:
             except Exception as e:
                 logger.error(f"Error closing database: {e}")
 
-    def run(self):
+    def run(self, host=None, port=None):
         """
         Start the Portfolio Application with all components.
         
@@ -444,8 +444,8 @@ class PortfolioApp:
         config_instance = get_config()
         
         # Get port from command line args, env var, or config
-        port = args.port if args.port else int(os.getenv('API_PORT', config_instance.API_PORT))
-        host = config_instance.API_HOST
+        port = port if port else config_instance.API_PORT
+        host = host if host else config_instance.API_HOST
         
         try:
             self._setup_signal_handlers()
