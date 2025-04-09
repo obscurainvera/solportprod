@@ -246,7 +246,7 @@ class PortfolioApp:
         """
         logger.info("Initializing Portfolio App...")
         self.app = Flask(__name__, 
-                         static_folder='frontend/solport/build/static',
+                         static_folder='frontend/solport/build',
                          template_folder='frontend/solport/build')
         
         # Configure CORS for production
@@ -508,7 +508,3 @@ def create_app():
             return render_template('index.html')
     
     return portfolio_app
-
-if __name__ == '__main__':
-    app = create_app()
-    app.run()
