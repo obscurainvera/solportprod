@@ -38,4 +38,11 @@ RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "wsgi:app"]
+# Copy the entrypoint script into the container
+COPY entrypoint.sh /app/entrypoint.sh
+
+# Ensure the script is executable
+RUN chmod +x /app/entrypoint.sh
+
+# Set the entrypoint to run the script
+ENTRYPOINT ["/app/entrypoint.sh"]
