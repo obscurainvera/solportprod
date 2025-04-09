@@ -4,4 +4,4 @@
 PORT=${PORT:-5000}
 
 # Run Gunicorn with the specified port and arguments
-exec gunicorn -b 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120 wsgi:app
+exec gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120 "app:create_app()"
