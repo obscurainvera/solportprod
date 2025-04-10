@@ -48,12 +48,15 @@ def with_retries(job_func, scheduler_class):
 
 
 def run_volume_bot_analysis_job():
+    """Run volume bot analysis with retry logic."""
     with_retries(VolumeBotScheduler.handleVolumeAnalysisFromJob, VolumeBotScheduler)
 
 def run_pump_fun_analysis_job():
+    """Run pump fun analysis with retry logic."""
     with_retries(PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler)
 
 def run_execution_monitoring_job():
+    """Monitor active executions with retry logic."""
     with_retries(ExecutionMonitorScheduler.handleActiveExecutionsMonitoring, ExecutionMonitorScheduler)
 
 class JobRunner:
@@ -85,14 +88,23 @@ class JobRunner:
         """Configure all scheduled jobs with configurable triggers."""
         config = get_config()
         jobs = [
-            (VolumeBotScheduler.handleVolumeAnalysisFromJob, VolumeBotScheduler, 'volume_bot_analysis', {'minute': '*/30'}),
-            (PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler, 'pump_fun_analysis', {'minute': '*/15'}),
-            (ExecutionMonitorScheduler.handleActiveExecutionsMonitoring, ExecutionMonitorScheduler, 'execution_monitoring', {'minute': '*/5'})
+            ('volume_bot_analysis', {'minute': '*/30'}),
+            ('pump_fun_analysis', {'minute': '*/15'}),
+            ('execution_monitoring', {'minute': '*/5'})
         ]
-        for job_func, scheduler_class, job_id, default_schedule in jobs:
+        for job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
+            
+            # Use named functions instead of lambdas
+            if job_id == 'volume_bot_analysis':
+                job_func = run_volume_bot_analysis_job
+            elif job_id == 'pump_fun_analysis':
+                job_func = run_pump_fun_analysis_job
+            elif job_id == 'execution_monitoring':
+                job_func = run_execution_monitoring_job
+            
             self.scheduler.add_job(
-                func=lambda: with_retries(job_func, scheduler_class),
+                func=job_func,
                 trigger='cron',
                 **schedule,
                 id=job_id,
