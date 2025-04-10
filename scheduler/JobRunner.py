@@ -19,9 +19,12 @@ from scheduler.AttentionScheduler import AttentionScheduler
 from scheduler.DeactivateLostSMBalanceTokens import DeactiveLostSMBalanceTokens
 from scheduler.ExecutionMonitorScheduler import ExecutionMonitorScheduler
 from database.operations.PortfolioDB import PortfolioDB
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+from database.job.job_handler import JobHandler
 import time
 import requests
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
+
 
 logger = get_logger(__name__)
 
@@ -141,10 +144,6 @@ class JobRunner:
             # Use a direct database connection without 'with' to avoid potential recursion
             db = None
             try:
-                from database.operations.PortfolioDB import PortfolioDB
-                from database.job.job_handler import JobHandler
-                from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
-                
                 # Create a fresh connection manager
                 conn_manager = DatabaseConnectionManager()
                 

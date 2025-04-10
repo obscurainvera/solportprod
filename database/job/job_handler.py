@@ -35,10 +35,14 @@ class JobHandler(BaseDBHandler):
         config = get_config()
         is_postgres = config.DB_TYPE == 'postgres'
         
-        # Build SQL strings outside of text() function
+        # Set up the correct SQL fragments based on database type
+        id_type = "SERIAL" if is_postgres else "INTEGER"
+        autoincrement = "" if is_postgres else "AUTOINCREMENT"
+        
+        # Build SQL strings using regular string interpolation
         jobs_sql = f"""
             CREATE TABLE IF NOT EXISTS jobs (
-                id {is_postgres and 'SERIAL' or 'INTEGER'} PRIMARY KEY {is_postgres and '' or 'AUTOINCREMENT'},
+                id {id_type} PRIMARY KEY {autoincrement},
                 job_id TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
                 description TEXT,
@@ -54,7 +58,7 @@ class JobHandler(BaseDBHandler):
         
         job_executions_sql = f"""
             CREATE TABLE IF NOT EXISTS job_executions (
-                id {is_postgres and 'SERIAL' or 'INTEGER'} PRIMARY KEY {is_postgres and '' or 'AUTOINCREMENT'},
+                id {id_type} PRIMARY KEY {autoincrement},
                 job_id TEXT NOT NULL,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,
