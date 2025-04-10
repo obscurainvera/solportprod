@@ -1,465 +1,188 @@
+"""
+Job Runner Module
+
+Manages background job scheduling using APScheduler for periodic tasks like
+portfolio updates, token analysis, and volume monitoring.
+"""
+
 from config.Config import get_config
 from logs.logger import get_logger
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
+from config.SchedulerConfig import SCHEDULER_CONFIG
 from scheduler.PortfolioScheduler import PortfolioScheduler
 from scheduler.WalletsInvestedScheduler import WalletsInvestedScheduler
 from scheduler.VolumebotScheduler import VolumeBotScheduler
 from scheduler.PumpfunScheduler import PumpFunScheduler
-from actions.WalletsInvestedInvestmentDetailsAction import  WalletsInvestedInvestmentDetailsAction
-from database.operations.PortfolioDB import PortfolioDB
-from apscheduler.schedulers.base import SchedulerNotRunningError, SchedulerAlreadyRunningError
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
-from config.SchedulerConfig import SCHEDULER_CONFIG
 from scheduler.AttentionScheduler import AttentionScheduler
 from scheduler.DeactivateLostSMBalanceTokens import DeactiveLostSMBalanceTokens
 from scheduler.ExecutionMonitorScheduler import ExecutionMonitorScheduler
+from database.operations.PortfolioDB import PortfolioDB
+from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+from database.job.job_handler import JobHandler
 import time
 import requests
-import sqlite3
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
+import threading
+
 
 logger = get_logger(__name__)
 
-def handleWalletsInvestedInPortSummaryTokens():
-    """Standalone function to execute token analysis updates."""
-    logger.info("Starting token analysis execution")
-    scheduler = None
-    try:
-        scheduler = WalletsInvestedScheduler()
-        scheduler.handleWalletsInvestedInPortSummaryTokens()
-        logger.info("Token analysis completed successfully")
-    except Exception as e:
-        logger.error(f"Token analysis job failed: {e}")
-        raise
+# Default retry settings
+MAX_RETRIES = 3
+RETRY_DELAY = 60  # seconds
 
-def handlePortfolioSummary():
-    """
-    Standalone function to execute portfolio updates.
-    Creates fresh instances for each execution to avoid serialization issues.
-    """
-    logger.info("Starting portfolio update execution")
-    scheduler = None
-    try:
-        scheduler = PortfolioScheduler()
-        scheduler.handlePortfolioSummaryUpdate()
-        logger.info("Portfolio update completed successfully")
-        
-    except (requests.exceptions.RequestException, 
-            OperationalError,
-            SQLAlchemyError,
-            TimeoutError,
-            ConnectionError) as e:
-        logger.warning(f"Encountered retryable error: {e}")
-        time.sleep(SCHEDULER_CONFIG['job_defaults'].get('retry_delay', 300))
-        
+def with_retries(job_func, scheduler_class):
+    """Wrapper for job execution with retry logic."""
+    logger.info(f"Starting {job_func.__name__} execution")
+    for attempt in range(MAX_RETRIES):
         try:
-            if scheduler:
-                scheduler.handlePortfolioSummaryUpdate()
-                logger.info("Portfolio update completed successfully on retry")
-        except Exception as retry_error:
-            logger.error(f"Job failed after retry: {retry_error}")
-            raise
-            
-    except Exception as e:
-        logger.error(f"Job failed with non-retryable error: {e}")
-        raise
+            scheduler = scheduler_class()
+            job_func(scheduler)
+            logger.info(f"{job_func.__name__} completed successfully")
+            break
+        except (requests.exceptions.RequestException, OperationalError, SQLAlchemyError, TimeoutError, ConnectionError) as e:
+            if attempt < MAX_RETRIES - 1:
+                logger.warning(f"Retryable error on attempt {attempt + 1}: {e}")
+                time.sleep(RETRY_DELAY)
+            else:
+                logger.error(f"{job_func.__name__} failed after {MAX_RETRIES} attempts: {e}")
+                raise
 
-def handleTokenDeactivation():
-    """Standalone function to execute token deactivation."""
-    logger.info("Starting token deactivation execution")
-    scheduler = None
-    try:
-        scheduler = DeactiveLostSMBalanceTokens()
-        scheduler.handleTokenDeactivation()
-        logger.info("Token deactivation completed successfully")
-    except Exception as e:
-        logger.error(f"Token deactivation job failed: {e}")
-        raise
 
-def handleVolumeBotAnalysis():
-    """Standalone function to execute volume bot analysis."""
-    logger.info("Starting volume bot analysis execution")
+def run_volume_bot_analysis_job():
+    """Run volume bot analysis with retry logic."""
+    with_retries(VolumeBotScheduler.handleVolumeAnalysisFromJob, VolumeBotScheduler)
 
-    try:
-        scheduler = VolumeBotScheduler()
-        scheduler.handleVolumeAnalysisFromJob()
-        logger.info("Volume bot analysis completed successfully")
-    except Exception as e:
-        logger.error(f"Volume bot analysis job failed: {e}")
-        raise
+def run_pump_fun_analysis_job():
+    """Run pump fun analysis with retry logic."""
+    with_retries(PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler)
 
-def handlePumpFunAnalysis():
-    """Standalone function to execute pump fun analysis."""
-    logger.info("Starting pump fun analysis execution")
-    scheduler = None
-    try:
-        scheduler = PumpFunScheduler()
-        scheduler.handlePumpFunAnalysisFromJob()
-        logger.info("Pump fun analysis completed successfully")
-    except Exception as e:
-        logger.error(f"Pump fun analysis job failed: {e}")
-        raise
-
-def handleExecutionMonitoring():
-    """Standalone function to execute execution monitoring."""
-    logger.info("Starting execution monitoring execution")
-    scheduler = None
-    try:
-        scheduler = ExecutionMonitorScheduler()
-        scheduler.handleActiveExecutionsMonitoring()
-        logger.info("Execution monitoring completed successfully")
-    except Exception as e:
-        logger.error(f"Execution monitoring job failed: {e}")
-        raise
-
-def handleAttentionAnalysis():
-    """Standalone function to execute attention analysis."""
-    logger.info("Starting attention analysis execution")
-    scheduler = None
-    try:
-        scheduler = AttentionScheduler()
-        scheduler.handleAttentionData()
-        logger.info("Attention analysis completed successfully")
-    except Exception as e:
-        logger.error(f"Attention analysis job failed: {e}")
-        raise
+def run_execution_monitoring_job():
+    """Monitor active executions with retry logic."""
+    with_retries(ExecutionMonitorScheduler.handleActiveExecutionsMonitoring, ExecutionMonitorScheduler)
 
 class JobRunner:
     """
-    Manages all scheduled jobs in the application with persistent storage.
-    Handles multiple jobs accessing same database tables with proper locking.
-    """
+    Manages APScheduler for scheduling and executing background jobs.
     
-    def __init__(self, db_path: str = None):
-        """
-        Initialize job runner with configuration
-        
-        Args:
-            db_path: Path to portfolio database or database URL (Used for job store URL, not scheduler init)
-        """
-        config_instance = get_config()
-        
+    Features:
+    - Configurable job schedules via config
+    - Persistent job store with SQLAlchemy
+    - Job execution monitoring and logging
+    """
+    def __init__(self):
+        """Initialize scheduler with job store and event listeners."""
+        config = get_config()
+        self.scheduler = BackgroundScheduler(**SCHEDULER_CONFIG)
         try:
-            db_url = config_instance.get_database_url()
-            self.db_path = db_url # Store the actual DB URL/path used
-            # Initialize schedulers without db_path
-            self.portfolio_scheduler = PortfolioScheduler() 
-            
-            # Use the scheduler configuration from SchedulerConfig
-            self.scheduler = BackgroundScheduler(**SCHEDULER_CONFIG)
-            
-            # If the SCHEDULER_CONFIG doesn't include a jobstore (fallback case),
-            # attempt to add it here with proper error handling
+            db_url = config.get_database_url()
             if 'jobstores' not in SCHEDULER_CONFIG:
-                try:
-                    # Use the correct db_url for the job store
-                    if self.db_path.startswith('postgresql'):
-                        jobstore_url = self.db_path
-                    else:
-                        # Assuming SQLite if not PostgreSQL
-                        jobstore_url = f'sqlite:///{self.db_path}'
-                        
-                    self.scheduler.add_jobstore(SQLAlchemyJobStore(url=jobstore_url), 'default')
-                    logger.info("Added jobstore to scheduler")
-                except Exception as jobstore_error:
-                    logger.error(f"Failed to add jobstore: {jobstore_error}")
-                    # Continue with in-memory jobstore
-            
-            # Add event listener for job monitoring
-            self.scheduler.add_listener(
-                self._job_listener,
-                EVENT_JOB_ERROR | EVENT_JOB_EXECUTED
-            )
+                self.scheduler.add_jobstore(SQLAlchemyJobStore(url=db_url), 'default')
+                logger.info("Added SQLAlchemy job store")
+            self.scheduler.add_listener(self._job_listener, EVENT_JOB_ERROR | EVENT_JOB_EXECUTED)
+            self.setup_jobs()
             logger.info("JobRunner initialized")
         except Exception as e:
-            logger.error(f"Error initializing JobRunner: {e}")
-            # Create minimal scheduler without jobstore for failsafe operation
-            self.portfolio_scheduler = PortfolioScheduler()
-            self.scheduler = BackgroundScheduler()
-            logger.info("JobRunner initialized with minimal configuration due to errors")
-
-    def addPortfolioSummaryJobs(self):
-        """
-        Add portfolio related jobs with retry mechanism
-        """
-        self.scheduler.add_job(
-            func=handlePortfolioSummary,
-            trigger='cron',
-            hour='*/4',  # Every 4 hours
-            id='portfolio_summary',
-            name='Portfolio Summary Update',
-            replace_existing=True
-        )
-        logger.info("Added portfolio summary job")
-
-    def addWalletsInvestedInATokenJobs(self):
-        """
-        Add token analysis jobs
-        """
-        self.scheduler.add_job(
-            func=handleWalletsInvestedInPortSummaryTokens,
-            trigger='cron',
-            hour='*/6',  # Every 6 hours
-            id='token_analysis',
-            name='Token Analysis Update',
-            replace_existing=True
-        )
-        logger.info("Added token analysis job")
-
-    def addAttentionAnalysisJobs(self):
-        """
-        Add attention analysis jobs
-        """
-        self.scheduler.add_job(
-            func=handleAttentionAnalysis,
-            trigger='cron',
-            hour='*/2',  # Every 2 hours
-            id='attention_analysis',
-            name='Attention Analysis Update',
-            replace_existing=True
-        )
-        logger.info("Added attention analysis job")
-
-    def addTokenDeactivationJob(self):
-        """
-        Add token deactivation job
-        """
-        self.scheduler.add_job(
-            func=handleTokenDeactivation,
-            trigger='cron',
-            hour='*/12',  # Every 12 hours
-            id='token_deactivation',
-            name='Token Deactivation',
-            replace_existing=True
-        )
-        logger.info("Added token deactivation job")
-
-    def addVolumeBotJobs(self):
-        """
-        Add volume bot analysis jobs
-        """
-        self.scheduler.add_job(
-            func=handleVolumeBotAnalysis,
-            trigger='cron',
-            minute='*/30',  # Every 30 minutes
-            id='volume_bot_analysis',
-            name='Volume Bot Analysis',
-            replace_existing=True
-        )
-        logger.info("Added volume bot analysis job")
-
-    def addPumpFunJobs(self):
-        """
-        Add pump fun analysis jobs
-        """
-        self.scheduler.add_job(
-            func=handlePumpFunAnalysis,
-            trigger='cron',
-            minute='*/15',  # Every 15 minutes
-            id='pump_fun_analysis',
-            name='Pump Fun Analysis',
-            replace_existing=True
-        )
-        logger.info("Added pump fun analysis job")
-
-    def addExecutionMonitoringJobs(self):
-        """
-        Add execution monitoring jobs
-        """
-        self.scheduler.add_job(
-            func=handleExecutionMonitoring,
-            trigger='cron',
-            minute='*/5',  # Every 5 minutes
-            id='execution_monitoring',
-            name='Execution Monitoring',
-            replace_existing=True
-        )
-        logger.info("Added execution monitoring job")
+            logger.error(f"Failed to initialize JobRunner: {e}")
+            logger.warning("Using in-memory job store")
 
     def setup_jobs(self):
-        try:
-            existing_jobs = self.scheduler.get_jobs()
-            job_ids = [job.id for job in existing_jobs]
+        """Configure all scheduled jobs with configurable triggers."""
+        config = get_config()
+        jobs = [
+            ('volume_bot_analysis', {'minute': '*/10'}),
+            ('pump_fun_analysis', {'minute': '*/10'}),
+            ('execution_monitoring', {'minute': '*/1'})
+        ]
+        for job_id, default_schedule in jobs:
+            schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
             
-            # # Add all jobs
-            # if 'portfolio_summary' not in job_ids:
-            #     self.addPortfolioSummaryJobs()
+            # Use named functions instead of lambdas
+            if job_id == 'volume_bot_analysis':
+                job_func = run_volume_bot_analysis_job
+            elif job_id == 'pump_fun_analysis':
+                job_func = run_pump_fun_analysis_job
+            elif job_id == 'execution_monitoring':
+                job_func = run_execution_monitoring_job
             
-            # if 'token_analysis' not in job_ids:
-            #     self.addWalletsInvestedInATokenJobs()
-            
-            # if 'attention_analysis' not in job_ids:
-            #     self.addAttentionAnalysisJobs()
-
-            # if 'token_deactivation' not in job_ids:
-            #     self.addTokenDeactivationJob()
-
-            if 'volume_bot_analysis' not in job_ids:
-                self.addVolumeBotJobs()
-
-            if 'pump_fun_analysis' not in job_ids:
-                self.addPumpFunJobs()
-            
-            if 'execution_monitoring' not in job_ids:
-                self.addExecutionMonitoringJobs()
-            
-            logger.info("All jobs configured successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to setup jobs: {e}")
-            raise
+            self.scheduler.add_job(
+                func=job_func,
+                trigger='cron',
+                **schedule,
+                id=job_id,
+                name=job_id.replace('_', ' ').title(),
+                replace_existing=True
+            )
+            logger.info(f"Added job: {job_id}")
 
     def _job_listener(self, event):
-        """Handle job execution events"""
+        """Log and record job execution events."""
+        job_id = event.job_id
         if event.exception:
-            logger.error(f"Job {event.job_id} raised an exception: {event.exception}")
-            self._record_job_execution(event.job_id, 'error', str(event.exception))
+            logger.error(f"Job {job_id} failed: {event.exception}")
+            self._record_job_execution(job_id, 'error', str(event.exception))
         else:
-            logger.info(f"Job {event.job_id} executed successfully")
-            self._record_job_execution(event.job_id, 'success')
-            
-    def _record_job_execution(self, job_id, status, error_message=None, start_time=None):
-        """Record job execution in the database using JobHandler"""
+            logger.info(f"Job {job_id} succeeded")
+            self._record_job_execution(job_id, 'success')
+
+    def _record_job_execution(self, job_id, status, error_message=None):
+        """
+        Record job execution status in the database.
+        Prevents recursion by using a simple flag to avoid nested calls.
+        """
+        # Use a thread-local storage instead of class attribute for recursion detection
+        thread_local = threading.local()
+        
+        # Check if we're already inside this method for this thread
+        if hasattr(thread_local, 'recording_job'):
+            # We're already recording a job execution, don't recurse
+            logger.warning(f"Avoiding recursive call to _record_job_execution for job {job_id}")
+            return
+        
         try:
-            from database.operations.PortfolioDB import PortfolioDB
+            # Set flag to prevent recursion
+            thread_local.recording_job = True
             
-            # Use the JobHandler to record the execution
-            with PortfolioDB() as db:
-                if hasattr(db, 'job') and db.job is not None:
-                    job_handler = db.job
+            # Create a connection manager that doesn't rely on the scheduler's connection
+            try:
+                # Create a fresh connection manager
+                conn_manager = DatabaseConnectionManager()
+                
+                # Create a job handler directly with this connection
+                job_handler = JobHandler(conn_manager)
+                
+                # Record the job execution
+                try:
+                    execution_id = job_handler.startJobExecution(job_id)
+                    job_handler.completeJobExecution(execution_id, 'COMPLETED' if status == 'success' else 'FAILED', error_message)
+                    logger.info(f"Recorded {status} for job {job_id}")
+                except Exception as e:
+                    logger.error(f"Error recording job execution details: {str(e)}")
                     
-                    if status == 'success':
-                        # For successful executions, we need to start and complete in one go
-                        execution_id = job_handler.startJobExecution(job_id)
-                        job_handler.completeJobExecution(execution_id, 'COMPLETED')
-                        logger.info(f"Recorded successful execution for job {job_id}")
-                    elif status == 'error':
-                        # For failed executions, record with error message
-                        execution_id = job_handler.startJobExecution(job_id)
-                        job_handler.completeJobExecution(execution_id, 'FAILED', error_message)
-                        logger.info(f"Recorded failed execution for job {job_id}")
-                else:
-                    logger.error("JobHandler not available in database connection")
-        except Exception as e:
-            logger.error(f"Error recording job execution: {e}")
+                # Ensure we properly close the connection
+                try:
+                    conn_manager.close()
+                except Exception as close_error:
+                    logger.error(f"Error closing connection manager: {str(close_error)}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to record job execution: {str(e)}")
+                
+        finally:
+            # Always clean up the thread-local flag
+            if hasattr(thread_local, 'recording_job'):
+                delattr(thread_local, 'recording_job')
 
     def start(self):
-        """Start the scheduler"""
-        try:
-            if not self.scheduler.running:
-                self.scheduler.start()
-                logger.info("Scheduler started successfully")
-            else:
-                logger.info("Scheduler is already running")
-        except SchedulerAlreadyRunningError:
-            logger.info("Scheduler is already running")
-        except Exception as e:
-            logger.error(f"Failed to start scheduler: {e}")
-            raise
+        """Start the scheduler if not already running."""
+        if not self.scheduler.running:
+            self.scheduler.start()
+            logger.info("Scheduler started")
 
     def shutdown(self):
-        """Shutdown the scheduler"""
-        try:
-            if self.scheduler.running:
-                self.scheduler.shutdown()
-                logger.info("Scheduler shut down successfully")
-            else:
-                logger.info("Scheduler is not running")
-        except Exception as e:
-            logger.error(f"Failed to shut down scheduler: {e}")
-            raise
-
-    def update_job_schedule(self, job_id: str, **schedule_args):
-        """
-        Update the schedule for a specific job
-        
-        Args:
-            job_id: ID of the job to update
-            schedule_args: Dictionary of schedule parameters
-        """
-        try:
-            job = self.scheduler.get_job(job_id)
-            if job:
-                job.reschedule(**schedule_args)
-                logger.info(f"Updated schedule for job {job_id}")
-                return True
-            else:
-                logger.warning(f"Job {job_id} not found")
-                return False
-        except Exception as e:
-            logger.error(f"Failed to update job schedule: {e}")
-            return False
-
-    def modify_job_timing(self, job_id: str, timing_type: str, value: str):
-        """
-        Modify the timing of a specific job
-        
-        Args:
-            job_id: ID of the job to modify
-            timing_type: Type of timing to modify (hour, minute, day, etc.)
-            value: New value for the timing
-        """
-        try:
-            job = self.scheduler.get_job(job_id)
-            if not job:
-                logger.warning(f"Job {job_id} not found")
-                return False
-                
-            # Get current trigger args
-            trigger_args = {}
-            for field in job.trigger.fields:
-                field_name = field.name
-                if field_name != timing_type:
-                    trigger_args[field_name] = str(field)
-            
-            # Add new timing value
-            trigger_args[timing_type] = value
-            
-            # Reschedule job
-            job.reschedule(trigger='cron', **trigger_args)
-            logger.info(f"Updated {timing_type} to {value} for job {job_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to modify job timing: {e}")
-            return False
-
-    def run_job(self, job_id: str, external_scheduler=None):
-        """
-        Run a specific job immediately
-        
-        Args:
-            job_id: ID of the job to run
-            external_scheduler: Optional external scheduler to use
-            
-        Returns:
-            bool: True if job was found and executed, False otherwise
-        """
-        try:
-            # Use provided scheduler or the default one
-            scheduler = external_scheduler or self.scheduler
-            job = scheduler.get_job(job_id)
-            
-            if not job:
-                logger.warning(f"Job {job_id} not found")
-                return False
-                
-            # Get the job function and args
-            job_func = job.func
-            job_args = job.args or []
-            job_kwargs = job.kwargs or {}
-            
-            # Execute the job
-            logger.info(f"Running job {job_id} immediately")
-            job_func(*job_args, **job_kwargs)
-            
-            # Record the execution
-            self._record_job_execution(job_id, 'success')
-            
-            return True
-        except Exception as e:
-            logger.error(f"Error running job {job_id}: {e}")
-            self._record_job_execution(job_id, 'error', str(e))
-            return False
-
+        """Shutdown the scheduler gracefully."""
+        if self.scheduler.running:
+            self.scheduler.shutdown()
+            logger.info("Scheduler stopped")

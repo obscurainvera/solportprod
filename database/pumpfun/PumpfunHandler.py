@@ -81,7 +81,7 @@ class PumpFunHandler(BaseDBHandler):
             
             # 1. Base Token Information
             if config.DB_TYPE == 'postgres':
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfuninfo (
                         id SERIAL PRIMARY KEY,
                         tokenid TEXT NOT NULL UNIQUE,
@@ -99,10 +99,10 @@ class PumpFunHandler(BaseDBHandler):
                         count INTEGER DEFAULT 1,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
 
                 # 2. Token Current State
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfunstates (
                         id SERIAL PRIMARY KEY,
                         tokenid TEXT NOT NULL UNIQUE,
@@ -120,10 +120,10 @@ class PumpFunHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
                     )
-                ''')
+                '''))
 
                 # 3. Token History
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfunhistory (
                         id SERIAL PRIMARY KEY,
                         tokenid TEXT NOT NULL,
@@ -141,9 +141,9 @@ class PumpFunHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
                     )
-                ''')
+                '''))
             else:
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfuninfo (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tokenid TEXT NOT NULL UNIQUE,
@@ -161,10 +161,10 @@ class PumpFunHandler(BaseDBHandler):
                         count INTEGER DEFAULT 1,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
 
                 # 2. Token Current State
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfunstates (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tokenid TEXT NOT NULL UNIQUE,
@@ -182,10 +182,10 @@ class PumpFunHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
                     )
-                ''')
+                '''))
 
                 # 3. Token History
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS pumpfunhistory (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tokenid TEXT NOT NULL,
@@ -203,12 +203,12 @@ class PumpFunHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
                     )
-                ''')
+                '''))
 
             # Create indices for better query performance
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_pumpfuninfo_tokenid ON pumpfuninfo(tokenid)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_pumpfunstates_tokenid ON pumpfunstates(tokenid)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_pumpfunhistory_tokenid ON pumpfunhistory(tokenid)')
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfuninfo_tokenid ON pumpfuninfo(tokenid)'))
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfunstates_tokenid ON pumpfunstates(tokenid)'))
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfunhistory_tokenid ON pumpfunhistory(tokenid)'))
 
     def insertTokenData(self, token: PumpFunToken) -> None:
         """

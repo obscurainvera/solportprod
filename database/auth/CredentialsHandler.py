@@ -29,7 +29,7 @@ class CredentialsHandler(BaseDBHandler):
             
             if config.DB_TYPE == 'postgres':
                 # PostgreSQL syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS servicecredentials (
                         id SERIAL PRIMARY KEY,
                         servicename VARCHAR(100) NOT NULL,
@@ -48,10 +48,10 @@ class CredentialsHandler(BaseDBHandler):
                         UNIQUE(servicename, apikey),
                         UNIQUE(servicename, username)
                     )
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS servicecredentials (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         servicename VARCHAR(100) NOT NULL,
@@ -70,7 +70,7 @@ class CredentialsHandler(BaseDBHandler):
                         UNIQUE(servicename, apikey),
                         UNIQUE(servicename, username)
                     )
-                ''')
+                '''))
 
     def storeApiCredentials(self, serviceName: str, apiKey: str, 
                           apiSecret: Optional[str] = None,
@@ -287,7 +287,7 @@ class CredentialsHandler(BaseDBHandler):
                         SELECT * FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = %s
-                        AND isactive = TRUE
+                        AND isactive = 1
                         ORDER BY updatedat DESC
                         LIMIT 1
                     '''), (serviceName, credentialType))
@@ -334,7 +334,7 @@ class CredentialsHandler(BaseDBHandler):
                         FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = 'API_KEY'
-                        AND isactive = TRUE
+                        AND isactive = 1
                         ORDER BY updatedat DESC
                         LIMIT 1
                     '''), (serviceName,))
@@ -407,7 +407,7 @@ class CredentialsHandler(BaseDBHandler):
                         FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = 'API_KEY'
-                        AND isactive = TRUE
+                        AND isactive = 1
                         AND availablecredits >= %s
                         ORDER BY lastusedat ASC NULLS FIRST
                         LIMIT 1

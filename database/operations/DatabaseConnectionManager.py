@@ -176,19 +176,26 @@ class DatabaseConnectionManager:
         """
         connection = None
         try:
-            # We only support PostgreSQL now
-            # Get PostgreSQL connection from pool
-            if self.pool is None:
+            # Check if pool needs to be initialized or reinitialized
+            if self.pool is None or self._pool_closed:
+                logger.warning("Connection pool is unavailable, attempting to initialize/reinitialize")
                 if not self._initialize_pool():
                     raise Exception("Database connection pool is not initialized and could not be reinitialized. " +
                                 "Make sure PostgreSQL is running and credentials are correct.")
+                logger.info("Pool successfully (re)initialized")
             
-            if self._pool_closed:
-                # If pool was closed, try to reinitialize it
-                if not self._initialize_pool():
-                    raise Exception("Cannot get connection - pool is closed and reinitialization failed")
-                
-            connection = self.pool.getconn()
+            # Get connection from pool
+            try:
+                connection = self.pool.getconn()
+            except psycopg2.pool.PoolError as e:
+                # If pool error, try to reinitialize and get connection again
+                logger.warning(f"Pool error when getting connection: {str(e)}, attempting to reinitialize")
+                if self._initialize_pool():
+                    connection = self.pool.getconn()
+                    logger.info("Successfully got connection after pool reinitialization")
+                else:
+                    raise Exception("Failed to reinitialize pool after error")
+            
             yield connection
         except Exception as e:
             logger.error(f"Failed to get database connection: {e}")
@@ -203,7 +210,10 @@ class DatabaseConnectionManager:
                     logger.error(f"Error returning connection to pool: {e}")
                     # If we can't return the connection, the pool may be corrupt
                     # Try to reinitialize it for future connections
-                    self._pool_closed = True
+                    if "connection pool is closed" in str(e):
+                        logger.warning("Pool appears to be closed, attempting to reinitialize for future connections")
+                        self._pool_closed = True
+                        self._initialize_pool()
 
     @contextmanager
     def transaction(self):
@@ -217,19 +227,81 @@ class DatabaseConnectionManager:
         conn = None
         cur = None
         try:
-            if self.pool is None:
-                raise Exception("Database connection pool is not initialized. " +
-                               "Make sure PostgreSQL is running and credentials are correct.")
+            if self.pool is None or self._pool_closed:
+                # Try to reinitialize the pool if it's closed or None
+                if not self._initialize_pool():
+                    raise Exception("Database connection pool is not initialized and could not be reinitialized. " +
+                                   "Make sure PostgreSQL is running and credentials are correct.")
                 
             conn = self.pool.getconn()
             # Auto-commit is off by default in psycopg2
             cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Patch the cursor to handle SQLAlchemy text() objects correctly
+            original_execute = cur.execute
+            def patched_execute(query, params=None):
+                # If query is SQLAlchemy text(), convert to string
+                if hasattr(query, 'text'):
+                    query = query.text
+                    
+                # Convert boolean params for PostgreSQL
+                if params and isinstance(params, (list, tuple)):
+                    params = tuple(1 if p is True else 0 if p is False else p for p in params)
+                elif params and isinstance(params, dict):
+                    params = {k: (1 if v is True else 0 if v is False else v) for k, v in params.items()}
+                    
+                return original_execute(query, params)
+            
+            cur.execute = patched_execute
+            
             yield cur
-            conn.commit()
+            
+            # Only commit if cursor hasn't been closed
+            if not cur.closed and conn and not conn.closed:
+                conn.commit()
+                
+        except psycopg2.pool.PoolError as e:
+            logger.error(f"Pool error: {str(e)}")
+            # Try to reinitialize the pool
+            if self._initialize_pool():
+                logger.info("Successfully reinitialized the connection pool after pool error")
+                # Try again with the new pool
+                try:
+                    conn = self.pool.getconn()
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Patch the cursor again
+                    original_execute = cur.execute
+                    def patched_execute(query, params=None):
+                        # If query is SQLAlchemy text(), convert to string
+                        if hasattr(query, 'text'):
+                            query = query.text
+                            
+                        # Convert boolean params for PostgreSQL
+                        if params and isinstance(params, (list, tuple)):
+                            params = tuple(1 if p is True else 0 if p is False else p for p in params)
+                        elif params and isinstance(params, dict):
+                            params = {k: (1 if v is True else 0 if v is False else v) for k, v in params.items()}
+                            
+                        return original_execute(query, params)
+                    
+                    cur.execute = patched_execute
+                    
+                    yield cur
+                    
+                    # Only commit if cursor hasn't been closed
+                    if not cur.closed and conn and not conn.closed:
+                        conn.commit()
+                    return
+                except Exception as retry_e:
+                    logger.error(f"Failed to use reinitialized pool: {str(retry_e)}")
+            raise e
         except Exception as e:
             if conn:
                 try:
-                    conn.rollback()
+                    # Only rollback if connection is still open
+                    if not conn.closed:
+                        conn.rollback()
                 except Exception as rollback_error:
                     logger.error(f"Error during transaction rollback: {rollback_error}")
             
@@ -243,17 +315,24 @@ class DatabaseConnectionManager:
             
             raise e
         finally:
+            # Close cursor first
             if cur:
                 try:
-                    cur.close()
+                    if not cur.closed:
+                        cur.close()
                 except Exception as close_error:
                     logger.error(f"Error closing cursor: {close_error}")
             
-            if conn:
+            # Then return connection to pool
+            if conn and self.pool and not self._pool_closed:
                 try:
-                    self.pool.putconn(conn)
+                    if not conn.closed:
+                        self.pool.putconn(conn)
                 except Exception as putconn_error:
                     logger.error(f"Error returning connection to pool: {putconn_error}")
+                    # Don't mark the pool as closed here, instead try to reinitialize
+                    if "connection pool is closed" in str(putconn_error):
+                        logger.warning("Pool appears to be closed, will reinitialize on next transaction")
 
     @contextmanager
     def table_lock(self, table_name: str):
@@ -271,15 +350,43 @@ class DatabaseConnectionManager:
     def close(self):
         """
         Closes all database connections.
+        This method should only be called during application shutdown.
         """
         # Close the PostgreSQL connection pool
         if hasattr(self, 'pool') and self.pool and not self._pool_closed:
             try:
+                # Log first to ensure we see this in case of any issues
+                logger.info("Closing PostgreSQL connection pool")
                 self.pool.closeall()
                 self._pool_closed = True
                 logger.info("Closed all PostgreSQL connections in the pool")
             except Exception as e:
                 logger.error(f"Error closing PostgreSQL connection pool: {e}")
+                # Still mark as closed so we'll reinitialize next time
+                self._pool_closed = True
+    
+    def reconnect(self, force=False):
+        """
+        Attempt to safely reconnect to the database by reinitializing the pool.
+        
+        Args:
+            force: If True, close the existing pool before reinitializing
+            
+        Returns:
+            bool: True if reconnection was successful, False otherwise
+        """
+        logger.info(f"Attempting to reconnect to database (force={force})")
+        
+        if force and self.pool and not self._pool_closed:
+            try:
+                logger.info("Forcing pool closure before reconnection")
+                self.pool.closeall()
+            except Exception as e:
+                logger.error(f"Error closing pool during forced reconnection: {e}")
+            finally:
+                self._pool_closed = True
+                
+        return self._initialize_pool()
 
     def create_postgres_connection(self):
         """Establishes a PostgreSQL database connection with the specified parameters."""

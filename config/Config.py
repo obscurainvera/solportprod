@@ -87,6 +87,12 @@ class Config:
     
     # Job scheduler settings
     JOBS_DB_PATH = os.getenv('JOBS_DB_PATH', os.path.join(PROJECT_ROOT, 'jobs.db'))
+
+    JOB_SCHEDULES = {
+        'volume_bot_analysis': {'minute': '*/10'},
+        'pump_fun_analysis': {'minute': '*/1'},
+        'execution_monitoring': {'minute': '*/1'}
+    }
     
     def get_database_url(self) -> str:
         """

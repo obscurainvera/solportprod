@@ -36,7 +36,7 @@ class WalletsInvestedHandler(BaseDBHandler):
             
             if config.DB_TYPE == 'postgres':
                 # PostgreSQL syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS walletsinvested (
                         walletinvestedid SERIAL PRIMARY KEY,
                         portsummaryid INTEGER NOT NULL,
@@ -63,9 +63,9 @@ class WalletsInvestedHandler(BaseDBHandler):
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE,
                         UNIQUE(tokenid, walletaddress)
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS walletsinvestedhistory (
                         historyid SERIAL PRIMARY KEY,
                         walletinvestedid INTEGER NOT NULL,
@@ -91,10 +91,10 @@ class WalletsInvestedHandler(BaseDBHandler):
                         FOREIGN KEY (walletinvestedid) REFERENCES walletsinvested(walletinvestedid) ON DELETE CASCADE,
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                     )
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS walletsinvested (
                         walletinvestedid INTEGER PRIMARY KEY AUTOINCREMENT,
                         portsummaryid INTEGER NOT NULL,
@@ -121,9 +121,9 @@ class WalletsInvestedHandler(BaseDBHandler):
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE,
                         UNIQUE(tokenid, walletaddress)
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS walletsinvestedhistory (
                         historyid INTEGER PRIMARY KEY AUTOINCREMENT,
                         walletinvestedid INTEGER NOT NULL,
@@ -149,7 +149,7 @@ class WalletsInvestedHandler(BaseDBHandler):
                         FOREIGN KEY (walletinvestedid) REFERENCES walletsinvested(walletinvestedid) ON DELETE CASCADE,
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                     )
-                ''')
+                '''))
 
     def insertWalletInvested(self, wallet: WalletsInvested, cursor: Optional[Any] = None) -> Optional[int]:
         """Insert new wallet investment record"""

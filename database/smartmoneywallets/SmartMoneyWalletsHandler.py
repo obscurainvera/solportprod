@@ -30,7 +30,7 @@ class SmartMoneyWalletsHandler(BaseDBHandler):
             config = get_config()
             
             if config.DB_TYPE == 'postgres':
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS smartmoneywallets (
                         id SERIAL PRIMARY KEY,
                         walletaddress TEXT NOT NULL UNIQUE,
@@ -50,9 +50,9 @@ class SmartMoneyWalletsHandler(BaseDBHandler):
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         issmartmoney INTEGER DEFAULT 1
                     )
-                ''')
+                '''))
             else:
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS smartmoneywallets (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         walletaddress TEXT NOT NULL UNIQUE,
@@ -72,7 +72,7 @@ class SmartMoneyWalletsHandler(BaseDBHandler):
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         issmartmoney INTEGER DEFAULT 1
                     )
-                ''')
+                '''))
 
     def insertSmartMoneyWallet(self, wallet: SmartMoneyWallet, cursor: Optional[Any] = None) -> Optional[int]:
         """Insert a smart money wallet"""

@@ -28,7 +28,7 @@ class PortfolioHandler(BaseDBHandler):
             config = get_config()
             if config.DB_TYPE == 'postgres':
                 # PostgreSQL syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS portsummary (
                         portsummaryid SERIAL PRIMARY KEY,
                         chainname TEXT NOT NULL,
@@ -53,9 +53,9 @@ class PortfolioHandler(BaseDBHandler):
                         tags TEXT,
                         markedinactive TIMESTAMP
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS portsummaryhistory (
                         historyid SERIAL PRIMARY KEY,
                         portsummaryid INTEGER NOT NULL,
@@ -79,10 +79,10 @@ class PortfolioHandler(BaseDBHandler):
                         tags TEXT,
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                     )
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS portsummary (
                         portsummaryid INTEGER PRIMARY KEY AUTOINCREMENT,
                         chainname TEXT NOT NULL,
@@ -107,9 +107,9 @@ class PortfolioHandler(BaseDBHandler):
                         tags TEXT,
                         markedinactive TIMESTAMP
                     )
-                ''')
+                '''))
                 
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS portsummaryhistory (
                         historyid INTEGER PRIMARY KEY AUTOINCREMENT,
                         portsummaryid INTEGER NOT NULL,
@@ -133,7 +133,7 @@ class PortfolioHandler(BaseDBHandler):
                         tags TEXT,
                         FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                     )
-                ''')
+                '''))
 
     def insertSummary(self, item: PortfolioSummary, session: Optional[Any] = None) -> None:
         currentTime = datetime.now()
