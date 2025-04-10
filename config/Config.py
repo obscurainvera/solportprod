@@ -87,6 +87,16 @@ class Config:
     
     # Job scheduler settings
     JOBS_DB_PATH = os.getenv('JOBS_DB_PATH', os.path.join(PROJECT_ROOT, 'jobs.db'))
+
+    JOB_SCHEDULES = {
+        'portfolio_summary': {'hour': '*/4'},
+        'token_analysis': {'hour': '*/6'},
+        'attention_analysis': {'hour': '*/2'},
+        'token_deactivation': {'hour': '*/12'},
+        'volume_bot_analysis': {'minute': '*/30'},
+        'pump_fun_analysis': {'minute': '*/15'},
+        'execution_monitoring': {'minute': '*/5'}
+    }
     
     def get_database_url(self) -> str:
         """
