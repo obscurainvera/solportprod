@@ -46,33 +46,15 @@ def with_retries(job_func, scheduler_class):
                 logger.error(f"{job_func.__name__} failed after {MAX_RETRIES} attempts: {e}")
                 raise
 
-def handlePortfolioSummary(scheduler):
-    """Execute portfolio summary update."""
-    scheduler.handlePortfolioSummaryUpdate()
 
-def handleWalletsInvestedInPortSummaryTokens(scheduler):
-    """Execute token analysis update."""
-    scheduler.handleWalletsInvestedInPortSummaryTokens()
+def run_volume_bot_analysis_job():
+    with_retries(VolumeBotScheduler.handleVolumeAnalysisFromJob, VolumeBotScheduler)
 
-def handleAttentionAnalysis(scheduler):
-    """Execute attention analysis update."""
-    scheduler.handleAttentionData()
+def run_pump_fun_analysis_job():
+    with_retries(PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler)
 
-def handleTokenDeactivation(scheduler):
-    """Execute token deactivation."""
-    scheduler.handleTokenDeactivation()
-
-def handleVolumeBotAnalysis(scheduler):
-    """Execute volume bot analysis."""
-    scheduler.handleVolumeAnalysisFromJob()
-
-def handlePumpFunAnalysis(scheduler):
-    """Execute pump fun analysis."""
-    scheduler.handlePumpFunAnalysisFromJob()
-
-def handleExecutionMonitoring(scheduler):
-    """Execute execution monitoring."""
-    scheduler.handleActiveExecutionsMonitoring()
+def run_execution_monitoring_job():
+    with_retries(ExecutionMonitorScheduler.handleActiveExecutionsMonitoring, ExecutionMonitorScheduler)
 
 class JobRunner:
     """
@@ -103,13 +85,9 @@ class JobRunner:
         """Configure all scheduled jobs with configurable triggers."""
         config = get_config()
         jobs = [
-            (handlePortfolioSummary, PortfolioScheduler, 'portfolio_summary', {'hour': '*/4'}),
-            (handleWalletsInvestedInPortSummaryTokens, WalletsInvestedScheduler, 'token_analysis', {'hour': '*/6'}),
-            (handleAttentionAnalysis, AttentionScheduler, 'attention_analysis', {'hour': '*/2'}),
-            (handleTokenDeactivation, DeactiveLostSMBalanceTokens, 'token_deactivation', {'hour': '*/12'}),
-            (handleVolumeBotAnalysis, VolumeBotScheduler, 'volume_bot_analysis', {'minute': '*/30'}),
-            (handlePumpFunAnalysis, PumpFunScheduler, 'pump_fun_analysis', {'minute': '*/15'}),
-            (handleExecutionMonitoring, ExecutionMonitorScheduler, 'execution_monitoring', {'minute': '*/5'})
+            (VolumeBotScheduler.handleVolumeAnalysisFromJob, VolumeBotScheduler, 'volume_bot_analysis', {'minute': '*/30'}),
+            (PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler, 'pump_fun_analysis', {'minute': '*/15'}),
+            (ExecutionMonitorScheduler.handleActiveExecutionsMonitoring, ExecutionMonitorScheduler, 'execution_monitoring', {'minute': '*/5'})
         ]
         for job_func, scheduler_class, job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
