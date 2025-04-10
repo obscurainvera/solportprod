@@ -82,7 +82,7 @@ class VolumeHandler(BaseDBHandler):
             
             # 1. Base Token Information
             if config.DB_TYPE == 'postgres':
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokeninfo (
                         id SERIAL PRIMARY KEY,  -- Internal unique ID
                         tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
@@ -99,10 +99,10 @@ class VolumeHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,               -- Last data update
                         count INTEGER DEFAULT 1                -- Count of updates
                     )
-                ''')
+                '''))
 
                 # 2. Token Current State
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokenstates (
                         id SERIAL PRIMARY KEY,
                         tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
@@ -120,10 +120,10 @@ class VolumeHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,               -- Last update time
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
                     )
-                ''')
+                '''))
 
                 # 3. Token History
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokenhistory (
                         id SERIAL PRIMARY KEY,
                         tokenid TEXT NOT NULL,
@@ -141,9 +141,9 @@ class VolumeHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
                     )
-                ''')
+                '''))
             else:
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokeninfo (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,  -- Internal unique ID
                         tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
@@ -160,10 +160,10 @@ class VolumeHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,               -- Last data update
                         count INTEGER DEFAULT 1                -- Count of updates
                     )
-                ''')
+                '''))
 
                 # 2. Token Current State
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokenstates (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
@@ -181,10 +181,10 @@ class VolumeHandler(BaseDBHandler):
                         lastupdatedat TIMESTAMP,               -- Last update time
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
                     )
-                ''')
+                '''))
 
                 # 3. Token History
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS volumetokenhistory (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tokenid TEXT NOT NULL,
@@ -202,13 +202,13 @@ class VolumeHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
                     )
-                ''')
+                '''))
 
             # Create indices for better query performance
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_volumetokeninfo_tokenid ON volumetokeninfo(tokenid)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_volumetokenstates_tokenid ON volumetokenstates(tokenid)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_tokenid ON volumetokenhistory(tokenid)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_snapshot ON volumetokenhistory(snapshotat)')
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokeninfo_tokenid ON volumetokeninfo(tokenid)'))
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenstates_tokenid ON volumetokenstates(tokenid)'))
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_tokenid ON volumetokenhistory(tokenid)'))
+            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_snapshot ON volumetokenhistory(snapshotat)'))
             
     def resetTables(self):
         """Drops and recreates all tables - Use with caution!"""

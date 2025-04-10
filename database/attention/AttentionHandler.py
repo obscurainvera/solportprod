@@ -203,7 +203,7 @@ class AttentionHandler(BaseDBHandler):
                         """), (data.tokenid, data.name, data.chain, currentTime, currentTime, 
                                AttentionStatusEnum.NEW.value, currentTime, currentTime))
                         row = result.fetchone()
-                        registry_id = row[0] if row else None
+                        registry_id = row['id'] if row else None
                     else:
                         cursor.execute("""
                             INSERT INTO attentiontokenregistry

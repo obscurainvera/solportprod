@@ -31,47 +31,63 @@ class JobHandler(BaseDBHandler):
         self._create_tables()
 
     def _create_tables(self):
-        """Create jobs and job_executions tables if they don’t exist."""
+        """Create jobs and job_executions tables if they don't exist."""
         config = get_config()
         is_postgres = config.DB_TYPE == 'postgres'
+        
+        # Build SQL strings outside of text() function
+        jobs_sql = f"""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id {is_postgres and 'SERIAL' or 'INTEGER'} PRIMARY KEY {is_postgres and '' or 'AUTOINCREMENT'},
+                job_id TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                description TEXT,
+                params TEXT,
+                status INTEGER NOT NULL,
+                schedule TEXT,
+                last_run TIMESTAMP,
+                next_run TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        
+        job_executions_sql = f"""
+            CREATE TABLE IF NOT EXISTS job_executions (
+                id {is_postgres and 'SERIAL' or 'INTEGER'} PRIMARY KEY {is_postgres and '' or 'AUTOINCREMENT'},
+                job_id TEXT NOT NULL,
+                start_time TIMESTAMP NOT NULL,
+                end_time TIMESTAMP,
+                status INTEGER NOT NULL,
+                result TEXT,
+                error TEXT,
+                FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+            )
+        """
+        
         with self.conn_manager.transaction() as cursor:
-            cursor.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS jobs (
-                    id {'SERIAL' if is_postgres else 'INTEGER'} PRIMARY KEY {'AUTOINCREMENT' if not is_postgres else ''},
-                    job_id TEXT NOT NULL UNIQUE,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    params TEXT,
-                    status INTEGER NOT NULL,
-                    schedule TEXT,
-                    last_run TIMESTAMP,
-                    next_run TIMESTAMP,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
-            cursor.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS job_executions (
-                    id {'SERIAL' if is_postgres else 'INTEGER'} PRIMARY KEY {'AUTOINCREMENT' if not is_postgres else ''},
-                    job_id TEXT NOT NULL,
-                    start_time TIMESTAMP NOT NULL,
-                    end_time TIMESTAMP,
-                    status INTEGER NOT NULL,
-                    result TEXT,
-                    error TEXT,
-                    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
-                )
-            """))
+            cursor.execute(text(jobs_sql))
+            cursor.execute(text(job_executions_sql))
         logger.info("Job tables created")
 
     def startJobExecution(self, job_id: str) -> int:
         """Start a job execution and return its ID."""
+        config = get_config()
+        is_postgres = config.DB_TYPE == 'postgres'
+        
         with self.conn_manager.transaction() as cursor:
-            cursor.execute(
-                text("INSERT INTO job_executions (job_id, start_time, status) VALUES (:job_id, :start_time, :status)"),
-                {'job_id': job_id, 'start_time': datetime.utcnow(), 'status': JobStatus.RUNNING.value}
-            )
-            return cursor.lastrowid if get_config().DB_TYPE != 'postgres' else cursor.fetchone()[0]
+            if is_postgres:
+                cursor.execute(
+                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (:job_id, :start_time, :status) RETURNING id"),
+                    {'job_id': job_id, 'start_time': datetime.utcnow(), 'status': JobStatus.RUNNING.value}
+                )
+                return cursor.fetchone()['id']
+            else:
+                cursor.execute(
+                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (:job_id, :start_time, :status)"),
+                    {'job_id': job_id, 'start_time': datetime.utcnow(), 'status': JobStatus.RUNNING.value}
+                )
+                return cursor.lastrowid
 
     def completeJobExecution(self, execution_id: int, status: str, error_message: str = None) -> bool:
         """Complete a job execution with status and optional error."""

@@ -29,7 +29,7 @@ class TokenHandler(BaseDBHandler):
             
             if config.DB_TYPE == 'postgres':
                 # PostgreSQL syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS authtokens (
                         id SERIAL PRIMARY KEY,
                         servicename VARCHAR(50) NOT NULL UNIQUE,
@@ -41,10 +41,10 @@ class TokenHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute('''
+                cursor.execute(text('''
                     CREATE TABLE IF NOT EXISTS authtokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         servicename VARCHAR(50) NOT NULL UNIQUE,
@@ -56,7 +56,7 @@ class TokenHandler(BaseDBHandler):
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                '''))
 
     def storeTokens(self, serviceName: str, accessToken: str, refreshToken: str, isNewLogin: bool = False) -> None:
         """

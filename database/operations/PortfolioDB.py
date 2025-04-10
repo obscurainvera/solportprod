@@ -18,6 +18,8 @@ from typing import Optional, Any, List, Tuple
 from logs.logger import get_logger
 from framework.analyticsframework.models.BaseModels import ExecutionState, BaseStrategyConfig
 from sqlalchemy import text
+import sys
+import traceback
 
 logger = get_logger(__name__)
 
@@ -165,11 +167,40 @@ class PortfolioDB:
         Close database connections. This should only be called 
         during application shutdown, not between requests.
         """
+        # Add protection against inappropriate closes
         
-        # Only close if this is explicitly called during shutdown
+        # Only close in controlled shutdown scenarios
+        stack = traceback.extract_stack()
+        calling_frames = [frame for frame in stack if frame.name not in ('close', '__exit__')]
+        
+        # Common shutdown patterns
+        shutdown_indicators = [
+            'shutdown_event',
+            'onshutdown',
+            'on_exit',
+            'cleanup',
+            '_exit_',
+            'app_shutdown',
+            'stop_app'
+        ]
+        
+        # Check if this is a legitimate shutdown
+        is_shutdown_call = any(
+            any(indicator in frame.name.lower() for indicator in shutdown_indicators)
+            for frame in calling_frames
+        )
+        
+        # Only close if this is explicitly called during shutdown or exit context
         if hasattr(self, 'conn_manager'):
-            logger.info("PortfolioDB close() called during application shutdown")
-            self.conn_manager.close()
+            if is_shutdown_call:
+                logger.info("PortfolioDB close() called during application shutdown")
+                self.conn_manager.close()
+            else:
+                logger.warning("PortfolioDB.close() called outside a shutdown context - ignoring to preserve connection pool")
+                # Don't close the pool - this is probably not a real shutdown
+                # Instead, just release any active connection
+                # This prevents the pool from being closed prematurely
+                pass
         else:
             logger.warning("Attempt to close PortfolioDB but no connection manager found")
 

@@ -124,17 +124,56 @@ class JobRunner:
             self._record_job_execution(job_id, 'success')
 
     def _record_job_execution(self, job_id, status, error_message=None):
-        """Record job execution status in the database."""
+        """
+        Record job execution status in the database.
+        Prevents recursion by using a simple flag to avoid nested calls.
+        """
+        # Use a class attribute to track if we're already inside this method
+        if hasattr(self.__class__, '_recording_job'):
+            # We're already recording a job execution, don't recurse
+            logger.warning(f"Avoiding recursive call to _record_job_execution for job {job_id}")
+            return
+        
         try:
-            with PortfolioDB() as db:
-                if db.job:
-                    execution_id = db.job.startJobExecution(job_id)
-                    db.job.completeJobExecution(execution_id, 'COMPLETED' if status == 'success' else 'FAILED', error_message)
+            # Set flag to prevent recursion
+            self.__class__._recording_job = True
+            
+            # Use a direct database connection without 'with' to avoid potential recursion
+            db = None
+            try:
+                from database.operations.PortfolioDB import PortfolioDB
+                from database.job.job_handler import JobHandler
+                from database.operations.DatabaseConnectionManager import DatabaseConnectionManager
+                
+                # Create a fresh connection manager
+                conn_manager = DatabaseConnectionManager()
+                
+                # Create a job handler directly with this connection
+                job_handler = JobHandler(conn_manager)
+                
+                # Record the job execution
+                if job_handler:
+                    execution_id = job_handler.startJobExecution(job_id)
+                    job_handler.completeJobExecution(execution_id, 'COMPLETED' if status == 'success' else 'FAILED', error_message)
                     logger.info(f"Recorded {status} for job {job_id}")
                 else:
                     logger.error("JobHandler unavailable")
-        except Exception as e:
-            logger.error(f"Failed to record job execution: {e}")
+                    
+                # Close the connection explicitly
+                conn_manager.close()
+            except Exception as e:
+                logger.error(f"Failed to record job execution: {str(e)}")
+            finally:
+                # Clean up any resources
+                if conn_manager:
+                    try:
+                        conn_manager.close()
+                    except:
+                        pass
+        finally:
+            # Clear the flag no matter what
+            if hasattr(self.__class__, '_recording_job'):
+                delattr(self.__class__, '_recording_job')
 
     def start(self):
         """Start the scheduler if not already running."""

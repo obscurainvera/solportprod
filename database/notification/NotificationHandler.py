@@ -37,7 +37,7 @@ class NotificationHandler(BaseDBHandler):
         with self.conn_manager.transaction() as cursor:
             if config.DB_TYPE == 'postgres':
                 # PostgreSQL syntax
-                cursor.execute(f'''
+                cursor.execute(text(f'''
                     CREATE TABLE IF NOT EXISTS {self.tableName} (
                         id SERIAL PRIMARY KEY,
                         source TEXT NOT NULL,
@@ -51,16 +51,16 @@ class NotificationHandler(BaseDBHandler):
                         updatedat TIMESTAMP,
                         sentat TIMESTAMP
                     )
-                ''')
+                '''))
                 
                 # Create index for faster queries
-                cursor.execute(f'''
+                cursor.execute(text(f'''
                     CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
                     ON {self.tableName} (status)
-                ''')
+                '''))
             else:
                 # SQLite syntax
-                cursor.execute(f'''
+                cursor.execute(text(f'''
                     CREATE TABLE IF NOT EXISTS {self.tableName} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         source TEXT NOT NULL,
@@ -74,13 +74,13 @@ class NotificationHandler(BaseDBHandler):
                         updatedat TIMESTAMP,
                         sentat TIMESTAMP
                     )
-                ''')
+                '''))
                 
                 # Create index for faster queries
-                cursor.execute(f'''
+                cursor.execute(text(f'''
                     CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
                     ON {self.tableName} (status)
-                ''')
+                '''))
     
     def createNotification(self, notification: Notification) -> Optional[Notification]:
         """
@@ -107,12 +107,13 @@ class NotificationHandler(BaseDBHandler):
                 
                 # Insert into database
                 if config.DB_TYPE == 'postgres':
-                    result = cursor.execute(text(f'''
+                    insert_sql = f'''
                         INSERT INTO {self.tableName} 
                         (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    '''), (
+                    '''
+                    result = cursor.execute(text(insert_sql), (
                         notification.source,
                         notification.chatgroup,
                         notification.content,
@@ -125,13 +126,14 @@ class NotificationHandler(BaseDBHandler):
                         notification.sentat
                     ))
                     row = result.fetchone()
-                    notification.id = row[0] if row else None
+                    notification.id = row['id'] if row else None
                 else:
-                    cursor.execute(f'''
+                    insert_sql = f'''
                         INSERT INTO {self.tableName} 
                         (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
+                    '''
+                    cursor.execute(text(insert_sql), (
                         notification.source,
                         notification.chatgroup,
                         notification.content,
@@ -179,7 +181,7 @@ class NotificationHandler(BaseDBHandler):
                 
                 # Update record
                 if config.DB_TYPE == 'postgres':
-                    cursor.execute(text(f'''
+                    update_sql = f'''
                         UPDATE {self.tableName}
                         SET source = %s,
                             chatgroup = %s,
@@ -191,7 +193,8 @@ class NotificationHandler(BaseDBHandler):
                             updatedat = %s,
                             sentat = %s
                         WHERE id = %s
-                    '''), (
+                    '''
+                    cursor.execute(text(update_sql), (
                         notification.source,
                         notification.chatgroup,
                         notification.content,
@@ -204,7 +207,7 @@ class NotificationHandler(BaseDBHandler):
                         notification.id
                     ))
                 else:
-                    cursor.execute(f'''
+                    update_sql = f'''
                         UPDATE {self.tableName}
                         SET source = ?,
                             chatgroup = ?,
@@ -216,7 +219,8 @@ class NotificationHandler(BaseDBHandler):
                             updatedat = ?,
                             sentat = ?
                         WHERE id = ?
-                    ''', (
+                    '''
+                    cursor.execute(text(update_sql), (
                         notification.source,
                         notification.chatgroup,
                         notification.content,
@@ -250,19 +254,21 @@ class NotificationHandler(BaseDBHandler):
             
             with self.conn_manager.transaction() as cursor:
                 if config.DB_TYPE == 'postgres':
-                    cursor.execute(text(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE id = %s
-                    '''), (notificationId,))
+                    '''
+                    cursor.execute(text(select_sql), (notificationId,))
                 else:
-                    cursor.execute(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE id = ?
-                    ''', (notificationId,))
+                    '''
+                    cursor.execute(text(select_sql), (notificationId,))
                 
                 row = cursor.fetchone()
                 if not row:
@@ -289,23 +295,25 @@ class NotificationHandler(BaseDBHandler):
             
             with self.conn_manager.transaction() as cursor:
                 if config.DB_TYPE == 'postgres':
-                    cursor.execute(text(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE status = %s
                         ORDER BY createdat ASC
                         LIMIT %s
-                    '''), (NotificationStatus.PENDING.value, limit))
+                    '''
+                    cursor.execute(text(select_sql), (NotificationStatus.PENDING.value, limit))
                 else:
-                    cursor.execute(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE status = ?
                         ORDER BY createdat ASC
                         LIMIT ?
-                    ''', (NotificationStatus.PENDING.value, limit))
+                    '''
+                    cursor.execute(text(select_sql), (NotificationStatus.PENDING.value, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]
@@ -329,23 +337,25 @@ class NotificationHandler(BaseDBHandler):
             
             with self.conn_manager.transaction() as cursor:
                 if config.DB_TYPE == 'postgres':
-                    cursor.execute(text(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE status = %s
                         ORDER BY updatedat DESC
                         LIMIT %s
-                    '''), (NotificationStatus.FAILED.value, limit))
+                    '''
+                    cursor.execute(text(select_sql), (NotificationStatus.FAILED.value, limit))
                 else:
-                    cursor.execute(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE status = ?
                         ORDER BY updatedat DESC
                         LIMIT ?
-                    ''', (NotificationStatus.FAILED.value, limit))
+                    '''
+                    cursor.execute(text(select_sql), (NotificationStatus.FAILED.value, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]
@@ -370,23 +380,25 @@ class NotificationHandler(BaseDBHandler):
             
             with self.conn_manager.transaction() as cursor:
                 if config.DB_TYPE == 'postgres':
-                    cursor.execute(text(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE source = %s
                         ORDER BY createdat DESC
                         LIMIT %s
-                    '''), (source, limit))
+                    '''
+                    cursor.execute(text(select_sql), (source, limit))
                 else:
-                    cursor.execute(f'''
+                    select_sql = f'''
                         SELECT id, source, chatgroup, content, status, servicetype, 
                                errordetails, buttons, createdat, updatedat, sentat
                         FROM {self.tableName}
                         WHERE source = ?
                         ORDER BY createdat DESC
                         LIMIT ?
-                    ''', (source, limit))
+                    '''
+                    cursor.execute(text(select_sql), (source, limit))
                 
                 rows = cursor.fetchall()
                 return [self._rowToNotification(row) for row in rows]
