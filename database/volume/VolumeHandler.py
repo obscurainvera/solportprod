@@ -77,139 +77,154 @@ class VolumeHandler(BaseDBHandler):
         
     def _createTables(self):
         """Creates all necessary tables for the system"""
-        with self.conn_manager.transaction() as cursor:
-            config = get_config()
+        try:
+            # Create main tables first
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
+                
+                # 1. Base Token Information
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokeninfo (
+                            id SERIAL PRIMARY KEY,  -- Internal unique ID
+                            tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
+                            name TEXT NOT NULL,                    -- Trading symbol (e.g., "ROME")
+                            tokenname TEXT NOT NULL,               -- Full name ("REPUBLIC OF MEME")
+                            chain TEXT NOT NULL,                   -- Blockchain (e.g., "SOL")
+                            tokendecimals INTEGER,                 -- Token decimal places
+                            circulatingsupply TEXT,                -- Available supply
+                            tokenage TEXT,                         -- Time since launch
+                            twitterlink TEXT,                      -- Social media links
+                            telegramlink TEXT,                     -- for due diligence
+                            websitelink TEXT,                      -- and research
+                            firstseenat TIMESTAMP,                 -- When bot first detected
+                            lastupdatedat TIMESTAMP,               -- Last data update
+                            count INTEGER DEFAULT 1                -- Count of updates
+                        )
+                    '''))
+
+                    # 2. Token Current State
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokenstates (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
+                            price DECIMAL NOT NULL,                -- Current price
+                            marketcap DECIMAL NOT NULL,            -- Total value
+                            liquidity DECIMAL NOT NULL,            -- Available trading liquidity
+                            volume24h DECIMAL NOT NULL,            -- 24hr trading volume
+                            buysolqty INTEGER NOT NULL,            -- SOL buy pressure
+                            occurrencecount INTEGER NOT NULL,      -- Times seen by bot
+                            percentilerankpeats DECIMAL,           -- Ranking by occurrences
+                            percentileranksol DECIMAL,             -- Ranking by SOL buys
+                            dexstatus INTEGER NOT NULL,            -- Trading status
+                            change1hpct DECIMAL NOT NULL,          -- 1hr price change
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
+                            lastupdatedat TIMESTAMP,               -- Last update time
+                            FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
+                        )
+                    '''))
+
+                    # 3. Token History
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokenhistory (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL,
+                            snapshotat TIMESTAMP NOT NULL,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
+                        )
+                    '''))
+                else:
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokeninfo (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,  -- Internal unique ID
+                            tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
+                            name TEXT NOT NULL,                    -- Trading symbol (e.g., "ROME")
+                            tokenname TEXT NOT NULL,               -- Full name ("REPUBLIC OF MEME")
+                            chain TEXT NOT NULL,                   -- Blockchain (e.g., "SOL")
+                            tokendecimals INTEGER,                 -- Token decimal places
+                            circulatingsupply TEXT,                -- Available supply
+                            tokenage TEXT,                         -- Time since launch
+                            twitterlink TEXT,                      -- Social media links
+                            telegramlink TEXT,                     -- for due diligence
+                            websitelink TEXT,                      -- and research
+                            firstseenat TIMESTAMP,                 -- When bot first detected
+                            lastupdatedat TIMESTAMP,               -- Last data update
+                            count INTEGER DEFAULT 1                -- Count of updates
+                        )
+                    '''))
+
+                    # 2. Token Current State
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokenstates (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
+                            price DECIMAL NOT NULL,                -- Current price
+                            marketcap DECIMAL NOT NULL,            -- Total value
+                            liquidity DECIMAL NOT NULL,            -- Available trading liquidity
+                            volume24h DECIMAL NOT NULL,            -- 24hr trading volume
+                            buysolqty INTEGER NOT NULL,            -- SOL buy pressure
+                            occurrencecount INTEGER NOT NULL,      -- Times seen by bot
+                            percentilerankpeats DECIMAL,           -- Ranking by occurrences
+                            percentileranksol DECIMAL,             -- Ranking by SOL buys
+                            dexstatus INTEGER NOT NULL,            -- Trading status
+                            change1hpct DECIMAL NOT NULL,          -- 1hr price change
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
+                            lastupdatedat TIMESTAMP,               -- Last update time
+                            FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
+                        )
+                    '''))
+
+                    # 3. Token History
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS volumetokenhistory (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid TEXT NOT NULL,
+                            snapshotat TIMESTAMP NOT NULL,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
+                        )
+                    '''))
+
+            # Use separate transaction for indices to prevent cursor already closed errors
+            # Each index is created in its own transaction
+            self._createIndex('idx_volumetokeninfo_tokenid', 'volumetokeninfo', 'tokenid')
+            self._createIndex('idx_volumetokenstates_tokenid', 'volumetokenstates', 'tokenid')
+            self._createIndex('idx_volumetokenhistory_tokenid', 'volumetokenhistory', 'tokenid')
+            self._createIndex('idx_volumetokenhistory_snapshot', 'volumetokenhistory', 'snapshotat')
             
-            # 1. Base Token Information
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokeninfo (
-                        id SERIAL PRIMARY KEY,  -- Internal unique ID
-                        tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
-                        name TEXT NOT NULL,                    -- Trading symbol (e.g., "ROME")
-                        tokenname TEXT NOT NULL,               -- Full name ("REPUBLIC OF MEME")
-                        chain TEXT NOT NULL,                   -- Blockchain (e.g., "SOL")
-                        tokendecimals INTEGER,                 -- Token decimal places
-                        circulatingsupply TEXT,                -- Available supply
-                        tokenage TEXT,                         -- Time since launch
-                        twitterlink TEXT,                      -- Social media links
-                        telegramlink TEXT,                     -- for due diligence
-                        websitelink TEXT,                      -- and research
-                        firstseenat TIMESTAMP,                 -- When bot first detected
-                        lastupdatedat TIMESTAMP,               -- Last data update
-                        count INTEGER DEFAULT 1                -- Count of updates
-                    )
-                '''))
-
-                # 2. Token Current State
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokenstates (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
-                        price DECIMAL NOT NULL,                -- Current price
-                        marketcap DECIMAL NOT NULL,            -- Total value
-                        liquidity DECIMAL NOT NULL,            -- Available trading liquidity
-                        volume24h DECIMAL NOT NULL,            -- 24hr trading volume
-                        buysolqty INTEGER NOT NULL,            -- SOL buy pressure
-                        occurrencecount INTEGER NOT NULL,      -- Times seen by bot
-                        percentilerankpeats DECIMAL,           -- Ranking by occurrences
-                        percentileranksol DECIMAL,             -- Ranking by SOL buys
-                        dexstatus INTEGER NOT NULL,            -- Trading status
-                        change1hpct DECIMAL NOT NULL,          -- 1hr price change
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
-                        lastupdatedat TIMESTAMP,               -- Last update time
-                        FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
-                    )
-                '''))
-
-                # 3. Token History
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokenhistory (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL,
-                        snapshotat TIMESTAMP NOT NULL,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
-                    )
-                '''))
-            else:
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokeninfo (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,  -- Internal unique ID
-                        tokenid TEXT NOT NULL UNIQUE,          -- Token's contract address
-                        name TEXT NOT NULL,                    -- Trading symbol (e.g., "ROME")
-                        tokenname TEXT NOT NULL,               -- Full name ("REPUBLIC OF MEME")
-                        chain TEXT NOT NULL,                   -- Blockchain (e.g., "SOL")
-                        tokendecimals INTEGER,                 -- Token decimal places
-                        circulatingsupply TEXT,                -- Available supply
-                        tokenage TEXT,                         -- Time since launch
-                        twitterlink TEXT,                      -- Social media links
-                        telegramlink TEXT,                     -- for due diligence
-                        websitelink TEXT,                      -- and research
-                        firstseenat TIMESTAMP,                 -- When bot first detected
-                        lastupdatedat TIMESTAMP,               -- Last data update
-                        count INTEGER DEFAULT 1                -- Count of updates
-                    )
-                '''))
-
-                # 2. Token Current State
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokenstates (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid TEXT NOT NULL UNIQUE,          -- Links to volumetokeninfo
-                        price DECIMAL NOT NULL,                -- Current price
-                        marketcap DECIMAL NOT NULL,            -- Total value
-                        liquidity DECIMAL NOT NULL,            -- Available trading liquidity
-                        volume24h DECIMAL NOT NULL,            -- 24hr trading volume
-                        buysolqty INTEGER NOT NULL,            -- SOL buy pressure
-                        occurrencecount INTEGER NOT NULL,      -- Times seen by bot
-                        percentilerankpeats DECIMAL,           -- Ranking by occurrences
-                        percentileranksol DECIMAL,             -- Ranking by SOL buys
-                        dexstatus INTEGER NOT NULL,            -- Trading status
-                        change1hpct DECIMAL NOT NULL,          -- 1hr price change
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When record was created
-                        lastupdatedat TIMESTAMP,               -- Last update time
-                        FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
-                    )
-                '''))
-
-                # 3. Token History
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS volumetokenhistory (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid TEXT NOT NULL,
-                        snapshotat TIMESTAMP NOT NULL,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES volumetokeninfo(tokenid)
-                    )
-                '''))
-
-            # Create indices for better query performance
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokeninfo_tokenid ON volumetokeninfo(tokenid)'))
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenstates_tokenid ON volumetokenstates(tokenid)'))
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_tokenid ON volumetokenhistory(tokenid)'))
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_volumetokenhistory_snapshot ON volumetokenhistory(snapshotat)'))
+        except Exception as e:
+            logger.error(f"Error creating tables for VolumeHandler: {e}")
+            # Don't re-raise, since we want initialization to continue
             
+    def _createIndex(self, index_name, table_name, column_name):
+        """Create an index safely in its own transaction"""
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute(text(f'CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column_name})'))
+        except Exception as e:
+            logger.error(f"Error creating index {index_name}: {e}")
+
     def resetTables(self):
         """Drops and recreates all tables - Use with caution!"""
         with self.conn_manager.transaction() as cursor:

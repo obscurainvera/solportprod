@@ -205,15 +205,26 @@ class DatabaseConnectionManager:
             if connection and self.pool and not self._pool_closed:
                 # Return PostgreSQL connection to pool if it's still open
                 try:
-                    self.pool.putconn(connection)
-                except Exception as e:
-                    logger.error(f"Error returning connection to pool: {e}")
-                    # If we can't return the connection, the pool may be corrupt
-                    # Try to reinitialize it for future connections
-                    if "connection pool is closed" in str(e):
-                        logger.warning("Pool appears to be closed, attempting to reinitialize for future connections")
-                        self._pool_closed = True
-                        self._initialize_pool()
+                    if not connection.closed:
+                        try:
+                            self.pool.putconn(connection)
+                        except psycopg2.pool.PoolError as e:
+                            # Handle "trying to put unkeyed connection" error
+                            if "unkeyed connection" in str(e):
+                                logger.warning(f"Attempted to return unkeyed connection to pool: {str(e)}")
+                                # Just close the connection instead of returning it to the pool
+                                try:
+                                    connection.close()
+                                    logger.info("Successfully closed unkeyed connection")
+                                except Exception as close_error:
+                                    logger.error(f"Error closing unkeyed connection: {close_error}")
+                            else:
+                                raise
+                except Exception as putconn_error:
+                    logger.error(f"Error returning connection to pool: {putconn_error}")
+                    # Don't mark the pool as closed here, instead try to reinitialize
+                    if "connection pool is closed" in str(putconn_error):
+                        logger.warning("Pool appears to be closed, will reinitialize on next transaction")
 
     @contextmanager
     def transaction(self):
@@ -327,7 +338,20 @@ class DatabaseConnectionManager:
             if conn and self.pool and not self._pool_closed:
                 try:
                     if not conn.closed:
-                        self.pool.putconn(conn)
+                        try:
+                            self.pool.putconn(conn)
+                        except psycopg2.pool.PoolError as e:
+                            # Handle "trying to put unkeyed connection" error
+                            if "unkeyed connection" in str(e):
+                                logger.warning(f"Attempted to return unkeyed connection to pool: {str(e)}")
+                                # Just close the connection instead of returning it to the pool
+                                try:
+                                    conn.close()
+                                    logger.info("Successfully closed unkeyed connection")
+                                except Exception as close_error:
+                                    logger.error(f"Error closing unkeyed connection: {close_error}")
+                            else:
+                                raise
                 except Exception as putconn_error:
                     logger.error(f"Error returning connection to pool: {putconn_error}")
                     # Don't mark the pool as closed here, instead try to reinitialize

@@ -27,121 +27,160 @@ class AttentionHandler(BaseDBHandler):
     
     def _createTables(self):
         """Creates all required tables for attention tracking"""
-        with self.conn_manager.transaction() as cursor:
+        try:
             config = get_config()
             
-            if config.DB_TYPE == 'postgres':
-                # PostgreSQL syntax
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiontokenregistry (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL UNIQUE,
-                        name TEXT NOT NULL,
-                        chain TEXT NOT NULL,
-                        firstseenat TIMESTAMP NOT NULL,
-                        lastseenat TIMESTAMP NOT NULL,
-                        currentstatus VARCHAR(20) DEFAULT 'NEW',
-                        attentioncount INT DEFAULT 1,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
+            # Create registry table
+            self._createAttentionRegistryTable()
+            
+            # Create attention data table
+            self._createAttentionDataTable()
+            
+            # Create history table
+            self._createAttentionHistoryTable()
+            
+        except Exception as e:
+            logger.error(f"Error creating attention tables: {e}")
+            # Don't re-raise to allow initialization to continue
+    
+    def _createAttentionRegistryTable(self):
+        """Create the attention token registry table"""
+        try:
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
                 
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiondata (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL,
-                        name TEXT,
-                        chain TEXT,
-                        attentionscore NUMERIC NOT NULL,
-                        change1hbps INTEGER,
-                        change1dbps INTEGER,
-                        change7dbps INTEGER,
-                        change30dbps INTEGER,
-                        recordedat TIMESTAMP NOT NULL,
-                        datasource VARCHAR(50),
-                        registryid INTEGER,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (tokenid) REFERENCES attentiontokenregistry(tokenid) ON DELETE CASCADE
-                    )
-                ''')
+                if config.DB_TYPE == 'postgres':
+                    # PostgreSQL syntax
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiontokenregistry (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL UNIQUE,
+                            name TEXT NOT NULL,
+                            chain TEXT NOT NULL,
+                            firstseenat TIMESTAMP NOT NULL,
+                            lastseenat TIMESTAMP NOT NULL,
+                            currentstatus VARCHAR(20) DEFAULT 'NEW',
+                            attentioncount INT DEFAULT 1,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    '''))
+                else:
+                    # SQLite syntax
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiontokenregistry (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid VARCHAR(255) UNIQUE,
+                            name VARCHAR(100),
+                            chain VARCHAR(50),
+                            firstseenat TIMESTAMP NOT NULL,
+                            lastseenat TIMESTAMP NOT NULL,
+                            currentstatus VARCHAR(20) DEFAULT 'NEW',
+                            attentioncount INT DEFAULT 1,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    '''))
+        except Exception as e:
+            logger.error(f"Error creating attention registry table: {e}")
+    
+    def _createAttentionDataTable(self):
+        """Create the attention data table"""
+        try:
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
                 
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiondatahistory (
-                        historyid SERIAL PRIMARY KEY,
-                        attentiondataid INTEGER NOT NULL,
-                        tokenid TEXT NOT NULL,
-                        name TEXT,
-                        chain TEXT,
-                        attentionscore NUMERIC NOT NULL,
-                        change1hbps INTEGER,
-                        change1dbps INTEGER,
-                        change7dbps INTEGER,
-                        change30dbps INTEGER,
-                        recordedat TIMESTAMP NOT NULL,
-                        datasource VARCHAR(50),
-                        createdat TIMESTAMP NOT NULL,
-                        updatedat TIMESTAMP NOT NULL,
-                        FOREIGN KEY (tokenid) REFERENCES attentiontokenregistry(tokenid) ON DELETE CASCADE
-                    )
-                ''')
-            else:
-                # SQLite syntax
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiontokenregistry (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid VARCHAR(255) UNIQUE,
-                        name VARCHAR(100),
-                        chain VARCHAR(50),
-                        firstseenat TIMESTAMP NOT NULL,
-                        lastseenat TIMESTAMP NOT NULL,
-                        currentstatus VARCHAR(20) DEFAULT 'NEW',
-                        attentioncount INT DEFAULT 1,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiondata (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL,
+                            name TEXT,
+                            chain TEXT,
+                            attentionscore NUMERIC NOT NULL,
+                            change1hbps INTEGER,
+                            change1dbps INTEGER,
+                            change7dbps INTEGER,
+                            change30dbps INTEGER,
+                            recordedat TIMESTAMP NOT NULL,
+                            datasource VARCHAR(50),
+                            registryid INTEGER,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (tokenid) REFERENCES attentiontokenregistry(tokenid) ON DELETE CASCADE
+                        )
+                    '''))
+                else:
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiondata (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid VARCHAR(255),
+                            name VARCHAR(100),
+                            chain VARCHAR(50),
+                            attentionscore TEXT NOT NULL,
+                            change1hbps INTEGER,
+                            change1dbps INTEGER,
+                            change7dbps INTEGER,
+                            change30dbps INTEGER,
+                            recordedat TIMESTAMP NOT NULL,
+                            datasource VARCHAR(50),
+                            registryid INTEGER,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (registryid) REFERENCES attentiontokenregistry(id)
+                        )
+                    '''))
+        except Exception as e:
+            logger.error(f"Error creating attention data table: {e}")
+    
+    def _createAttentionHistoryTable(self):
+        """Create the attention history table"""
+        try:
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
                 
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiondata (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid VARCHAR(255),
-                        name VARCHAR(100),
-                        chain VARCHAR(50),
-                        attentionscore TEXT NOT NULL,
-                        change1hbps INTEGER,
-                        change1dbps INTEGER,
-                        change7dbps INTEGER,
-                        change30dbps INTEGER,
-                        recordedat TIMESTAMP NOT NULL,
-                        datasource VARCHAR(50),
-                        registryid INTEGER,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (registryid) REFERENCES attentiontokenregistry(id)
-                    )
-                ''')
-                
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS attentiondatahistory (
-                        historyid INTEGER PRIMARY KEY AUTOINCREMENT,
-                        attentiondataid INTEGER NOT NULL,
-                        tokenid VARCHAR(255),
-                        name VARCHAR(100),
-                        chain VARCHAR(50),
-                        attentionscore TEXT NOT NULL,
-                        change1hbps INTEGER,
-                        change1dbps INTEGER,
-                        change7dbps INTEGER,
-                        change30dbps INTEGER,
-                        recordedat TIMESTAMP NOT NULL,
-                        datasource VARCHAR(50),
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (attentiondataid) REFERENCES attentiondata(id)
-                    )
-                ''')
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiondatahistory (
+                            historyid SERIAL PRIMARY KEY,
+                            attentiondataid INTEGER NOT NULL,
+                            tokenid TEXT NOT NULL,
+                            name TEXT,
+                            chain TEXT,
+                            attentionscore NUMERIC NOT NULL,
+                            change1hbps INTEGER,
+                            change1dbps INTEGER,
+                            change7dbps INTEGER,
+                            change30dbps INTEGER,
+                            recordedat TIMESTAMP NOT NULL,
+                            datasource VARCHAR(50),
+                            createdat TIMESTAMP NOT NULL,
+                            updatedat TIMESTAMP NOT NULL,
+                            FOREIGN KEY (tokenid) REFERENCES attentiontokenregistry(tokenid) ON DELETE CASCADE
+                        )
+                    '''))
+                else:
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS attentiondatahistory (
+                            historyid INTEGER PRIMARY KEY AUTOINCREMENT,
+                            attentiondataid INTEGER NOT NULL,
+                            tokenid VARCHAR(255),
+                            name VARCHAR(100),
+                            chain VARCHAR(50),
+                            attentionscore TEXT NOT NULL,
+                            change1hbps INTEGER,
+                            change1dbps INTEGER,
+                            change7dbps INTEGER,
+                            change30dbps INTEGER,
+                            recordedat TIMESTAMP NOT NULL,
+                            datasource VARCHAR(50),
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (attentiondataid) REFERENCES attentiondata(id)
+                        )
+                    '''))
+        except Exception as e:
+            logger.error(f"Error creating attention history table: {e}")
 
     def updateTokenRegistry(self, data: AttentionData) -> Optional[int]:
         """
