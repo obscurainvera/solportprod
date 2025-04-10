@@ -35,14 +35,9 @@ class JobHandler(BaseDBHandler):
         config = get_config()
         is_postgres = config.DB_TYPE == 'postgres'
         
-        # Set up the correct SQL fragments based on database type
-        id_type = "SERIAL" if is_postgres else "INTEGER"
-        autoincrement = "" if is_postgres else "AUTOINCREMENT"
-        
-        # Build SQL strings using regular string interpolation
-        jobs_sql = f"""
+        jobs_sql = """
             CREATE TABLE IF NOT EXISTS jobs (
-                id {id_type} PRIMARY KEY {autoincrement},
+                id SERIAL PRIMARY KEY,
                 job_id TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
                 description TEXT,
@@ -56,15 +51,15 @@ class JobHandler(BaseDBHandler):
             )
         """
         
-        job_executions_sql = f"""
+        job_executions_sql = """
             CREATE TABLE IF NOT EXISTS job_executions (
-                id {id_type} PRIMARY KEY {autoincrement},
+                id SERIAL PRIMARY KEY,
                 job_id TEXT NOT NULL,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,
                 status INTEGER NOT NULL,
                 result TEXT,
-                error TEXT,
+                error_message TEXT,
                 FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
             )
         """
@@ -72,6 +67,38 @@ class JobHandler(BaseDBHandler):
         with self.conn_manager.transaction() as cursor:
             cursor.execute(text(jobs_sql))
             cursor.execute(text(job_executions_sql))
+            
+            # Check if error_message column exists, if not, try to add it
+            if is_postgres:
+                try:
+                    cursor.execute(text("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='job_executions' AND column_name='error_message'
+                    """))
+                    
+                    # If error column doesn't exist, add error_message column
+                    if not cursor.fetchone():
+                        cursor.execute(text("""
+                            ALTER TABLE job_executions 
+                            ADD COLUMN IF NOT EXISTS error_message TEXT
+                        """))
+                        
+                    # Check if 'error' column exists (old name)
+                    cursor.execute(text("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='job_executions' AND column_name='error'
+                    """))
+                    
+                    # Rename error to error_message if it exists
+                    if cursor.fetchone():
+                        cursor.execute(text("""
+                            ALTER TABLE job_executions 
+                            RENAME COLUMN error TO error_message
+                        """))
+                        
+                except Exception as e:
+                    logger.warning(f"Error checking/creating error_message column: {e}")
+                    
         logger.info("Job tables created")
 
     def startJobExecution(self, job_id: str) -> int:
@@ -82,22 +109,45 @@ class JobHandler(BaseDBHandler):
         with self.conn_manager.transaction() as cursor:
             if is_postgres:
                 cursor.execute(
-                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (:job_id, :start_time, :status) RETURNING id"),
-                    {'job_id': job_id, 'start_time': datetime.utcnow(), 'status': JobStatus.RUNNING.value}
+                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (%s, %s, %s) RETURNING id"),
+                    (job_id, datetime.now(), JobStatus.RUNNING.value)
                 )
                 return cursor.fetchone()['id']
             else:
                 cursor.execute(
-                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (:job_id, :start_time, :status)"),
-                    {'job_id': job_id, 'start_time': datetime.utcnow(), 'status': JobStatus.RUNNING.value}
+                    text("INSERT INTO job_executions (job_id, start_time, status) VALUES (?, ?, ?)"),
+                    (job_id, datetime.utcnow(), JobStatus.RUNNING.value)
                 )
                 return cursor.lastrowid
 
     def completeJobExecution(self, execution_id: int, status: str, error_message: str = None) -> bool:
         """Complete a job execution with status and optional error."""
+        config = get_config()
+        is_postgres = config.DB_TYPE == 'postgres'
+        
         with self.conn_manager.transaction() as cursor:
-            cursor.execute(
-                text("UPDATE job_executions SET end_time = :end_time, status = :status, error = :error WHERE id = :id"),
-                {'end_time': datetime.utcnow(), 'status': JobStatus[status].value, 'error': error_message, 'id': execution_id}
-            )
+            if is_postgres:
+                try:
+                    # First try with error_message column
+                    cursor.execute(
+                        text("UPDATE job_executions SET end_time = %s, status = %s, error_message = %s WHERE id = %s"),
+                        (datetime.utcnow(), JobStatus[status].value, error_message, execution_id)
+                    )
+                except Exception:
+                    # If error_message column doesn't exist, try without it
+                    cursor.execute(
+                        text("UPDATE job_executions SET end_time = %s, status = %s WHERE id = %s"),
+                        (datetime.utcnow(), JobStatus[status].value, execution_id)
+                    )
+            else:
+                try:
+                    cursor.execute(
+                        text("UPDATE job_executions SET end_time = ?, status = ?, error_message = ? WHERE id = ?"),
+                        (datetime.utcnow(), JobStatus[status].value, error_message, execution_id)
+                    )
+                except Exception:
+                    cursor.execute(
+                        text("UPDATE job_executions SET end_time = ?, status = ? WHERE id = ?"),
+                        (datetime.utcnow(), JobStatus[status].value, execution_id)
+                    )
             return True

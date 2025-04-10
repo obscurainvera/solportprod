@@ -287,7 +287,7 @@ class CredentialsHandler(BaseDBHandler):
                         SELECT * FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = %s
-                        AND isactive = TRUE
+                        AND isactive = 1
                         ORDER BY updatedat DESC
                         LIMIT 1
                     '''), (serviceName, credentialType))
@@ -334,7 +334,7 @@ class CredentialsHandler(BaseDBHandler):
                         FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = 'API_KEY'
-                        AND isactive = TRUE
+                        AND isactive = 1
                         ORDER BY updatedat DESC
                         LIMIT 1
                     '''), (serviceName,))
@@ -407,7 +407,7 @@ class CredentialsHandler(BaseDBHandler):
                         FROM servicecredentials
                         WHERE servicename = %s
                         AND credentialtype = 'API_KEY'
-                        AND isactive = TRUE
+                        AND isactive = 1
                         AND availablecredits >= %s
                         ORDER BY lastusedat ASC NULLS FIRST
                         LIMIT 1

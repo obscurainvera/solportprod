@@ -34,53 +34,60 @@ class NotificationHandler(BaseDBHandler):
         """Ensure the notification table exists"""
         config = get_config()
         
-        with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                # PostgreSQL syntax
-                cursor.execute(text(f'''
-                    CREATE TABLE IF NOT EXISTS {self.tableName} (
-                        id SERIAL PRIMARY KEY,
-                        source TEXT NOT NULL,
-                        chatgroup TEXT NOT NULL,
-                        content TEXT NOT NULL,
-                        status TEXT NOT NULL DEFAULT '{NotificationStatus.PENDING.value}',
-                        servicetype TEXT,
-                        errordetails TEXT,
-                        buttons TEXT,
-                        createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP,
-                        sentat TIMESTAMP
-                    )
-                '''))
+        try:
+            with self.conn_manager.transaction() as cursor:
+                table_name = self.tableName
+                default_status = NotificationStatus.PENDING.value
                 
-                # Create index for faster queries
-                cursor.execute(text(f'''
-                    CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
-                    ON {self.tableName} (status)
-                '''))
-            else:
-                # SQLite syntax
-                cursor.execute(text(f'''
-                    CREATE TABLE IF NOT EXISTS {self.tableName} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        source TEXT NOT NULL,
-                        chatgroup TEXT NOT NULL,
-                        content TEXT NOT NULL,
-                        status TEXT NOT NULL DEFAULT '{NotificationStatus.PENDING.value}',
-                        servicetype TEXT,
-                        errordetails TEXT,
-                        buttons TEXT,
-                        createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        updatedat TIMESTAMP,
-                        sentat TIMESTAMP
-                    )
-                '''))
-                
-                # Create index for faster queries
-                cursor.execute(text(f'''
-                    CREATE INDEX IF NOT EXISTS idx_{self.tableName}_status
-                    ON {self.tableName} (status)
-                '''))
+                if config.DB_TYPE == 'postgres':
+                    # PostgreSQL syntax - use %s instead of named parameters
+                    cursor.execute(text("""
+                        CREATE TABLE IF NOT EXISTS notification (
+                            id SERIAL PRIMARY KEY,
+                            source TEXT NOT NULL,
+                            chatgroup TEXT NOT NULL,
+                            content TEXT NOT NULL,
+                            status TEXT NOT NULL DEFAULT %s,
+                            servicetype TEXT,
+                            errordetails TEXT,
+                            buttons TEXT,
+                            createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP,
+                            sentat TIMESTAMP
+                        )
+                    """), (default_status,))
+                    
+                    # Create index for faster queries
+                    cursor.execute(text("""
+                        CREATE INDEX IF NOT EXISTS idx_notification_status
+                        ON notification (status)
+                    """))
+                else:
+                    # SQLite syntax
+                    cursor.execute(text("""
+                        CREATE TABLE IF NOT EXISTS notification (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            source TEXT NOT NULL,
+                            chatgroup TEXT NOT NULL,
+                            content TEXT NOT NULL,
+                            status TEXT NOT NULL DEFAULT ?,
+                            servicetype TEXT,
+                            errordetails TEXT,
+                            buttons TEXT,
+                            createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updatedat TIMESTAMP,
+                            sentat TIMESTAMP
+                        )
+                    """), (default_status,))
+                    
+                    # Create index for faster queries
+                    cursor.execute(text("""
+                        CREATE INDEX IF NOT EXISTS idx_notification_status
+                        ON notification (status)
+                    """))
+        except Exception as e:
+            logger.error(f"Error ensuring notification table exists: {e}")
+            # Don't re-raise, as we want to allow graceful fallback
     
     def createNotification(self, notification: Notification) -> Optional[Notification]:
         """

@@ -24,6 +24,7 @@ from database.job.job_handler import JobHandler
 import time
 import requests
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
+import threading
 
 
 logger = get_logger(__name__)
@@ -91,9 +92,9 @@ class JobRunner:
         """Configure all scheduled jobs with configurable triggers."""
         config = get_config()
         jobs = [
-            ('volume_bot_analysis', {'minute': '*/30'}),
-            ('pump_fun_analysis', {'minute': '*/15'}),
-            ('execution_monitoring', {'minute': '*/5'})
+            ('volume_bot_analysis', {'minute': '*/10'}),
+            ('pump_fun_analysis', {'minute': '*/10'}),
+            ('execution_monitoring', {'minute': '*/1'})
         ]
         for job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
@@ -131,18 +132,20 @@ class JobRunner:
         Record job execution status in the database.
         Prevents recursion by using a simple flag to avoid nested calls.
         """
-        # Use a class attribute to track if we're already inside this method
-        if hasattr(self.__class__, '_recording_job'):
+        # Use a thread-local storage instead of class attribute for recursion detection
+        thread_local = threading.local()
+        
+        # Check if we're already inside this method for this thread
+        if hasattr(thread_local, 'recording_job'):
             # We're already recording a job execution, don't recurse
             logger.warning(f"Avoiding recursive call to _record_job_execution for job {job_id}")
             return
         
         try:
             # Set flag to prevent recursion
-            self.__class__._recording_job = True
+            thread_local.recording_job = True
             
-            # Use a direct database connection without 'with' to avoid potential recursion
-            db = None
+            # Create a connection manager that doesn't rely on the scheduler's connection
             try:
                 # Create a fresh connection manager
                 conn_manager = DatabaseConnectionManager()
@@ -151,28 +154,26 @@ class JobRunner:
                 job_handler = JobHandler(conn_manager)
                 
                 # Record the job execution
-                if job_handler:
+                try:
                     execution_id = job_handler.startJobExecution(job_id)
                     job_handler.completeJobExecution(execution_id, 'COMPLETED' if status == 'success' else 'FAILED', error_message)
                     logger.info(f"Recorded {status} for job {job_id}")
-                else:
-                    logger.error("JobHandler unavailable")
+                except Exception as e:
+                    logger.error(f"Error recording job execution details: {str(e)}")
                     
-                # Close the connection explicitly
-                conn_manager.close()
+                # Ensure we properly close the connection
+                try:
+                    conn_manager.close()
+                except Exception as close_error:
+                    logger.error(f"Error closing connection manager: {str(close_error)}")
+                    
             except Exception as e:
                 logger.error(f"Failed to record job execution: {str(e)}")
-            finally:
-                # Clean up any resources
-                if conn_manager:
-                    try:
-                        conn_manager.close()
-                    except:
-                        pass
+                
         finally:
-            # Clear the flag no matter what
-            if hasattr(self.__class__, '_recording_job'):
-                delattr(self.__class__, '_recording_job')
+            # Always clean up the thread-local flag
+            if hasattr(thread_local, 'recording_job'):
+                delattr(thread_local, 'recording_job')
 
     def start(self):
         """Start the scheduler if not already running."""

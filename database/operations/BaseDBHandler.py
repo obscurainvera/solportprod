@@ -92,3 +92,27 @@ class BaseDBHandler:
     @staticmethod
     def getCurrentUtcTime() -> datetime:
         return datetime.now(pytz.UTC)
+
+    @staticmethod
+    def sql_boolean(value, for_postgres=None):
+        """
+        Convert Python boolean to appropriate SQL boolean representation
+        
+        Args:
+            value: Python boolean value
+            for_postgres: Override config to force postgres or sqlite format
+                         If None, uses the config setting
+                       
+        Returns:
+            Integer 1/0 for SQLite, SQL syntax (TRUE/FALSE) for PostgreSQL
+        """
+        config = get_config()
+        
+        is_postgres = for_postgres if for_postgres is not None else config.DB_TYPE == 'postgres'
+        
+        if is_postgres:
+            # For PostgreSQL, use integers for SQLAlchemy bindings
+            return 1 if value else 0
+        else:
+            # For SQLite 
+            return 1 if value else 0

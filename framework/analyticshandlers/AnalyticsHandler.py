@@ -567,7 +567,7 @@ class AnalyticsHandler(BaseDBHandler):
                         JOIN strategyconfig sc ON se.strategyid = sc.strategyid
                         WHERE se.status IN (%s, %s)
                     """)
-                    params = (ExecutionStatus.ACTIVE.value, ExecutionStatus.PARTIALLY_SOLD.value)
+                    params = (ExecutionStatus.ACTIVE.value, ExecutionStatus.INVESTED.value)
                     cursor.execute(query, params)
                 else:
                     query = """
@@ -577,7 +577,7 @@ class AnalyticsHandler(BaseDBHandler):
                         JOIN strategyconfig sc ON se.strategyid = sc.strategyid
                         WHERE se.status IN (?, ?)
                     """
-                    params = (ExecutionStatus.ACTIVE.value, ExecutionStatus.PARTIALLY_SOLD.value)
+                    params = (ExecutionStatus.ACTIVE.value, ExecutionStatus.INVESTED.value)
                     cursor.execute(query, params)
                 
                 columns = [col[0] for col in cursor.description]

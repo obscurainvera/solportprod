@@ -236,8 +236,30 @@ class DatabaseConnectionManager:
             conn = self.pool.getconn()
             # Auto-commit is off by default in psycopg2
             cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Patch the cursor to handle SQLAlchemy text() objects correctly
+            original_execute = cur.execute
+            def patched_execute(query, params=None):
+                # If query is SQLAlchemy text(), convert to string
+                if hasattr(query, 'text'):
+                    query = query.text
+                    
+                # Convert boolean params for PostgreSQL
+                if params and isinstance(params, (list, tuple)):
+                    params = tuple(1 if p is True else 0 if p is False else p for p in params)
+                elif params and isinstance(params, dict):
+                    params = {k: (1 if v is True else 0 if v is False else v) for k, v in params.items()}
+                    
+                return original_execute(query, params)
+            
+            cur.execute = patched_execute
+            
             yield cur
-            conn.commit()
+            
+            # Only commit if cursor hasn't been closed
+            if not cur.closed and conn and not conn.closed:
+                conn.commit()
+                
         except psycopg2.pool.PoolError as e:
             logger.error(f"Pool error: {str(e)}")
             # Try to reinitialize the pool
@@ -247,8 +269,29 @@ class DatabaseConnectionManager:
                 try:
                     conn = self.pool.getconn()
                     cur = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Patch the cursor again
+                    original_execute = cur.execute
+                    def patched_execute(query, params=None):
+                        # If query is SQLAlchemy text(), convert to string
+                        if hasattr(query, 'text'):
+                            query = query.text
+                            
+                        # Convert boolean params for PostgreSQL
+                        if params and isinstance(params, (list, tuple)):
+                            params = tuple(1 if p is True else 0 if p is False else p for p in params)
+                        elif params and isinstance(params, dict):
+                            params = {k: (1 if v is True else 0 if v is False else v) for k, v in params.items()}
+                            
+                        return original_execute(query, params)
+                    
+                    cur.execute = patched_execute
+                    
                     yield cur
-                    conn.commit()
+                    
+                    # Only commit if cursor hasn't been closed
+                    if not cur.closed and conn and not conn.closed:
+                        conn.commit()
                     return
                 except Exception as retry_e:
                     logger.error(f"Failed to use reinitialized pool: {str(retry_e)}")
@@ -256,7 +299,9 @@ class DatabaseConnectionManager:
         except Exception as e:
             if conn:
                 try:
-                    conn.rollback()
+                    # Only rollback if connection is still open
+                    if not conn.closed:
+                        conn.rollback()
                 except Exception as rollback_error:
                     logger.error(f"Error during transaction rollback: {rollback_error}")
             
@@ -270,15 +315,19 @@ class DatabaseConnectionManager:
             
             raise e
         finally:
+            # Close cursor first
             if cur:
                 try:
-                    cur.close()
+                    if not cur.closed:
+                        cur.close()
                 except Exception as close_error:
                     logger.error(f"Error closing cursor: {close_error}")
             
+            # Then return connection to pool
             if conn and self.pool and not self._pool_closed:
                 try:
-                    self.pool.putconn(conn)
+                    if not conn.closed:
+                        self.pool.putconn(conn)
                 except Exception as putconn_error:
                     logger.error(f"Error returning connection to pool: {putconn_error}")
                     # Don't mark the pool as closed here, instead try to reinitialize
