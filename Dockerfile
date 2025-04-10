@@ -38,11 +38,6 @@ RUN mkdir -p logs
 RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 
-# Copy and set up the entrypoint script (uncommented and fixed)
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh && \
-    sed -i 's/\r$//' /app/entrypoint.sh
-
 USER appuser
 
 EXPOSE 10000

@@ -120,6 +120,25 @@ class DatabaseConnectionManager:
     def _initialize_pool(self):
         """Initialize the connection pool"""
         try:
+            # If we already have a pool, try to validate it first
+            if self.pool is not None and not self._pool_closed:
+                try:
+                    # Test the existing pool
+                    conn = self.pool.getconn()
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT 1")
+                    self.pool.putconn(conn)
+                    logger.info("Existing connection pool is still valid")
+                    return True
+                except Exception as e:
+                    logger.warning(f"Existing pool validation failed: {e}")
+                    # Close the existing pool if it's invalid
+                    try:
+                        self.pool.closeall()
+                    except:
+                        pass
+                    self.pool = None
+
             config = self.config
             # Set connection parameters
             conn_params = {
@@ -145,6 +164,8 @@ class DatabaseConnectionManager:
             
             # Test the connection
             conn = self.pool.getconn()
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
             self.pool.putconn(conn)
             
             logger.info(f"Successfully initialized PostgreSQL connection pool to {config.DB_HOST}")
@@ -178,16 +199,11 @@ class DatabaseConnectionManager:
         try:
             # We only support PostgreSQL now
             # Get PostgreSQL connection from pool
-            if self.pool is None:
+            if self.pool is None or self._pool_closed:
                 if not self._initialize_pool():
                     raise Exception("Database connection pool is not initialized and could not be reinitialized. " +
                                 "Make sure PostgreSQL is running and credentials are correct.")
             
-            if self._pool_closed:
-                # If pool was closed, try to reinitialize it
-                if not self._initialize_pool():
-                    raise Exception("Cannot get connection - pool is closed and reinitialization failed")
-                
             connection = self.pool.getconn()
             yield connection
         except Exception as e:
@@ -195,15 +211,24 @@ class DatabaseConnectionManager:
             # Re-raise the exception
             raise
         finally:
-            if connection and self.pool and not self._pool_closed:
-                # Return PostgreSQL connection to pool if it's still open
+            if connection:
                 try:
-                    self.pool.putconn(connection)
+                    # Validate connection before returning to pool
+                    if not connection.closed:
+                        # Test if connection is still valid
+                        with connection.cursor() as cur:
+                            cur.execute("SELECT 1")
+                        self.pool.putconn(connection)
+                    else:
+                        logger.warning("Connection was closed, not returning to pool")
                 except Exception as e:
                     logger.error(f"Error returning connection to pool: {e}")
-                    # If we can't return the connection, the pool may be corrupt
-                    # Try to reinitialize it for future connections
-                    self._pool_closed = True
+                    # Instead of marking the whole pool as closed, just log the error
+                    # The next connection attempt will validate the pool state
+                    try:
+                        connection.close()
+                    except:
+                        pass
 
     @contextmanager
     def transaction(self):
