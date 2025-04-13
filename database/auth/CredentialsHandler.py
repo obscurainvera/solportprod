@@ -645,7 +645,7 @@ class CredentialsHandler(BaseDBHandler):
                             servicename, credentialtype, apikey, 
                             apisecret, availablecredits, metadata, 
                             expiresat, createdat, updatedat, isactive
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
                     """
                         ),
                         (

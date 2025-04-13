@@ -169,16 +169,6 @@ class AnalyticsHandler(BaseDBHandler):
     def getAllActiveStrategies(
         self, source: str, pushSource: PushSource = PushSource.SCHEDULER
     ) -> List[Dict]:
-        """
-        Get all active strategies for a specific source
-
-        Args:
-            source: Source type to filter strategies
-            pushSource: Source that pushed the token into the framework
-
-        Returns:
-            List[Dict]: List of active strategies for the source
-        """
         try:
             config = get_config()
             with self.conn_manager.transaction() as cursor:
@@ -194,7 +184,7 @@ class AnalyticsHandler(BaseDBHandler):
                             WHERE source = %s AND active = 1 AND superuser = 1
                         """
                         )
-                        params = source
+                        params = (source,)
                     else:
                         query = text(
                             """
@@ -202,7 +192,7 @@ class AnalyticsHandler(BaseDBHandler):
                             WHERE source = %s AND active = 1 AND superuser = 0
                         """
                         )
-                        params = source
+                        params = (source,)
                     cursor.execute(query, params)
 
                 columns = [col[0] for col in cursor.description]

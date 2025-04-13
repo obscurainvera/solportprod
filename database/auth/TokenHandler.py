@@ -74,7 +74,14 @@ class TokenHandler(BaseDBHandler):
         refreshToken: str,
         isNewLogin: bool = False,
     ) -> None:
-
+        """
+        Store new tokens with expiry times
+        Args:
+            serviceName: Name of the service (e.g., 'chainedge')
+            accessToken: JWT access token
+            refreshToken: JWT refresh token
+            isNewLogin: True if this is from a fresh login, False if from refresh
+        """
         try:
             config = get_config()
             with self.conn_manager.transaction() as cursor:
@@ -98,73 +105,71 @@ class TokenHandler(BaseDBHandler):
                     else:
                         cursor.execute(
                             """
-                                SELECT logintime, refreshtokenexpiresat
-                                FROM authtokens
-                                WHERE servicename = ?
-                            """,
+                            SELECT logintime, refreshtokenexpiresat
+                            FROM authtokens
+                            WHERE servicename = ?
+                        """,
                             (serviceName,),
                         )
 
-                result = cursor.fetchone()
-                if result:
-                    # Handle logintime
-                    loginTime = result["logintime"]
-                    if isinstance(loginTime, str):
-                        loginTime = datetime.fromisoformat(
-                            loginTime.replace("Z", "+00:00")
-                        )
-                    elif not isinstance(loginTime, datetime):
-                        raise ValueError(
-                            f"Unexpected type for logintime: {type(loginTime)}"
-                        )
+                    result = cursor.fetchone()
+                    if result:
+                        loginTime = result["logintime"]
+                        if isinstance(loginTime, str):
+                            loginTime = datetime.fromisoformat(
+                                loginTime.replace("Z", "+00:00")
+                            )
+                        elif not isinstance(loginTime, datetime):
+                            raise ValueError(
+                                f"Unexpected type for logintime: {type(loginTime)}"
+                            )
 
-                    # Handle refreshtokenexpiresat
-                    refreshExpires = result["refreshtokenexpiresat"]
-                    if isinstance(refreshExpires, str):
-                        refreshExpires = datetime.fromisoformat(
-                            refreshExpires.replace("Z", "+00:00")
-                        )
-                    elif not isinstance(refreshExpires, datetime):
-                        raise ValueError(
-                            f"Unexpected type for refreshtokenexpiresat: {type(refreshExpires)}"
-                        )
-                else:
-                    loginTime = now
-                    refreshExpires = now + timedelta(hours=12)
+                        refreshExpires = result["refreshtokenexpiresat"]
+                        if isinstance(refreshExpires, str):
+                            refreshExpires = datetime.fromisoformat(
+                                refreshExpires.replace("Z", "+00:00")
+                            )
+                        elif not isinstance(refreshExpires, datetime):
+                            raise ValueError(
+                                f"Unexpected type for refreshtokenexpiresat: {type(refreshExpires)}"
+                            )
+                    else:
+                        loginTime = now
+                        refreshExpires = now + timedelta(hours=12)
 
-            accessExpires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
+                accessExpires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
 
-            if config.DB_TYPE == "postgres":
-                cursor.execute(
-                    text(
+                if config.DB_TYPE == "postgres":
+                    cursor.execute(
+                        text(
+                            """
+                            INSERT INTO authtokens (
+                                servicename, accesstoken, refreshtoken,
+                                accesstokenexpiresat, refreshtokenexpiresat,
+                                logintime, updatedat
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT(servicename) DO UPDATE SET
+                                accesstoken=EXCLUDED.accesstoken,
+                                refreshtoken=EXCLUDED.refreshtoken,
+                                accesstokenexpiresat=EXCLUDED.accesstokenexpiresat,
+                                refreshtokenexpiresat=EXCLUDED.refreshtokenexpiresat,
+                                logintime=EXCLUDED.logintime,
+                                updatedat=EXCLUDED.updatedat
                         """
-                        INSERT INTO authtokens (
-                            servicename, accesstoken, refreshtoken,
-                            accesstokenexpiresat, refreshtokenexpiresat,
-                            logintime, updatedat
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT(servicename) DO UPDATE SET
-                            accesstoken=EXCLUDED.accesstoken,
-                            refreshtoken=EXCLUDED.refreshtoken,
-                            accesstokenexpiresat=EXCLUDED.accesstokenexpiresat,
-                            refreshtokenexpiresat=EXCLUDED.refreshtokenexpiresat,
-                            logintime=EXCLUDED.logintime,
-                            updatedat=EXCLUDED.updatedat
-                    """
-                    ),
-                    (
-                        serviceName,
-                        accessToken,
-                        refreshToken,
-                        accessExpires,
-                        refreshExpires,
-                        loginTime,
-                        now,
-                    ),
-                )
-            else:
-                cursor.execute(
-                    """
+                        ),
+                        (
+                            serviceName,
+                            accessToken,
+                            refreshToken,
+                            accessExpires,
+                            refreshExpires,
+                            loginTime,
+                            now,
+                        ),
+                    )
+                else:
+                    cursor.execute(
+                        """
                         INSERT INTO authtokens (
                             servicename, accesstoken, refreshtoken,
                             accesstokenexpiresat, refreshtokenexpiresat,
@@ -178,16 +183,16 @@ class TokenHandler(BaseDBHandler):
                             logintime=excluded.logintime,
                             updatedat=excluded.updatedat
                     """,
-                    (
-                        serviceName,
-                        accessToken,
-                        refreshToken,
-                        accessExpires,
-                        refreshExpires,
-                        loginTime,
-                        now,
-                    ),
-                )
+                        (
+                            serviceName,
+                            accessToken,
+                            refreshToken,
+                            accessExpires,
+                            refreshExpires,
+                            loginTime,
+                            now,
+                        ),
+                    )
         except Exception as e:
             logger.error(f"Failed to store tokens: {str(e)}")
             raise
@@ -211,20 +216,6 @@ class TokenHandler(BaseDBHandler):
                         WHERE servicename = %s
                     """
                         ),
-                        (serviceName,),
-                    )
-                else:
-                    cursor.execute(
-                        """
-                        SELECT 
-                            accesstoken,
-                            refreshtoken,
-                            accesstokenexpiresat,
-                            refreshtokenexpiresat,
-                            logintime
-                        FROM authtokens
-                        WHERE servicename = ?
-                    """,
                         (serviceName,),
                     )
 
