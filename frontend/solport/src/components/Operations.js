@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
-import { 
-  FaChartBar, 
-  FaRobot, 
-  FaChartLine, 
-  FaCoins, 
-  FaWallet, 
-  FaTrophy, 
-  FaSync, 
-  FaRocket, 
-  FaEye, 
+import {
+  FaChartBar,
+  FaRobot,
+  FaChartLine,
+  FaCoins,
+  FaWallet,
+  FaTrophy,
+  FaSync,
+  FaRocket,
+  FaEye,
   FaClock,
   FaDatabase,
   FaServer,
@@ -33,11 +34,11 @@ function Operations() {
   const isDev = process.env.NODE_ENV === 'development';
   // Base API URL - Use environment variable or empty string for same-domain relative requests
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
-  
+
   // State for floating navigation
   const [showFloatingNav, setShowFloatingNav] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
-  
+
   // Show/hide floating nav based on scroll position
   useEffect(() => {
     const handleScroll = () => {
@@ -45,26 +46,26 @@ function Operations() {
       setShowFloatingNav(true); // Always show floating nav
       setScrollPosition(currentScrollPos);
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   // Function to scroll to top and show nav panel
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
+
   // Utility functions for date formatting
   const formatDateToIST = (timestamp) => {
     console.log('Formatting timestamp:', timestamp, 'Type:', typeof timestamp);
-    
+
     if (!timestamp) return 'Not scheduled';
-    
+
     try {
       // Convert to milliseconds if needed
       let timestampMs;
-      
+
       if (typeof timestamp === 'string') {
         // Handle ISO string format
         timestampMs = new Date(timestamp).getTime();
@@ -75,17 +76,17 @@ function Operations() {
         // Handle other formats or return default
         return 'Invalid date';
       }
-      
+
       console.log('Converted timestamp to ms:', timestampMs);
-      
+
       if (isNaN(timestampMs)) {
         return 'Invalid date';
       }
-      
+
       const date = new Date(timestampMs);
-      
+
       // Format to IST (UTC+5:30)
-      const istOptions = { 
+      const istOptions = {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
         month: 'short',
@@ -94,28 +95,28 @@ function Operations() {
         minute: '2-digit',
         hour12: true
       };
-      
+
       return date.toLocaleString('en-IN', istOptions) + ' IST';
     } catch (error) {
       console.error('Error formatting date:', error, timestamp);
       return 'Date error';
     }
   };
-  
+
   const formatSchedule = (trigger) => {
     console.log('Formatting trigger:', trigger);
-    
+
     if (!trigger) return 'Not scheduled';
-    
+
     try {
       let schedule = '';
-      
+
       // Handle different trigger formats
       if (typeof trigger === 'string') {
         // If trigger is a string, return it directly
         return trigger;
       }
-      
+
       if (trigger.minute && trigger.minute !== '*') {
         schedule = `Every ${trigger.minute.replace('*/', '')} minute(s)`;
       } else if (trigger.hour && trigger.hour !== '*') {
@@ -130,18 +131,18 @@ function Operations() {
       } else {
         schedule = 'Custom schedule';
       }
-      
+
       return schedule;
     } catch (error) {
       console.error('Error formatting schedule:', error, trigger);
       return 'Custom schedule';
     }
   };
-  
+
   const [activeSection, setActiveSection] = useState('portfolio-section');
   const [statusMessages, setStatusMessages] = useState({});
   const [loading, setLoading] = useState({});
-  
+
   // Form state
   const [tokenId, setTokenId] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
@@ -153,7 +154,7 @@ function Operations() {
   const [volumeInterval, setVolumeInterval] = useState('5');
   const [pumpInterval, setPumpInterval] = useState('5');
   const [walletBehaviourAddress, setWalletBehaviourAddress] = useState('');
-  
+
   // Top PNL Investment Details state
   const [updateWalletAddress, setUpdateWalletAddress] = useState('');
   const [updateTokenWallet, setUpdateTokenWallet] = useState('');
@@ -178,7 +179,7 @@ function Operations() {
     try {
       // Try the correct API endpoint
       if (isDev) console.log('Fetching jobs from:', `${API_BASE_URL}/api/scheduler/jobs`);
-      
+
       const response = await fetch(`${API_BASE_URL}/api/scheduler/jobs`, {
         method: 'GET',
         headers: {
@@ -186,18 +187,18 @@ function Operations() {
           'Accept': 'application/json'
         }
       });
-      
+
       if (isDev) {
         console.log('Response status:', response.status);
       }
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Jobs data:', data);
-      
+
       if (data.success && data.jobs) {
         setJobs(data.jobs);
       } else {
@@ -225,7 +226,7 @@ function Operations() {
       ...prev,
       [elementId]: { message, isError, visible: true }
     }));
-    
+
     // Hide the message after 3 seconds
     setTimeout(() => {
       setStatusMessages(prev => ({
@@ -248,7 +249,7 @@ function Operations() {
   const updatePortfolio = async () => {
     showLoading('portfolio');
     console.log(`Sending fetch request to: ${API_BASE_URL}/api/portfolio/update`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/portfolio/update`, {
         method: 'POST',
@@ -258,13 +259,13 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Response data:', data);
       showStatus('portfolio-status', 'Portfolio updated successfully!');
@@ -279,7 +280,7 @@ function Operations() {
   const persistAllSMWalletsInvestedInAnyPortSummaryToken = async () => {
     showLoading('all-tokens');
     if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletsinvested/persist/all`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/walletsinvested/persist/all`, {
         method: 'POST',
@@ -289,21 +290,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Response data:', data);
       showStatus('token-analysis-status', 'Successfully initiated analysis for all active tokens!');
     } catch (error) {
       if (isDev) console.error('Error analyzing tokens:', error);
       showStatus(
-        'token-analysis-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'token-analysis-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -319,7 +320,7 @@ function Operations() {
 
     showLoading('specific-token');
     if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/walletsinvested/persist/token/${tokenId}`, {
         method: 'POST',
@@ -329,21 +330,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Response data:', data);
       showStatus('specific-token-analysis-status', `Successfully initiated analysis for token ID: ${tokenId}`);
     } catch (error) {
       if (isDev) console.error('Error analyzing specific token:', error);
       showStatus(
-        'specific-token-analysis-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'specific-token-analysis-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -359,7 +360,7 @@ function Operations() {
 
     showLoading('wallet-token');
     if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/walletinvestement/investmentdetails/token/wallet`, {
         method: 'POST',
@@ -372,21 +373,21 @@ function Operations() {
           token_id: transTokenId
         })
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Response data:', data);
       showStatus('wallet-token-analysis-status', `Successfully analyzed investment for wallet: ${walletAddress} and token: ${transTokenId}`);
     } catch (error) {
       if (isDev) console.error('Error analyzing wallet investment:', error);
       showStatus(
-        'wallet-token-analysis-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'wallet-token-analysis-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -402,7 +403,7 @@ function Operations() {
 
     showLoading('min-holding');
     if (isDev) console.log(`Sending request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/all`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/walletinvestement/investmentdetails/all`, {
         method: 'POST',
@@ -414,21 +415,21 @@ function Operations() {
           min_holding: minSmartHolding
         })
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to process request: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Response data:', data);
       showStatus('min-holding-status', `Successfully analyzed wallets with holdings above ${minSmartHolding}`);
     } catch (error) {
       if (isDev) console.error('Error analyzing wallets holdings:', error);
       showStatus(
-        'min-holding-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'min-holding-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -444,15 +445,15 @@ function Operations() {
 
     showLoading('token-wallets');
     console.log(`Sending XHR request to: ${API_BASE_URL}/api/walletinvestement/investmentdetails/token/all`);
-    
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE_URL}/api/walletinvestement/investmentdetails/token/all`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
+
+    xhr.onload = function () {
       console.log('XHR status:', xhr.status);
-      
+
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
@@ -467,13 +468,13 @@ function Operations() {
       }
       hideLoading('token-wallets');
     };
-    
-    xhr.onerror = function() {
+
+    xhr.onerror = function () {
       console.error('XHR error occurred');
       showStatus('token-wallets-status', 'Network error occurred', true);
       hideLoading('token-wallets');
     };
-    
+
     xhr.send(JSON.stringify({
       token_address: tokenAddress,
       min_holding: tokenMinHolding
@@ -484,15 +485,15 @@ function Operations() {
   const persistAllSmartMoneyWallets = () => {
     showLoading('persist-sm-wallets');
     console.log(`Sending XHR request to: ${API_BASE_URL}/api/smartmoneywallets/persist`);
-    
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE_URL}/api/smartmoneywallets/persist`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
+
+    xhr.onload = function () {
       console.log('XHR status:', xhr.status);
-      
+
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
@@ -507,13 +508,13 @@ function Operations() {
       }
       hideLoading('persist-sm-wallets');
     };
-    
-    xhr.onerror = function() {
+
+    xhr.onerror = function () {
       console.error('XHR error occurred');
       showStatus('persist-sm-wallets-status', 'Network error occurred', true);
       hideLoading('persist-sm-wallets');
     };
-    
+
     xhr.send(JSON.stringify({}));
   };
 
@@ -544,8 +545,8 @@ function Operations() {
     } catch (error) {
       if (isDev) console.error('Error analyzing top PNL tokens:', error);
       showStatus(
-        'analyze-top-pnl-tokens-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'analyze-top-pnl-tokens-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -561,7 +562,7 @@ function Operations() {
 
     showLoading('specific-wallet-pnl');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/smwallettoppnltoken/wallet/persist`, {
         method: 'POST',
@@ -573,21 +574,21 @@ function Operations() {
           wallet_address: pnlWalletAddress
         })
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('specific-wallet-pnl-status', `Successfully analyzed top PNL tokens for wallet: ${pnlWalletAddress}`);
     } catch (error) {
       if (isDev) console.error('Error analyzing wallet PNL tokens:', error);
       showStatus(
-        'specific-wallet-pnl-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'specific-wallet-pnl-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -599,7 +600,7 @@ function Operations() {
   const persistInvestementDataForAllTopPNLTokens = async () => {
     showLoading('persist-all-pnl-tokens');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/all`, {
         method: 'POST',
@@ -609,21 +610,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('persist-all-pnl-tokens-status', 'Successfully initiated persistence of investment data for all top PNL tokens');
     } catch (error) {
       if (isDev) console.error('Error persisting all PNL tokens:', error);
       showStatus(
-        'persist-all-pnl-tokens-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'persist-all-pnl-tokens-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -639,16 +640,16 @@ function Operations() {
 
     showLoading('update-specific-wallet');
     console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/wallet`);
-    
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/wallet`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
+
+    xhr.onload = function () {
       console.log('XHR status:', xhr.status);
       console.log('XHR response:', xhr.responseText);
-      
+
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
@@ -668,16 +669,16 @@ function Operations() {
       }
       hideLoading('update-specific-wallet');
     };
-    
-    xhr.onerror = function() {
+
+    xhr.onerror = function () {
       console.error('XHR error occurred');
       showStatus('update-specific-wallet-status', 'Network error occurred', true);
       hideLoading('update-specific-wallet');
     };
-    
+
     // Make sure the wallet address is properly formatted
     const formattedWalletAddress = updateWalletAddress.trim();
-    
+
     xhr.send(JSON.stringify({
       wallet_address: formattedWalletAddress
     }));
@@ -691,15 +692,15 @@ function Operations() {
 
     showLoading('update-specific-token');
     console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/wallet/token`);
-    
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE_URL}/api/smwallettoppnltokeninvestment/persist/wallet/token`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
+
+    xhr.onload = function () {
       console.log('XHR status:', xhr.status);
-      
+
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
@@ -714,13 +715,13 @@ function Operations() {
       }
       hideLoading('update-specific-token');
     };
-    
-    xhr.onerror = function() {
+
+    xhr.onerror = function () {
       console.error('XHR error occurred');
       showStatus('update-specific-token-status', 'Network error occurred', true);
       hideLoading('update-specific-token');
     };
-    
+
     xhr.send(JSON.stringify({
       wallet_address: updateTokenWallet,
       token_address: updateTokenAddress
@@ -730,7 +731,7 @@ function Operations() {
   // Volume Bot functions
   const scheduleVolumeFetch = () => {
     showLoading('volume-fetch-btn');
-    
+
     fetch(`${API_BASE_URL}/api/volumebot/fetch`, {
       method: 'POST',
       headers: {
@@ -748,16 +749,16 @@ function Operations() {
       })
       .then(data => {
         hideLoading('volume-fetch-btn');
-        
+
         if (data.status === 'error') {
           // Handle error response from API
           showStatus('volume-fetch-status', data.message || 'Failed to schedule volume fetch', true);
           return;
         }
-        
+
         // Success response
         showStatus('volume-fetch-status', data.message || 'Volume fetch has been scheduled');
-        
+
         // Refresh jobs list since we scheduled a new job
         fetchJobs();
       })
@@ -772,7 +773,7 @@ function Operations() {
   const schedulePumpFunFetch = async () => {
     showLoading('pumpfun-fetch');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/pumpfun/fetch`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/pumpfun/fetch`, {
         method: 'POST',
@@ -782,21 +783,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('pumpfun-fetch-status', 'Successfully scheduled PumpFun fetch');
     } catch (error) {
       if (isDev) console.error('Error scheduling PumpFun fetch:', error);
       showStatus(
-        'pumpfun-fetch-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'pumpfun-fetch-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -808,7 +809,7 @@ function Operations() {
   const analyzeAttention = async () => {
     showLoading('attention-analysis');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/attention/analyze`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/attention/analyze`, {
         method: 'POST',
@@ -818,21 +819,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('attention-analysis-status', 'Successfully initiated attention analysis');
     } catch (error) {
       if (isDev) console.error('Error initiating attention analysis:', error);
       showStatus(
-        'attention-analysis-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'attention-analysis-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -844,7 +845,7 @@ function Operations() {
   const analyzeSolanaAttention = async () => {
     showLoading('solana-attention-analysis');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/attention/solana/analyze`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/attention/solana/analyze`, {
         method: 'POST',
@@ -854,13 +855,13 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       const tokenCount = data.tokens_processed || 'Unknown';
@@ -868,8 +869,8 @@ function Operations() {
     } catch (error) {
       if (isDev) console.error('Error processing Solana attention analysis:', error);
       showStatus(
-        'solana-attention-analysis-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'solana-attention-analysis-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -884,15 +885,15 @@ function Operations() {
       showStatus('scheduler-status', 'Please enter a job ID', true);
       return;
     }
-    
+
     if (!timingValue) {
       showStatus('scheduler-status', 'Please enter a timing value', true);
       return;
     }
-    
+
     showLoading('scheduler');
     if (isDev) console.log(`Updating job ${jobId} schedule with timing type ${timingType} and value ${timingValue}`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scheduler/update-timing`, {
         method: 'POST',
@@ -906,26 +907,26 @@ function Operations() {
           value: timingValue
         })
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `Error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Response data:', data);
-      
+
       // Refresh the job list
       await fetchJobs();
-      
+
       showStatus('scheduler-status', `Successfully updated job ${jobId} schedule`);
     } catch (error) {
       if (isDev) console.error('Error updating job schedule:', error);
       showStatus(
-        'scheduler-status', 
-        `Failed to update job schedule: ${error.message}. Check timing values or contact support.`, 
+        'scheduler-status',
+        `Failed to update job schedule: ${error.message}. Check timing values or contact support.`,
         true
       );
     } finally {
@@ -938,7 +939,7 @@ function Operations() {
     if (!jobId) {
       jobId = selectedJobId;
     }
-    
+
     if (!jobId) {
       setStatusMessages(prev => ({
         ...prev,
@@ -950,15 +951,15 @@ function Operations() {
       }));
       return;
     }
-    
+
     setLoading(prev => ({ ...prev, 'job-run': true }));
-    
+
     const requestBody = {
       job_id: jobId
     };
-    
+
     console.log('Running job with:', requestBody);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scheduler/run-job`, {
         method: 'POST',
@@ -967,14 +968,14 @@ function Operations() {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to run job: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Run job response:', data);
-      
+
       setStatusMessages(prev => ({
         ...prev,
         'job-action-status': {
@@ -1003,7 +1004,7 @@ function Operations() {
     if (!jobId) {
       jobId = selectedJobId;
     }
-    
+
     if (!jobId) {
       setStatusMessages(prev => ({
         ...prev,
@@ -1015,15 +1016,15 @@ function Operations() {
       }));
       return;
     }
-    
+
     setLoading(prev => ({ ...prev, 'job-pause': true }));
-    
+
     const requestBody = {
       job_id: jobId
     };
-    
+
     console.log('Pausing job with:', requestBody);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scheduler/pause-job`, {
         method: 'POST',
@@ -1032,14 +1033,14 @@ function Operations() {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to pause job: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Pause job response:', data);
-      
+
       setStatusMessages(prev => ({
         ...prev,
         'job-action-status': {
@@ -1048,7 +1049,7 @@ function Operations() {
           message: `Job #${jobId} paused successfully`
         }
       }));
-      
+
       // Refresh the job list
       fetchJobs();
     } catch (error) {
@@ -1071,7 +1072,7 @@ function Operations() {
     if (!jobId) {
       jobId = selectedJobId;
     }
-    
+
     if (!jobId) {
       setStatusMessages(prev => ({
         ...prev,
@@ -1083,15 +1084,15 @@ function Operations() {
       }));
       return;
     }
-    
+
     setLoading(prev => ({ ...prev, 'job-resume': true }));
-    
+
     const requestBody = {
       job_id: jobId
     };
-    
+
     console.log('Resuming job with:', requestBody);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scheduler/resume-job`, {
         method: 'POST',
@@ -1100,14 +1101,14 @@ function Operations() {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to resume job: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Resume job response:', data);
-      
+
       setStatusMessages(prev => ({
         ...prev,
         'job-action-status': {
@@ -1116,7 +1117,7 @@ function Operations() {
           message: `Job #${jobId} resumed successfully`
         }
       }));
-      
+
       // Refresh the job list
       fetchJobs();
     } catch (error) {
@@ -1139,7 +1140,7 @@ function Operations() {
     if (!jobId) {
       jobId = selectedJobId;
     }
-    
+
     if (!jobId) {
       setStatusMessages(prev => ({
         ...prev,
@@ -1151,21 +1152,21 @@ function Operations() {
       }));
       return;
     }
-    
+
     setLoading(prev => ({ ...prev, 'job-history': true }));
-    
+
     try {
       // Try both possible API endpoints
       const endpoints = [
         `${API_BASE_URL}/api/scheduler/job-history/${jobId}`,
         `${API_BASE_URL}/api/scheduler/jobs/${jobId}/history`
       ];
-      
+
       console.log('Trying job history endpoints:', endpoints);
-      
+
       let response = null;
       let successEndpoint = '';
-      
+
       // Try each endpoint
       for (const endpoint of endpoints) {
         try {
@@ -1177,9 +1178,9 @@ function Operations() {
               'Accept': 'application/json'
             }
           });
-          
+
           console.log(`Response from ${endpoint}:`, resp.status);
-          
+
           if (resp.ok) {
             response = resp;
             successEndpoint = endpoint;
@@ -1189,16 +1190,16 @@ function Operations() {
           console.error(`Error with endpoint ${endpoint}:`, endpointError);
         }
       }
-      
+
       if (!response) {
         throw new Error('Failed to fetch job history from all endpoints');
       }
-      
+
       console.log(`Successfully fetched from: ${successEndpoint}`);
-      
+
       const responseText = await response.text();
       console.log('Raw job history response:', responseText);
-      
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -1206,21 +1207,21 @@ function Operations() {
         console.error('Error parsing job history JSON:', parseError);
         throw new Error(`Failed to parse job history response: ${parseError.message}`);
       }
-      
+
       console.log('Job history API response:', data);
-      
+
       // Check if data is an array directly
       if (Array.isArray(data)) {
         console.log('Job history response is an array, using directly');
-        
+
         // Log each history entry to debug
         data.forEach((entry, index) => {
           console.log(`History entry ${index}:`, entry);
         });
-        
+
         setJobHistory(data);
         setShowJobHistory(true);
-        
+
         setStatusMessages(prev => ({
           ...prev,
           'job-history-status': {
@@ -1238,10 +1239,10 @@ function Operations() {
             duration: entry.duration
           });
         });
-        
+
         setJobHistory(data.history);
         setShowJobHistory(true);
-        
+
         setStatusMessages(prev => ({
           ...prev,
           'job-history-status': {
@@ -1252,7 +1253,7 @@ function Operations() {
         }));
       } else {
         console.error('Invalid job history response format:', data);
-        
+
         // Try to extract history if data has any properties
         const possibleHistory = Object.values(data).find(val => Array.isArray(val));
         if (possibleHistory) {
@@ -1261,7 +1262,7 @@ function Operations() {
         } else {
           setJobHistory([]);
         }
-        
+
         setShowJobHistory(true);
       }
     } catch (error) {
@@ -1290,16 +1291,16 @@ function Operations() {
       setTimingValue('');
       return;
     }
-    
+
     setSelectedJobId(jobId);
-    
+
     // Find the job in the jobs array
     const job = jobs.find(j => j.id === jobId);
     console.log('Selected job:', job);
-    
+
     if (job && job.trigger) {
       console.log('Job trigger:', job.trigger);
-      
+
       // Check for each timing type
       if (job.trigger.minute && job.trigger.minute !== '*') {
         setTimingType('minutes');
@@ -1325,7 +1326,7 @@ function Operations() {
   const analyzeAllWalletsBehaviour = async () => {
     showLoading('analyze-all-wallets-behaviour');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/smwalletbehaviour/analyze`, {
         method: 'POST',
@@ -1335,21 +1336,21 @@ function Operations() {
         },
         body: JSON.stringify({})
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('wallet-behaviour-status', 'Successfully analyzed behaviour for all wallets');
     } catch (error) {
       if (isDev) console.error('Error analyzing all wallets behaviour:', error);
       showStatus(
-        'wallet-behaviour-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'wallet-behaviour-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -1365,7 +1366,7 @@ function Operations() {
 
     showLoading('analyze-specific-wallet-behaviour');
     if (isDev) console.log(`Sending fetch request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/smwalletbehaviour/analyze`, {
         method: 'POST',
@@ -1377,21 +1378,21 @@ function Operations() {
           walletAddress: walletBehaviourAddress
         })
       });
-      
+
       if (isDev) console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (isDev) console.log('Parsed response data:', data);
       showStatus('specific-wallet-behaviour-status', `Successfully analyzed behaviour for wallet: ${walletBehaviourAddress}`);
     } catch (error) {
       if (isDev) console.error('Error analyzing specific wallet behaviour:', error);
       showStatus(
-        'specific-wallet-behaviour-status', 
-        `Failed to connect: ${error.message}. Check network or contact support.`, 
+        'specific-wallet-behaviour-status',
+        `Failed to connect: ${error.message}. Check network or contact support.`,
         true
       );
     } finally {
@@ -1408,89 +1409,89 @@ function Operations() {
         </div>
         <p className="subtitle">Manage data operations, updates, and scheduled jobs</p>
       </div>
-      
+
       {/* Navigation Tiles - Apple-style */}
       <nav className="luxury-nav" id="nav-panel">
         <div className="nav-container">
           <div className="nav-tiles">
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'portfolio-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('portfolio-section')}
             >
               <FaChartBar />
               <span>Port Summary</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'wallet-invested-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('wallet-invested-section')}
             >
               <FaCoins />
               <span>Wallets Invested</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'wallets-investement-details-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('wallets-investement-details-section')}
             >
               <FaChartLine />
               <span>Investment Details</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'smart-money-wallets-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('smart-money-wallets-section')}
             >
               <FaWallet />
               <span>Smart Money</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'smwallet-toppnltoken-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('smwallet-toppnltoken-section')}
             >
               <FaTrophy />
               <span>Top PNL Tokens</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'smwallet-toppnltoken-investment-details-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('smwallet-toppnltoken-investment-details-section')}
             >
               <FaSync />
               <span>PNL Analysis</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'wallet-behaviour-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('wallet-behaviour-section')}
             >
               <FaBrain />
               <span>Wallet Behaviour</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'volume-bot-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('volume-bot-section')}
             >
               <FaRobot />
               <span>Volume Bot</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'pumpfun-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('pumpfun-section')}
             >
               <FaRocket />
               <span>Pump Fun</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'attention-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('attention-section')}
             >
               <FaEye />
               <span>Attention</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'solana-attention-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('solana-attention-section')}
             >
               <FaRegLightbulb />
               <span>Solana Attention</span>
             </button>
-            <button 
+            <button
               className={`nav-tile ${activeSection === 'scheduler-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('scheduler-section')}
             >
@@ -1512,7 +1513,7 @@ function Operations() {
                 <p className="premium-subtitle">Analyze and track your portfolio performance</p>
                 <div className="section-description">
                   <p>
-                    Track your portfolio's performance with detailed analytics and insights. 
+                    Track your portfolio's performance with detailed analytics and insights.
                     Monitor token growth, analyze trends, and make informed investment decisions.
                   </p>
                 </div>
@@ -1520,27 +1521,27 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Portfolio Actions</h3>
                       <div className="badge badge-gold">Analytics</div>
-                  </div>
-                    <div className="pattern pattern-grid"></div>
-                  <p>
-                      Update your portfolio data to get the latest insights and analytics.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={updatePortfolio}
-                    disabled={loading['portfolio']}
-                  >
-                      UPDATE PORTFOLIO
-                    {loading['portfolio'] && <div className="loading-spinner"></div>}
-                  </button>
-                  {statusMessages['portfolio-status']?.visible && (
-                    <div className={`status-message ${statusMessages['portfolio-status']?.isError ? 'error' : ''}`}>
-                      {statusMessages['portfolio-status']?.message}
                     </div>
-                  )}
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Update your portfolio data to get the latest insights and analytics.
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={updatePortfolio}
+                      disabled={loading['portfolio']}
+                    >
+                      UPDATE PORTFOLIO
+                      {loading['portfolio'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['portfolio-status']?.visible && (
+                      <div className={`status-message ${statusMessages['portfolio-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['portfolio-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1565,42 +1566,42 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Investment Analysis</h3>
-                    <div className="badge badge-gold">Analytics</div>
-                  </div>
-                  <div className="pattern pattern-grid"></div>
-                  <p>
-                    View insights and analytics about your portfolio performance. Track your investments and monitor token growth.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={persistAllSMWalletsInvestedInAnyPortSummaryToken}
-                    disabled={loading['all-tokens']}
-                  >
-                    ANALYZE ALL TOKENS
-                    {loading['all-tokens'] && <div className="loading-spinner"></div>}
-                  </button>
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                    placeholder="Token ID"
-                    value={tokenId}
-                    onChange={(e) => setTokenId(e.target.value)}
-                  />
-                  <button 
-                    className="luxury-button" 
-                    onClick={persistAllSMWalletsInvestedInASpecificToken}
-                    disabled={loading['specific-token']}
-                  >
-                      ANALYZE SPECIFIC TOKEN
-                    {loading['specific-token'] && <div className="loading-spinner"></div>}
-                  </button>
-                  {statusMessages['token-analysis-status']?.visible && (
-                    <div className={`status-message ${statusMessages['token-analysis-status']?.isError ? 'error' : ''}`}>
-                      {statusMessages['token-analysis-status']?.message}
+                      <div className="badge badge-gold">Analytics</div>
                     </div>
-                  )}
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      View insights and analytics about your portfolio performance. Track your investments and monitor token growth.
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={persistAllSMWalletsInvestedInAnyPortSummaryToken}
+                      disabled={loading['all-tokens']}
+                    >
+                      ANALYZE ALL TOKENS
+                      {loading['all-tokens'] && <div className="loading-spinner"></div>}
+                    </button>
+                    <input
+                      type="text"
+                      className="luxury-input"
+                      placeholder="Token ID"
+                      value={tokenId}
+                      onChange={(e) => setTokenId(e.target.value)}
+                    />
+                    <button
+                      className="luxury-button"
+                      onClick={persistAllSMWalletsInvestedInASpecificToken}
+                      disabled={loading['specific-token']}
+                    >
+                      ANALYZE SPECIFIC TOKEN
+                      {loading['specific-token'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['token-analysis-status']?.visible && (
+                      <div className={`status-message ${statusMessages['token-analysis-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['token-analysis-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1617,8 +1618,8 @@ function Operations() {
                 <p className="premium-subtitle">Analyze investment details for wallets and tokens</p>
                 <div className="section-description">
                   <p>
-                    Dive deep into investment details for specific wallets and tokens. 
-                    Understand investment patterns, track performance metrics, and gain insights 
+                    Dive deep into investment details for specific wallets and tokens.
+                    Understand investment patterns, track performance metrics, and gain insights
                     into smart money movements.
                   </p>
                 </div>
@@ -1626,43 +1627,43 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Wallet & Token Analysis</h3>
                       <div className="badge badge-gold">Analytics</div>
-                  </div>
+                    </div>
                     <div className="pattern pattern-grid"></div>
-                  <p>
+                    <p>
                       Analyze investment details for a specific wallet and token combination.
-                  </p>
+                    </p>
                     <div className="input-group">
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                    placeholder="Wallet Address"
-                    value={walletAddress}
-                    onChange={(e) => setWalletAddress(e.target.value)}
-                  />
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                    placeholder="Token ID"
-                    value={transTokenId}
-                    onChange={(e) => setTransTokenId(e.target.value)}
-                  />
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        placeholder="Wallet Address"
+                        value={walletAddress}
+                        onChange={(e) => setWalletAddress(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        placeholder="Token ID"
+                        value={transTokenId}
+                        onChange={(e) => setTransTokenId(e.target.value)}
+                      />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeInvestmentForSpecificWalletAndToken}
-                    disabled={loading['wallet-token']}
-                  >
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeInvestmentForSpecificWalletAndToken}
+                      disabled={loading['wallet-token']}
+                    >
                       ANALYZE WALLET & TOKEN
-                    {loading['wallet-token'] && <div className="loading-spinner"></div>}
-                  </button>
-                  {statusMessages['wallet-token-analysis-status']?.visible && (
-                    <div className={`status-message ${statusMessages['wallet-token-analysis-status']?.isError ? 'error' : ''}`}>
-                      {statusMessages['wallet-token-analysis-status']?.message}
-                    </div>
-                  )}
+                      {loading['wallet-token'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['wallet-token-analysis-status']?.visible && (
+                      <div className={`status-message ${statusMessages['wallet-token-analysis-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['wallet-token-analysis-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1677,26 +1678,26 @@ function Operations() {
                     <p>
                       Analyze all smart money wallets above a certain holding threshold.
                     </p>
-                  <input 
-                    type="number" 
-                    className="luxury-input" 
+                    <input
+                      type="number"
+                      className="luxury-input"
                       placeholder="Minimum Smart Holding"
-                    value={minSmartHolding}
-                    onChange={(e) => setMinSmartHolding(e.target.value)}
-                  />
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeAllWalletsAboveCertainHoldings}
-                    disabled={loading['min-holding']}
-                  >
-                    ANALYZE SMART WALLETS
-                    {loading['min-holding'] && <div className="loading-spinner"></div>}
-                  </button>
-                  {statusMessages['min-holding-status']?.visible && (
-                    <div className={`status-message ${statusMessages['min-holding-status']?.isError ? 'error' : ''}`}>
-                      {statusMessages['min-holding-status']?.message}
-                    </div>
-                  )}
+                      value={minSmartHolding}
+                      onChange={(e) => setMinSmartHolding(e.target.value)}
+                    />
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeAllWalletsAboveCertainHoldings}
+                      disabled={loading['min-holding']}
+                    >
+                      ANALYZE SMART WALLETS
+                      {loading['min-holding'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['min-holding-status']?.visible && (
+                      <div className={`status-message ${statusMessages['min-holding-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['min-holding-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1712,34 +1713,34 @@ function Operations() {
                       Analyze all wallets invested in a specific token with a minimum holding.
                     </p>
                     <div className="input-group">
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                    placeholder="Token Address"
-                    value={tokenAddress}
-                    onChange={(e) => setTokenAddress(e.target.value)}
-                  />
-                  <input 
-                    type="number" 
-                    className="luxury-input" 
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        placeholder="Token Address"
+                        value={tokenAddress}
+                        onChange={(e) => setTokenAddress(e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className="luxury-input"
                         placeholder="Minimum Holding"
-                    value={tokenMinHolding}
-                    onChange={(e) => setTokenMinHolding(e.target.value)}
-                  />
+                        value={tokenMinHolding}
+                        onChange={(e) => setTokenMinHolding(e.target.value)}
+                      />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeInvestmentsOfAllWalletsForASpecificToken}
-                    disabled={loading['token-wallets']}
-                  >
-                    ANALYZE TOKEN WALLETS
-                    {loading['token-wallets'] && <div className="loading-spinner"></div>}
-                  </button>
-                  {statusMessages['token-wallets-status']?.visible && (
-                    <div className={`status-message ${statusMessages['token-wallets-status']?.isError ? 'error' : ''}`}>
-                      {statusMessages['token-wallets-status']?.message}
-                    </div>
-                  )}
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeInvestmentsOfAllWalletsForASpecificToken}
+                      disabled={loading['token-wallets']}
+                    >
+                      ANALYZE TOKEN WALLETS
+                      {loading['token-wallets'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['token-wallets-status']?.visible && (
+                      <div className={`status-message ${statusMessages['token-wallets-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['token-wallets-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1764,24 +1765,24 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Smart Money Actions</h3>
                       <div className="badge badge-gold">Analytics</div>
-                  </div>
-                    <div className="pattern pattern-grid"></div>
-                  <p>
-                      Analyze and persist data for smart money wallets to gain insights into their investment strategies.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={persistAllSmartMoneyWallets}
-                    disabled={loading['persist-sm-wallets']}
-                  >
-                      Persist Smart Money Wallets
-                    {loading['persist-sm-wallets'] && <div className="loading-spinner"></div>}
-                  </button>
-                    <div id="smart-money-status" className="status-message"></div>
                     </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Analyze and persist data for smart money wallets to gain insights into their investment strategies.
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={persistAllSmartMoneyWallets}
+                      disabled={loading['persist-sm-wallets']}
+                    >
+                      Persist Smart Money Wallets
+                      {loading['persist-sm-wallets'] && <div className="loading-spinner"></div>}
+                    </button>
+                    <div id="smart-money-status" className="status-message"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1805,22 +1806,22 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Top PNL Analysis</h3>
                       <div className="badge badge-blue">Analytics</div>
-                  </div>
-                  <div className="pattern pattern-grid"></div>
-                  <p>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
                       Analyze top performing tokens across all high PNL smart money wallets.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeAllTopPnlTokensForAllHighPNLSMWallets}
-                    disabled={loading['analyze-top-pnl-tokens']}
-                  >
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeAllTopPnlTokensForAllHighPNLSMWallets}
+                      disabled={loading['analyze-top-pnl-tokens']}
+                    >
                       Analyze All Top PNL Tokens
-                    {loading['analyze-top-pnl-tokens'] && <div className="loading-spinner"></div>}
-                  </button>
+                      {loading['analyze-top-pnl-tokens'] && <div className="loading-spinner"></div>}
+                    </button>
                     <div id="all-top-pnl-status" className="status-message"></div>
                   </div>
                 </div>
@@ -1838,24 +1839,24 @@ function Operations() {
                     </p>
                     <div className="form-group">
                       <label>Wallet Address:</label>
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                        value={pnlWalletAddress} 
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        value={pnlWalletAddress}
                         onChange={(e) => setPnlWalletAddress(e.target.value)}
                         placeholder="Enter wallet address"
                       />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeAllTopPNLTokensForASpecificWallet}
-                    disabled={loading['specific-wallet-pnl']}
-                  >
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeAllTopPNLTokensForASpecificWallet}
+                      disabled={loading['specific-wallet-pnl']}
+                    >
                       Analyze Wallet's Top PNL
-                    {loading['specific-wallet-pnl'] && <div className="loading-spinner"></div>}
-                  </button>
+                      {loading['specific-wallet-pnl'] && <div className="loading-spinner"></div>}
+                    </button>
                     <div id="specific-wallet-pnl-status" className="status-message"></div>
-                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1879,22 +1880,22 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>All Top PNL Tokens</h3>
                       <div className="badge badge-gold">Analytics</div>
-                  </div>
+                    </div>
                     <div className="pattern pattern-grid"></div>
-                  <p>
+                    <p>
                       Persist investment data for all top PNL tokens across smart money wallets.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={persistInvestementDataForAllTopPNLTokens}
-                    disabled={loading['persist-all-pnl-tokens']}
-                  >
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={persistInvestementDataForAllTopPNLTokens}
+                      disabled={loading['persist-all-pnl-tokens']}
+                    >
                       Analyze All Top PNL Investments
-                    {loading['persist-all-pnl-tokens'] && <div className="loading-spinner"></div>}
-                  </button>
+                      {loading['persist-all-pnl-tokens'] && <div className="loading-spinner"></div>}
+                    </button>
                     <div id="all-top-pnl-investment-status" className="status-message"></div>
                   </div>
                 </div>
@@ -1912,24 +1913,24 @@ function Operations() {
                     </p>
                     <div className="form-group">
                       <label>Wallet Address:</label>
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
-                        value={updateWalletAddress} 
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        value={updateWalletAddress}
                         onChange={(e) => setUpdateWalletAddress(e.target.value)}
                         placeholder="Enter wallet address"
                       />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={persistInvestmentDataForAllTopPNLForASpecficWallet}
-                    disabled={loading['update-specific-wallet']}
-                  >
+                    <button
+                      className="luxury-button"
+                      onClick={persistInvestmentDataForAllTopPNLForASpecficWallet}
+                      disabled={loading['update-specific-wallet']}
+                    >
                       Analyze Wallet's PNL Investments
-                    {loading['update-specific-wallet'] && <div className="loading-spinner"></div>}
-                  </button>
+                      {loading['update-specific-wallet'] && <div className="loading-spinner"></div>}
+                    </button>
                     <div id="update-specific-wallet-status" className="status-message"></div>
-                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1953,35 +1954,35 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Volume Analysis</h3>
                       <div className="badge badge-blue">Automation</div>
-                  </div>
+                    </div>
                     <div className="pattern pattern-grid"></div>
                     <p>
                       Schedule automated volume analysis to track trading patterns.
                     </p>
                     <div className="form-group">
                       <label>Schedule Interval (minutes):</label>
-                      <input 
-                        type="number" 
-                        className="luxury-input" 
-                        value={volumeInterval} 
+                      <input
+                        type="number"
+                        className="luxury-input"
+                        value={volumeInterval}
                         onChange={(e) => setVolumeInterval(e.target.value)}
                         placeholder="Enter interval in minutes"
                         min="1"
                       />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={scheduleVolumeFetch}
+                    <button
+                      className="luxury-button"
+                      onClick={scheduleVolumeFetch}
                       disabled={loading['volume-schedule']}
-                  >
+                    >
                       Schedule Volume Analysis
                       {loading['volume-schedule'] && <div className="loading-spinner"></div>}
-                  </button>
+                    </button>
                     <div id="volume-schedule-status" className="status-message"></div>
-                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2005,35 +2006,35 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Pump Analysis</h3>
                       <div className="badge badge-blue">Automation</div>
-                  </div>
+                    </div>
                     <div className="pattern pattern-grid"></div>
                     <p>
                       Schedule automated pump analysis to track market patterns.
                     </p>
                     <div className="form-group">
                       <label>Schedule Interval (minutes):</label>
-                      <input 
-                        type="number" 
-                        className="luxury-input" 
-                        value={pumpInterval} 
+                      <input
+                        type="number"
+                        className="luxury-input"
+                        value={pumpInterval}
                         onChange={(e) => setPumpInterval(e.target.value)}
                         placeholder="Enter interval in minutes"
                         min="1"
                       />
                     </div>
-                  <button 
-                    className="luxury-button" 
-                    onClick={schedulePumpFunFetch}
+                    <button
+                      className="luxury-button"
+                      onClick={schedulePumpFunFetch}
                       disabled={loading['pump-schedule']}
-                  >
+                    >
                       Schedule Pump Analysis
                       {loading['pump-schedule'] && <div className="loading-spinner"></div>}
-                  </button>
+                    </button>
                     <div id="pump-schedule-status" className="status-message"></div>
-                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2057,22 +2058,22 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
-                    <h3>Attention Analysis</h3>
-                    <div className="badge badge-gold">Analytics</div>
-                  </div>
-                  <div className="pattern pattern-grid"></div>
-                  <p>
+                    <div className="card-header">
+                      <h3>Attention Analysis</h3>
+                      <div className="badge badge-gold">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
                       Analyze market attention patterns to identify potential opportunities.
-                  </p>
-                  <button 
-                    className="luxury-button" 
-                    onClick={analyzeAttention}
+                    </p>
+                    <button
+                      className="luxury-button"
+                      onClick={analyzeAttention}
                       disabled={loading['attention-analysis']}
-                  >
+                    >
                       Analyze Attention
                       {loading['attention-analysis'] && <div className="loading-spinner"></div>}
-                  </button>
+                    </button>
                     <div id="attention-analysis-status" className="status-message"></div>
                   </div>
                 </div>
@@ -2106,8 +2107,8 @@ function Operations() {
                     <p>
                       Analyze Solana market attention patterns to identify potential opportunities.
                     </p>
-                    <button 
-                      className="luxury-button" 
+                    <button
+                      className="luxury-button"
                       onClick={analyzeSolanaAttention}
                       disabled={loading['solana-attention-analysis']}
                     >
@@ -2139,121 +2140,121 @@ function Operations() {
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
-                  <div className="card-header">
+                    <div className="card-header">
                       <h3>Job Management</h3>
                       <div className="badge badge-gold">Automation</div>
-                  </div>
-                  <div className="pattern pattern-grid"></div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
                     <div className="job-controls">
                       <div className="job-selector">
                         <label htmlFor="job-select">Select Job:</label>
-                  <select 
-                          id="job-select" 
+                        <select
+                          id="job-select"
                           className="luxury-select"
                           value={selectedJobId}
                           onChange={(e) => selectJob(e.target.value)}
                         >
                           <option value="">-- Select a job --</option>
-                    {jobs.map(job => (
+                          {jobs.map(job => (
                             <option key={job.id} value={job.id}>{job.id}</option>
                           ))}
-                  </select>
-                    </div>
-                      
+                        </select>
+                      </div>
+
                       <div className="job-actions">
-                  <button 
+                        <button
                           className="luxury-button action-button"
                           onClick={() => runJob(selectedJobId)}
                           disabled={!selectedJobId || loading[`run-${selectedJobId}`]}
                         >
                           <FaPlay /> Run Now
                           {loading[`run-${selectedJobId}`] && <div className="loading-spinner"></div>}
-                  </button>
-                        
-                  <button 
+                        </button>
+
+                        <button
                           className="luxury-button action-button"
                           onClick={() => pauseJob(selectedJobId)}
                           disabled={!selectedJobId || loading[`pause-${selectedJobId}`]}
                         >
                           <FaPause /> Pause
                           {loading[`pause-${selectedJobId}`] && <div className="loading-spinner"></div>}
-                  </button>
-                        
-                  <button 
+                        </button>
+
+                        <button
                           className="luxury-button action-button"
                           onClick={() => resumeJob(selectedJobId)}
                           disabled={!selectedJobId || loading[`resume-${selectedJobId}`]}
                         >
                           <FaPlay /> Resume
                           {loading[`resume-${selectedJobId}`] && <div className="loading-spinner"></div>}
-                  </button>
-                        
-                  <button 
+                        </button>
+
+                        <button
                           className="luxury-button action-button"
                           onClick={() => fetchJobHistory(selectedJobId)}
                           disabled={!selectedJobId || loading[`history-${selectedJobId}`]}
                         >
                           <FaHistory /> History
                           {loading[`history-${selectedJobId}`] && <div className="loading-spinner"></div>}
-                  </button>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                    
+
                     {statusMessages[`job-${selectedJobId}`]?.visible && (
                       <div className={`status-message ${statusMessages[`job-${selectedJobId}`]?.isError ? 'error' : ''}`}>
                         {statusMessages[`job-${selectedJobId}`]?.message}
-                  </div>
+                      </div>
                     )}
-                    
+
                     {/* Job Timing Update */}
                     <div className="job-timing-update">
                       <h4>Update Job Schedule</h4>
                       <div className="timing-controls">
-                  <select 
+                        <select
                           className="luxury-select"
-                    value={timingType}
-                    onChange={(e) => setTimingType(e.target.value)}
-                  >
+                          value={timingType}
+                          onChange={(e) => setTimingType(e.target.value)}
+                        >
                           <option value="minutes">Minutes</option>
                           <option value="hours">Hours</option>
                           <option value="days">Days</option>
                           <option value="months">Months</option>
-                  </select>
+                        </select>
 
-                  <input 
-                    type="text" 
-                    className="luxury-input" 
+                        <input
+                          type="text"
+                          className="luxury-input"
                           placeholder="Timing Value (e.g. */30, 15)"
-                    value={timingValue}
-                    onChange={(e) => setTimingValue(e.target.value)}
-                  />
+                          value={timingValue}
+                          onChange={(e) => setTimingValue(e.target.value)}
+                        />
 
-                  <button 
-                    className="luxury-button" 
-                    onClick={updateJobSchedule}
+                        <button
+                          className="luxury-button"
+                          onClick={updateJobSchedule}
                           disabled={!selectedJobId || !timingValue || loading['update-timing']}
-                  >
+                        >
                           Update Schedule
                           {loading['update-timing'] && <div className="loading-spinner"></div>}
-                  </button>
+                        </button>
                       </div>
-                      
+
                       {statusMessages['update-timing-status']?.visible && (
                         <div className={`status-message ${statusMessages['update-timing-status']?.isError ? 'error' : ''}`}>
                           {statusMessages['update-timing-status']?.message}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
               <div className="col">
                 <div className="luxury-card">
                   <div className="card-content">
                     <div className="card-header">
                       <h3>Job Status</h3>
                       <div className="badge badge-gold">Monitoring</div>
-      </div>
+                    </div>
                     <div className="pattern pattern-grid"></div>
                     <div className="jobs-table-container">
                       <table className="jobs-table">
@@ -2269,26 +2270,26 @@ function Operations() {
                           {jobs.map(job => {
                             // Determine job status with fallback
                             const jobStatus = job.status || job.state || 'unknown';
-                            
+
                             // Extract job ID
                             const jobId = job.id || job.job_id || job.name || 'unknown';
-                            
+
                             // Extract next run time
                             const nextRun = job.next_run || job.next_run_time || job.nextRun || null;
-                            
+
                             // Extract trigger
                             const trigger = job.trigger || job.schedule || job.cron || null;
-                            
+
                             console.log('Rendering job row:', {
                               id: jobId,
                               status: jobStatus,
                               next_run: nextRun,
                               trigger: trigger
                             });
-                            
+
                             return (
-                              <tr 
-                                key={jobId} 
+                              <tr
+                                key={jobId}
                                 className={selectedJobId === jobId ? 'selected' : ''}
                                 onClick={() => selectJob(jobId)}
                               >
@@ -2306,7 +2307,7 @@ function Operations() {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     {/* Job History Container */}
                     <div className={`job-history-container ${showJobHistory ? 'visible' : ''}`} id="job-history-container">
                       <div className="job-history-header">
@@ -2327,19 +2328,19 @@ function Operations() {
                               {jobHistory.map((entry, index) => {
                                 // Determine entry status with fallback
                                 const entryStatus = entry.status || entry.state || entry.result || 'unknown';
-                                
+
                                 // Extract run time
                                 const runTime = entry.run_time || entry.timestamp || entry.start_time || entry.time || null;
-                                
+
                                 // Extract duration
                                 const duration = entry.duration || entry.execution_time || entry.runtime || null;
-                                
+
                                 console.log('Rendering history entry:', {
                                   status: entryStatus,
                                   run_time: runTime,
                                   duration: duration
                                 });
-                                
+
                                 return (
                                   <tr key={index}>
                                     <td>{formatDateToIST(runTime)}</td>
@@ -2392,8 +2393,8 @@ function Operations() {
                     <p>
                       Analyze investment behaviour patterns across all smart money wallets.
                     </p>
-                    <button 
-                      className="luxury-button" 
+                    <button
+                      className="luxury-button"
                       onClick={analyzeAllWalletsBehaviour}
                       disabled={loading['analyze-all-wallets-behaviour']}
                     >
@@ -2421,16 +2422,16 @@ function Operations() {
                     </p>
                     <div className="form-group">
                       <label>Wallet Address:</label>
-                      <input 
-                        type="text" 
-                        className="luxury-input" 
-                        value={walletBehaviourAddress} 
+                      <input
+                        type="text"
+                        className="luxury-input"
+                        value={walletBehaviourAddress}
                         onChange={(e) => setWalletBehaviourAddress(e.target.value)}
                         placeholder="Enter wallet address"
                       />
                     </div>
-                    <button 
-                      className="luxury-button" 
+                    <button
+                      className="luxury-button"
                       onClick={analyzeSpecificWalletBehaviour}
                       disabled={loading['analyze-specific-wallet-behaviour']}
                     >
@@ -2449,7 +2450,7 @@ function Operations() {
           </div>
         </section>
       </main>
-      
+
       {/* Floating navigation */}
       <div className={`floating-nav ${showFloatingNav ? 'visible' : ''}`}>
         <button className="floating-nav-button" onClick={scrollToTop}>
