@@ -76,139 +76,154 @@ class PumpFunHandler(BaseDBHandler):
         
     def _createTables(self):
         """Creates all necessary tables for the system"""
-        with self.conn_manager.transaction() as cursor:
-            config = get_config()
+        try:
+            # Create main tables first
+            with self.conn_manager.transaction() as cursor:
+                config = get_config()
+                
+                # 1. Base Token Information
+                if config.DB_TYPE == 'postgres':
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfuninfo (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL UNIQUE,
+                            name TEXT NOT NULL,
+                            tokenname TEXT NOT NULL,
+                            chain TEXT NOT NULL,
+                            tokendecimals INTEGER NOT NULL,
+                            circulatingsupply TEXT,
+                            tokenage TEXT,
+                            twitterlink TEXT,
+                            telegramlink TEXT,
+                            websitelink TEXT,
+                            firstseenat TIMESTAMP NOT NULL,
+                            lastupdatedat TIMESTAMP,
+                            count INTEGER DEFAULT 1,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    '''))
+
+                    # 2. Token Current State
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfunstates (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL UNIQUE,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            lastupdatedat TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                        )
+                    '''))
+
+                    # 3. Token History
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfunhistory (
+                            id SERIAL PRIMARY KEY,
+                            tokenid TEXT NOT NULL,
+                            snapshotat TIMESTAMP NOT NULL,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                        )
+                    '''))
+                else:
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfuninfo (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid TEXT NOT NULL UNIQUE,
+                            name TEXT NOT NULL,
+                            tokenname TEXT NOT NULL,
+                            chain TEXT NOT NULL,
+                            tokendecimals INTEGER NOT NULL,
+                            circulatingsupply TEXT,
+                            tokenage TEXT,
+                            twitterlink TEXT,
+                            telegramlink TEXT,
+                            websitelink TEXT,
+                            firstseenat TIMESTAMP NOT NULL,
+                            lastupdatedat TIMESTAMP,
+                            count INTEGER DEFAULT 1,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    '''))
+
+                    # 2. Token Current State
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfunstates (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid TEXT NOT NULL UNIQUE,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            lastupdatedat TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                        )
+                    '''))
+
+                    # 3. Token History
+                    cursor.execute(text('''
+                        CREATE TABLE IF NOT EXISTS pumpfunhistory (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tokenid TEXT NOT NULL,
+                            snapshotat TIMESTAMP NOT NULL,
+                            price DECIMAL NOT NULL,
+                            marketcap DECIMAL NOT NULL,
+                            liquidity DECIMAL NOT NULL,
+                            volume24h DECIMAL NOT NULL,
+                            buysolqty INTEGER NOT NULL,
+                            occurrencecount INTEGER NOT NULL,
+                            percentilerankpeats DECIMAL,
+                            percentileranksol DECIMAL,
+                            dexstatus INTEGER NOT NULL,
+                            change1hpct DECIMAL NOT NULL,
+                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                        )
+                    '''))
+
+            # Use separate transaction for indices to prevent cursor already closed errors
+            # Each index is created in its own transaction
+            self._createIndex('idx_pumpfuninfo_tokenid', 'pumpfuninfo', 'tokenid')
+            self._createIndex('idx_pumpfunstates_tokenid', 'pumpfunstates', 'tokenid')
+            self._createIndex('idx_pumpfunhistory_tokenid', 'pumpfunhistory', 'tokenid')
             
-            # 1. Base Token Information
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfuninfo (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL UNIQUE,
-                        name TEXT NOT NULL,
-                        tokenname TEXT NOT NULL,
-                        chain TEXT NOT NULL,
-                        tokendecimals INTEGER NOT NULL,
-                        circulatingsupply TEXT,
-                        tokenage TEXT,
-                        twitterlink TEXT,
-                        telegramlink TEXT,
-                        websitelink TEXT,
-                        firstseenat TIMESTAMP NOT NULL,
-                        lastupdatedat TIMESTAMP,
-                        count INTEGER DEFAULT 1,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                '''))
-
-                # 2. Token Current State
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfunstates (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL UNIQUE,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        lastupdatedat TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                    )
-                '''))
-
-                # 3. Token History
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfunhistory (
-                        id SERIAL PRIMARY KEY,
-                        tokenid TEXT NOT NULL,
-                        snapshotat TIMESTAMP NOT NULL,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                    )
-                '''))
-            else:
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfuninfo (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid TEXT NOT NULL UNIQUE,
-                        name TEXT NOT NULL,
-                        tokenname TEXT NOT NULL,
-                        chain TEXT NOT NULL,
-                        tokendecimals INTEGER NOT NULL,
-                        circulatingsupply TEXT,
-                        tokenage TEXT,
-                        twitterlink TEXT,
-                        telegramlink TEXT,
-                        websitelink TEXT,
-                        firstseenat TIMESTAMP NOT NULL,
-                        lastupdatedat TIMESTAMP,
-                        count INTEGER DEFAULT 1,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                '''))
-
-                # 2. Token Current State
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfunstates (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid TEXT NOT NULL UNIQUE,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        lastupdatedat TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                    )
-                '''))
-
-                # 3. Token History
-                cursor.execute(text('''
-                    CREATE TABLE IF NOT EXISTS pumpfunhistory (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tokenid TEXT NOT NULL,
-                        snapshotat TIMESTAMP NOT NULL,
-                        price DECIMAL NOT NULL,
-                        marketcap DECIMAL NOT NULL,
-                        liquidity DECIMAL NOT NULL,
-                        volume24h DECIMAL NOT NULL,
-                        buysolqty INTEGER NOT NULL,
-                        occurrencecount INTEGER NOT NULL,
-                        percentilerankpeats DECIMAL,
-                        percentileranksol DECIMAL,
-                        dexstatus INTEGER NOT NULL,
-                        change1hpct DECIMAL NOT NULL,
-                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                    )
-                '''))
-
-            # Create indices for better query performance
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfuninfo_tokenid ON pumpfuninfo(tokenid)'))
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfunstates_tokenid ON pumpfunstates(tokenid)'))
-            cursor.execute(text('CREATE INDEX IF NOT EXISTS idx_pumpfunhistory_tokenid ON pumpfunhistory(tokenid)'))
+        except Exception as e:
+            logger.error(f"Error creating tables for PumpFunHandler: {e}")
+            # Don't re-raise, since we want initialization to continue
+            
+    def _createIndex(self, index_name, table_name, column_name):
+        """Create an index safely in its own transaction"""
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute(text(f'CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column_name})'))
+        except Exception as e:
+            logger.error(f"Error creating index {index_name}: {e}")
 
     def insertTokenData(self, token: PumpFunToken) -> None:
         """
