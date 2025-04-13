@@ -166,17 +166,13 @@ class AnalyticsHandler(BaseDBHandler):
             logger.error(f"Failed to create strategy: {str(e)}")
             return None
 
-    def getAllActiveStrategies(
-        self, source: str, pushSource: PushSource = PushSource.SCHEDULER
-    ) -> List[Dict]:
+    def getAllActiveStrategies(self, source: str, pushSource: PushSource = PushSource.SCHEDULER) -> List[Dict]:
         try:
             config = get_config()
             with self.conn_manager.transaction() as cursor:
                 # If token was pushed via API, include only superuser strategies
                 # If token was pushed via Scheduler, include only non-superuser strategies
-                if (
-                    config.DB_TYPE == "postgres"
-                ):  # there is no need to add 'status' param here as we use status to identify whether we need to try again for investement if the initial entry fails
+                if (config.DB_TYPE == "postgres"):  # there is no need to add 'status' param here as we use status to identify whether we need to try again for investement if the initial entry fails
                     if pushSource == PushSource.API:
                         query = text(
                             """
@@ -423,7 +419,7 @@ class AnalyticsHandler(BaseDBHandler):
                         realizedpnl = ?, 
                         realizedpnlpercent = ?,
                         updatedat = ? 
-                        WHERE executionid = ?
+                        WHERE executionid = ?    
                     """
                     cursor.execute(query, params)
                 return cursor.rowcount > 0

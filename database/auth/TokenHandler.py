@@ -67,21 +67,7 @@ class TokenHandler(BaseDBHandler):
                     )
                 )
 
-    def storeTokens(
-        self,
-        serviceName: str,
-        accessToken: str,
-        refreshToken: str,
-        isNewLogin: bool = False,
-    ) -> None:
-        """
-        Store new tokens with expiry times
-        Args:
-            serviceName: Name of the service (e.g., 'chainedge')
-            accessToken: JWT access token
-            refreshToken: JWT refresh token
-            isNewLogin: True if this is from a fresh login, False if from refresh
-        """
+    def storeTokens(self,serviceName: str,accessToken: str,refreshToken: str,isNewLogin: bool = False,) -> None:
         try:
             config = get_config()
             with self.conn_manager.transaction() as cursor:
@@ -237,12 +223,8 @@ class TokenHandler(BaseDBHandler):
                 return {
                     "accesstoken": result["accesstoken"],
                     "refreshtoken": result["refreshtoken"],
-                    "accesstokenexpiresat": safe_parse_datetime(
-                        result["accesstokenexpiresat"]
-                    ),
-                    "refreshtokenexpiresat": safe_parse_datetime(
-                        result["refreshtokenexpiresat"]
-                    ),
+                    "accesstokenexpiresat": safe_parse_datetime(result["accesstokenexpiresat"]),
+                    "refreshtokenexpiresat": safe_parse_datetime(result["refreshtokenexpiresat"]),
                     "logintime": safe_parse_datetime(result["logintime"]),
                 }
 
