@@ -28,9 +28,8 @@ SCHEMA_DOCS = {
         "websitelink": "Project website",
         "firstseenat": "When bot first detected",
         "lastupdatedat": "Last data update",
-        "count": "Count of updates"
+        "count": "Count of updates",
     },
-
     "pumpfunstates": {
         "id": "Internal unique ID",
         "tokenid": "Reference to pumpfuninfo.tokenid",
@@ -45,9 +44,8 @@ SCHEMA_DOCS = {
         "dexstatus": "Trading status (true=active, false=inactive)",
         "change1hpct": "1-hour price change percentage",
         "createdat": "When record was created",
-        "lastupdatedat": "Last state update timestamp"
+        "lastupdatedat": "Last state update timestamp",
     },
-
     "pumpfunhistory": {
         "id": "Internal unique ID",
         "tokenid": "Reference to pumpfuninfo.tokenid",
@@ -62,9 +60,10 @@ SCHEMA_DOCS = {
         "percentileranksol": "SOL buys ranking at snapshot",
         "dexstatus": "Trading status at snapshot",
         "change1hpct": "1h price change at snapshot",
-        "createdat": "When record was created"
-    }
+        "createdat": "When record was created",
+    },
 }
+
 
 class PumpFunHandler(BaseDBHandler):
     def __init__(self, conn_manager=None):
@@ -73,155 +72,103 @@ class PumpFunHandler(BaseDBHandler):
         super().__init__(conn_manager)
         self.schema = SCHEMA_DOCS
         self._createTables()
-        
+
     def _createTables(self):
         """Creates all necessary tables for the system"""
         try:
-            # Create main tables first
             with self.conn_manager.transaction() as cursor:
-                config = get_config()
-                
                 # 1. Base Token Information
-                if config.DB_TYPE == 'postgres':
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfuninfo (
-                            id SERIAL PRIMARY KEY,
-                            tokenid TEXT NOT NULL UNIQUE,
-                            name TEXT NOT NULL,
-                            tokenname TEXT NOT NULL,
-                            chain TEXT NOT NULL,
-                            tokendecimals INTEGER NOT NULL,
-                            circulatingsupply TEXT,
-                            tokenage TEXT,
-                            twitterlink TEXT,
-                            telegramlink TEXT,
-                            websitelink TEXT,
-                            firstseenat TIMESTAMP NOT NULL,
-                            lastupdatedat TIMESTAMP,
-                            count INTEGER DEFAULT 1,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    '''))
+                cursor.execute(
+                    text(
+                        """
+                    CREATE TABLE IF NOT EXISTS pumpfuninfo (
+                        id SERIAL PRIMARY KEY,
+                        tokenid TEXT NOT NULL UNIQUE,
+                        name TEXT NOT NULL,
+                        tokenname TEXT NOT NULL,
+                        chain TEXT NOT NULL,
+                        tokendecimals INTEGER NOT NULL,
+                        circulatingsupply TEXT,
+                        tokenage TEXT,
+                        twitterlink TEXT,
+                        telegramlink TEXT,
+                        websitelink TEXT,
+                        firstseenat TIMESTAMP NOT NULL,
+                        lastupdatedat TIMESTAMP,
+                        count INTEGER DEFAULT 1,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """
+                    )
+                )
 
-                    # 2. Token Current State
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfunstates (
-                            id SERIAL PRIMARY KEY,
-                            tokenid TEXT NOT NULL UNIQUE,
-                            price DECIMAL NOT NULL,
-                            marketcap DECIMAL NOT NULL,
-                            liquidity DECIMAL NOT NULL,
-                            volume24h DECIMAL NOT NULL,
-                            buysolqty INTEGER NOT NULL,
-                            occurrencecount INTEGER NOT NULL,
-                            percentilerankpeats DECIMAL,
-                            percentileranksol DECIMAL,
-                            dexstatus INTEGER NOT NULL,
-                            change1hpct DECIMAL NOT NULL,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            lastupdatedat TIMESTAMP,
-                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                        )
-                    '''))
+                # 2. Token Current State
+                cursor.execute(
+                    text(
+                        """
+                    CREATE TABLE IF NOT EXISTS pumpfunstates (
+                        id SERIAL PRIMARY KEY,
+                        tokenid TEXT NOT NULL UNIQUE,
+                        price DECIMAL NOT NULL,
+                        marketcap DECIMAL NOT NULL,
+                        liquidity DECIMAL NOT NULL,
+                        volume24h DECIMAL NOT NULL,
+                        buysolqty INTEGER NOT NULL,
+                        occurrencecount INTEGER NOT NULL,
+                        percentilerankpeats DECIMAL,
+                        percentileranksol DECIMAL,
+                        dexstatus INTEGER NOT NULL,
+                        change1hpct DECIMAL NOT NULL,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        lastupdatedat TIMESTAMP,
+                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                    )
+                """
+                    )
+                )
 
-                    # 3. Token History
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfunhistory (
-                            id SERIAL PRIMARY KEY,
-                            tokenid TEXT NOT NULL,
-                            snapshotat TIMESTAMP NOT NULL,
-                            price DECIMAL NOT NULL,
-                            marketcap DECIMAL NOT NULL,
-                            liquidity DECIMAL NOT NULL,
-                            volume24h DECIMAL NOT NULL,
-                            buysolqty INTEGER NOT NULL,
-                            occurrencecount INTEGER NOT NULL,
-                            percentilerankpeats DECIMAL,
-                            percentileranksol DECIMAL,
-                            dexstatus INTEGER NOT NULL,
-                            change1hpct DECIMAL NOT NULL,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                        )
-                    '''))
-                else:
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfuninfo (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            tokenid TEXT NOT NULL UNIQUE,
-                            name TEXT NOT NULL,
-                            tokenname TEXT NOT NULL,
-                            chain TEXT NOT NULL,
-                            tokendecimals INTEGER NOT NULL,
-                            circulatingsupply TEXT,
-                            tokenage TEXT,
-                            twitterlink TEXT,
-                            telegramlink TEXT,
-                            websitelink TEXT,
-                            firstseenat TIMESTAMP NOT NULL,
-                            lastupdatedat TIMESTAMP,
-                            count INTEGER DEFAULT 1,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    '''))
+                # 3. Token History
+                cursor.execute(
+                    text(
+                        """
+                    CREATE TABLE IF NOT EXISTS pumpfunhistory (
+                        id SERIAL PRIMARY KEY,
+                        tokenid TEXT NOT NULL,
+                        snapshotat TIMESTAMP NOT NULL,
+                        price DECIMAL NOT NULL,
+                        marketcap DECIMAL NOT NULL,
+                        liquidity DECIMAL NOT NULL,
+                        volume24h DECIMAL NOT NULL,
+                        buysolqty INTEGER NOT NULL,
+                        occurrencecount INTEGER NOT NULL,
+                        percentilerankpeats DECIMAL,
+                        percentileranksol DECIMAL,
+                        dexstatus INTEGER NOT NULL,
+                        change1hpct DECIMAL NOT NULL,
+                        createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
+                    )
+                """
+                    )
+                )
 
-                    # 2. Token Current State
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfunstates (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            tokenid TEXT NOT NULL UNIQUE,
-                            price DECIMAL NOT NULL,
-                            marketcap DECIMAL NOT NULL,
-                            liquidity DECIMAL NOT NULL,
-                            volume24h DECIMAL NOT NULL,
-                            buysolqty INTEGER NOT NULL,
-                            occurrencecount INTEGER NOT NULL,
-                            percentilerankpeats DECIMAL,
-                            percentileranksol DECIMAL,
-                            dexstatus INTEGER NOT NULL,
-                            change1hpct DECIMAL NOT NULL,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            lastupdatedat TIMESTAMP,
-                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                        )
-                    '''))
+            # Create indices in separate transactions
+            self._createIndex("idx_pumpfuninfo_tokenid", "pumpfuninfo", "tokenid")
+            self._createIndex("idx_pumpfunstates_tokenid", "pumpfunstates", "tokenid")
+            self._createIndex("idx_pumpfunhistory_tokenid", "pumpfunhistory", "tokenid")
 
-                    # 3. Token History
-                    cursor.execute(text('''
-                        CREATE TABLE IF NOT EXISTS pumpfunhistory (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            tokenid TEXT NOT NULL,
-                            snapshotat TIMESTAMP NOT NULL,
-                            price DECIMAL NOT NULL,
-                            marketcap DECIMAL NOT NULL,
-                            liquidity DECIMAL NOT NULL,
-                            volume24h DECIMAL NOT NULL,
-                            buysolqty INTEGER NOT NULL,
-                            occurrencecount INTEGER NOT NULL,
-                            percentilerankpeats DECIMAL,
-                            percentileranksol DECIMAL,
-                            dexstatus INTEGER NOT NULL,
-                            change1hpct DECIMAL NOT NULL,
-                            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY(tokenid) REFERENCES pumpfuninfo(tokenid)
-                        )
-                    '''))
-
-            # Use separate transaction for indices to prevent cursor already closed errors
-            # Each index is created in its own transaction
-            self._createIndex('idx_pumpfuninfo_tokenid', 'pumpfuninfo', 'tokenid')
-            self._createIndex('idx_pumpfunstates_tokenid', 'pumpfunstates', 'tokenid')
-            self._createIndex('idx_pumpfunhistory_tokenid', 'pumpfunhistory', 'tokenid')
-            
         except Exception as e:
             logger.error(f"Error creating tables for PumpFunHandler: {e}")
-            # Don't re-raise, since we want initialization to continue
-            
+
     def _createIndex(self, index_name, table_name, column_name):
         """Create an index safely in its own transaction"""
         try:
             with self.conn_manager.transaction() as cursor:
-                cursor.execute(text(f'CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column_name})'))
+                cursor.execute(
+                    text(
+                        f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column_name})"
+                    )
+                )
         except Exception as e:
             logger.error(f"Error creating index {index_name}: {e}")
 
@@ -230,7 +177,7 @@ class PumpFunHandler(BaseDBHandler):
         Insert or update token data:
         1. New token: Add to info and state tables
         2. Existing token: Archive current state, update state, increment count
-        
+
         Args:
             token: PumpFunToken object to persist
         """
@@ -243,300 +190,284 @@ class PumpFunHandler(BaseDBHandler):
 
     def _handleTokenData(self, cursor, token: PumpFunToken) -> None:
         """Handle token data insertion or update"""
-        config = get_config()
-        
-        # Check token existence and get current state in one query
-        if config.DB_TYPE == 'postgres':
-            cursor.execute(text('''
-                SELECT 
-                    i.id as info_exists,
-                    s.id as state_exists,
-                    s.*
-                FROM pumpfuninfo i
-                LEFT JOIN pumpfunstates s ON i.tokenid = s.tokenid
-                WHERE i.tokenid = %s
-            '''), (token.tokenid,))
-        else:
-            cursor.execute('''
-                SELECT 
-                    i.id as info_exists,
-                    s.id as state_exists,
-                    s.*
-                FROM pumpfuninfo i
-                LEFT JOIN pumpfunstates s ON i.tokenid = s.tokenid
-                WHERE i.tokenid = ?
-            ''', (token.tokenid,))
-        
+        cursor.execute(
+            text(
+                """
+            SELECT 
+                i.id as info_exists,
+                s.id as state_exists,
+                s.*
+            FROM pumpfuninfo i
+            LEFT JOIN pumpfunstates s ON i.tokenid = s.tokenid
+            WHERE i.tokenid = %s
+        """
+            ),
+            (token.tokenid,),
+        )
+
         result = cursor.fetchone()
-        
+
         if not result:
             # New token - insert both records
             self._insertNewRecords(cursor, token)
         else:
             # Existing token - archive and update
-            if not result['state_exists']:
-                logger.error(f"Inconsistent state: Token {token.tokenid} exists in info but not in state table")
+            if not result["state_exists"]:
+                logger.error(
+                    f"Inconsistent state: Token {token.tokenid} exists in info but not in state table"
+                )
                 return
-            
+
             self._updateExistingRecords(cursor, token, result)
 
     def _insertNewRecords(self, cursor, token: PumpFunToken) -> None:
         """Insert new token records in both tables"""
-        config = get_config()
         currentTime = datetime.now()
-        
+
         # Insert info record
-        if config.DB_TYPE == 'postgres':
-            cursor.execute(text('''
-                INSERT INTO pumpfuninfo (
-                    tokenid, name, tokenname, chain, tokendecimals,
-                    circulatingsupply, tokenage, twitterlink, telegramlink,
-                    websitelink, firstseenat, lastupdatedat, count
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
-            '''), (
-                token.tokenid, token.name, token.tokenname, token.chain,
-                token.tokendecimals, token.circulatingsupply, token.tokenage,
-                token.twitterlink, token.telegramlink, token.websitelink,
-                currentTime, currentTime
-            ))
-            
-            # Insert state record
-            cursor.execute(text('''
-                INSERT INTO pumpfunstates (
-                    tokenid, price, marketcap, liquidity, volume24h,
-                    buysolqty, occurrencecount, percentilerankpeats,
-                    percentileranksol, dexstatus, change1hpct,
-                    createdat, lastupdatedat
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            '''), (
-                token.tokenid, str(token.price), str(token.marketcap),
-                str(token.liquidity), str(token.volume24h), token.buysolqty,
-                token.occurrencecount, token.percentilerankpeats,
-                token.percentileranksol, token.dexstatus,
-                str(token.change1hpct), currentTime, currentTime
-            ))
-        else:
-            cursor.execute('''
-                INSERT INTO pumpfuninfo (
-                    tokenid, name, tokenname, chain, tokendecimals,
-                    circulatingsupply, tokenage, twitterlink, telegramlink,
-                    websitelink, firstseenat, lastupdatedat, count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-            ''', (
-                token.tokenid, token.name, token.tokenname, token.chain,
-                token.tokendecimals, token.circulatingsupply, token.tokenage,
-                token.twitterlink, token.telegramlink, token.websitelink,
-                currentTime, currentTime
-            ))
-            
-            # Insert state record
-            cursor.execute('''
-                INSERT INTO pumpfunstates (
-                    tokenid, price, marketcap, liquidity, volume24h,
-                    buysolqty, occurrencecount, percentilerankpeats,
-                    percentileranksol, dexstatus, change1hpct,
-                    createdat, lastupdatedat
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                token.tokenid, str(token.price), str(token.marketcap),
-                str(token.liquidity), str(token.volume24h), token.buysolqty,
-                token.occurrencecount, token.percentilerankpeats,
-                token.percentileranksol, token.dexstatus,
-                str(token.change1hpct), currentTime, currentTime
-            ))
-        
+        cursor.execute(
+            text(
+                """
+            INSERT INTO pumpfuninfo (
+                tokenid, name, tokenname, chain, tokendecimals,
+                circulatingsupply, tokenage, twitterlink, telegramlink,
+                websitelink, firstseenat, lastupdatedat, count
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+        """
+            ),
+            (
+                token.tokenid,
+                token.name,
+                token.tokenname,
+                token.chain,
+                token.tokendecimals,
+                token.circulatingsupply,
+                token.tokenage,
+                token.twitterlink,
+                token.telegramlink,
+                token.websitelink,
+                currentTime,
+                currentTime,
+            ),
+        )
+
+        # Insert state record
+        cursor.execute(
+            text(
+                """
+            INSERT INTO pumpfunstates (
+                tokenid, price, marketcap, liquidity, volume24h,
+                buysolqty, occurrencecount, percentilerankpeats,
+                percentileranksol, dexstatus, change1hpct,
+                createdat, lastupdatedat
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+            ),
+            (
+                token.tokenid,
+                str(token.price),
+                str(token.marketcap),
+                str(token.liquidity),
+                str(token.volume24h),
+                token.buysolqty,
+                token.occurrencecount,
+                token.percentilerankpeats,
+                token.percentileranksol,
+                token.dexstatus,
+                str(token.change1hpct),
+                currentTime,
+                currentTime,
+            ),
+        )
+
         logger.info(f"Inserted new token {token.tokenid}")
 
-    def _updateExistingRecords(self, cursor, token: PumpFunToken, currentState: Dict) -> None:
+    def _updateExistingRecords(
+        self, cursor, token: PumpFunToken, currentState: Dict
+    ) -> None:
         """
         Archive current state and update records ONLY if:
-        1. The token was seen within the last 10 minutes (timeago ≤ 10 minutes), AND
+        1. The token was seen within the last 20 minutes (timeago ≤ 20 minutes), AND
         2. Key metrics have changed
-        
-        If the token was seen more than 10 minutes ago, skip the update regardless of metric changes.
-        
+
+        If the token was seen more than 20 minutes ago, skip the update regardless of metric changes.
+
         Key metrics monitored for changes:
         - buysolqty: Number of SOL buy transactions
         - occurrencecount: Number of times token detected
         - percentilerankpeats: Ranking based on occurrences
         - percentileranksol: Ranking based on SOL buys
         """
-        config = get_config()
         currentTime = datetime.now(pytz.UTC)
-        
-        # PRIMARY CONDITION: Check if token was seen within the last 10 minutes using timeago field
-        if hasattr(token, 'timeago') and token.timeago is not None:
+
+        # PRIMARY CONDITION: Check if token was seen within the last 20 minutes using timeago field
+        if hasattr(token, "timeago") and token.timeago is not None:
             # Ensure timeago is timezone-aware (UTC)
             tokenTimeago = token.timeago
             if tokenTimeago.tzinfo is None:
                 tokenTimeago = pytz.UTC.localize(tokenTimeago)
-            
-            timeDifference = (currentTime - tokenTimeago).total_seconds() / 60  # Convert to minutes
-            
+
+            timeDifference = (
+                currentTime - tokenTimeago
+            ).total_seconds() / 60  # Convert to minutes
+
             if timeDifference > 20:
-                logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), outside 10-minute threshold, skipping update")
-                return  # Skip update entirely if token was seen more than 10 minutes ago
-                
-            logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), within 10-minute threshold, checking for changes")
+                logger.info(
+                    f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), outside 20-minute threshold, skipping update"
+                )
+                return  # Skip update entirely if token was seen more than 20 minutes ago
+
+            logger.info(
+                f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), within 20-minute threshold, checking for changes"
+            )
         else:
             # If timeago is None, skip update
             logger.info(f"Token {token.tokenid} has no timeago value, skipping update")
             return
-        
+
         # SECONDARY CONDITION: Check if any metrics have changed
         shouldUpdate = False
         metricsToCompare = [
-            ('buysolqty', token.buysolqty, currentState['buysolqty']),
-            ('occurrencecount', token.occurrencecount, currentState['occurrencecount']),
-            ('percentilerankpeats', token.percentilerankpeats, currentState['percentilerankpeats']),
-            ('percentileranksol', token.percentileranksol, currentState['percentileranksol'])
+            ("buysolqty", token.buysolqty, currentState["buysolqty"]),
+            ("occurrencecount", token.occurrencecount, currentState["occurrencecount"]),
+            (
+                "percentilerankpeats",
+                token.percentilerankpeats,
+                currentState["percentilerankpeats"],
+            ),
+            (
+                "percentileranksol",
+                token.percentileranksol,
+                currentState["percentileranksol"],
+            ),
         ]
-        
+
         # Compare metrics and log changes
         changedMetrics = []
         for metricName, newValue, oldValue in metricsToCompare:
             if newValue != oldValue:
                 shouldUpdate = True
                 changedMetrics.append(f"{metricName}: {oldValue} -> {newValue}")
-        
-        if not shouldUpdate:
-            logger.info(f"No changes detected for token {token.tokenid}, skipping update")
-            return
-            
-        logger.info(f"Changes detected for token {token.tokenid}: {', '.join(changedMetrics)}")
-        
-        # 1. Archive current state since we're going to update
-        if config.DB_TYPE == 'postgres':
-            cursor.execute(text('''
-                INSERT INTO pumpfunhistory (
-                    tokenid, snapshotat, price, marketcap, liquidity,
-                    volume24h, buysolqty, occurrencecount, percentilerankpeats,
-                    percentileranksol, dexstatus, change1hpct, createdat
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            '''), (
-                currentState['tokenid'], currentState['lastupdatedat'],
-                currentState['price'], currentState['marketcap'],
-                currentState['liquidity'], currentState['volume24h'],
-                currentState['buysolqty'], currentState['occurrencecount'],
-                currentState['percentilerankpeats'], currentState['percentileranksol'],
-                currentState['dexstatus'], currentState['change1hpct'], currentTime
-            ))
-            
-            # 2. Update state table
-            cursor.execute(text('''
-                UPDATE pumpfunstates SET
-                    price = %s,
-                    marketcap = %s,
-                    liquidity = %s,
-                    volume24h = %s,
-                    buysolqty = %s,
-                    occurrencecount = %s,
-                    percentilerankpeats = %s,
-                    percentileranksol = %s,
-                    dexstatus = %s,
-                    change1hpct = %s,
-                    lastupdatedat = %s
-                WHERE tokenid = %s
-            '''), (
-                str(token.price), str(token.marketcap), str(token.liquidity),
-                str(token.volume24h), token.buysolqty, token.occurrencecount,
-                token.percentilerankpeats, token.percentileranksol,
-                token.dexstatus, str(token.change1hpct), currentTime,
-                token.tokenid
-            ))
-            
-            # 3. Update info table
-            cursor.execute(text('''
-                UPDATE pumpfuninfo SET
-                    count = count + 1,
-                    lastupdatedat = %s
-                WHERE tokenid = %s
-            '''), (currentTime, token.tokenid))
-        else:
-            cursor.execute('''
-                INSERT INTO pumpfunhistory (
-                    tokenid, snapshotat, price, marketcap, liquidity,
-                    volume24h, buysolqty, occurrencecount, percentilerankpeats,
-                    percentileranksol, dexstatus, change1hpct, createdat
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                currentState['tokenid'], currentState['lastupdatedat'],
-                currentState['price'], currentState['marketcap'],
-                currentState['liquidity'], currentState['volume24h'],
-                currentState['buysolqty'], currentState['occurrencecount'],
-                currentState['percentilerankpeats'], currentState['percentileranksol'],
-                currentState['dexstatus'], currentState['change1hpct'], currentTime
-            ))
-            
-            # 2. Update state table
-            cursor.execute('''
-                UPDATE pumpfunstates SET
-                    price = ?,
-                    marketcap = ?,
-                    liquidity = ?,
-                    volume24h = ?,
-                    buysolqty = ?,
-                    occurrencecount = ?,
-                    percentilerankpeats = ?,
-                    percentileranksol = ?,
-                    dexstatus = ?,
-                    change1hpct = ?,
-                    lastupdatedat = ?
-                WHERE tokenid = ?
-            ''', (
-                str(token.price), str(token.marketcap), str(token.liquidity),
-                str(token.volume24h), token.buysolqty, token.occurrencecount,
-                token.percentilerankpeats, token.percentileranksol,
-                token.dexstatus, str(token.change1hpct), currentTime,
-                token.tokenid
-            ))
-            
-            # 3. Update info table
-            cursor.execute('''
-                UPDATE pumpfuninfo SET
-                    count = count + 1,
-                    lastupdatedat = ?
-                WHERE tokenid = ?
-            ''', (currentTime, token.tokenid))
 
-    def getTokenHistory(self, tokenId: str, startTime: datetime, endTime: datetime) -> List[Dict]:
+        if not shouldUpdate:
+            logger.info(
+                f"No changes detected for token {token.tokenid}, skipping update"
+            )
+            return
+
+        logger.info(
+            f"Changes detected for token {token.tokenid}: {', '.join(changedMetrics)}"
+        )
+
+        # 1. Archive current state since we're going to update
+        cursor.execute(
+            text(
+                """
+            INSERT INTO pumpfunhistory (
+                tokenid, snapshotat, price, marketcap, liquidity,
+                volume24h, buysolqty, occurrencecount, percentilerankpeats,
+                percentileranksol, dexstatus, change1hpct, createdat
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+            ),
+            (
+                currentState["tokenid"],
+                currentState["lastupdatedat"],
+                currentState["price"],
+                currentState["marketcap"],
+                currentState["liquidity"],
+                currentState["volume24h"],
+                currentState["buysolqty"],
+                currentState["occurrencecount"],
+                currentState["percentilerankpeats"],
+                currentState["percentileranksol"],
+                currentState["dexstatus"],
+                currentState["change1hpct"],
+                currentTime,
+            ),
+        )
+
+        # 2. Update state table
+        cursor.execute(
+            text(
+                """
+            UPDATE pumpfunstates SET
+                price = %s,
+                marketcap = %s,
+                liquidity = %s,
+                volume24h = %s,
+                buysolqty = %s,
+                occurrencecount = %s,
+                percentilerankpeats = %s,
+                percentileranksol = %s,
+                dexstatus = %s,
+                change1hpct = %s,
+                lastupdatedat = %s
+            WHERE tokenid = %s
+        """
+            ),
+            (
+                str(token.price),
+                str(token.marketcap),
+                str(token.liquidity),
+                str(token.volume24h),
+                token.buysolqty,
+                token.occurrencecount,
+                token.percentilerankpeats,
+                token.percentileranksol,
+                token.dexstatus,
+                str(token.change1hpct),
+                currentTime,
+                token.tokenid,
+            ),
+        )
+
+        # 3. Update info table
+        cursor.execute(
+            text(
+                """
+            UPDATE pumpfuninfo SET
+                count = count + 1,
+                lastupdatedat = %s
+            WHERE tokenid = %s
+        """
+            ),
+            (currentTime, token.tokenid),
+        )
+
+    def getTokenHistory(
+        self, tokenId: str, startTime: datetime, endTime: datetime
+    ) -> List[Dict]:
         """Get token history for backtesting"""
-        config = get_config()
         with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('''
-                    SELECT * FROM pumpfunhistory 
-                    WHERE tokenid = %s AND snapshotat BETWEEN %s AND %s
-                    ORDER BY snapshotat ASC
-                '''), (tokenId, startTime, endTime))
-            else:
-                cursor.execute('''
-                    SELECT * FROM pumpfunhistory 
-                    WHERE tokenid = ? AND snapshotat BETWEEN ? AND ?
-                    ORDER BY snapshotat ASC
-                ''', (tokenId, startTime, endTime))
+            cursor.execute(
+                text(
+                    """
+                SELECT * FROM pumpfunhistory 
+                WHERE tokenid = %s AND snapshotat BETWEEN %s AND %s
+                ORDER BY snapshotat ASC
+            """
+                ),
+                (tokenId, startTime, endTime),
+            )
             return cursor.fetchall()
 
     def getTokenInfo(self, tokenId: str) -> Optional[Dict]:
         """Get token basic information"""
-        config = get_config()
         with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('SELECT * FROM pumpfuninfo WHERE tokenid = %s'), (tokenId,))
-            else:
-                cursor.execute('SELECT * FROM pumpfuninfo WHERE tokenid = ?', (tokenId,))
+            cursor.execute(
+                text("SELECT * FROM pumpfuninfo WHERE tokenid = %s"), (tokenId,)
+            )
             return cursor.fetchone()
 
     def getTokenState(self, tokenId: str) -> Optional[Dict]:
         """Get token current state"""
-        config = get_config()
         with self.conn_manager.transaction() as cursor:
-            if config.DB_TYPE == 'postgres':
-                cursor.execute(text('SELECT * FROM pumpfunstates WHERE tokenid = %s'), (tokenId,))
-            else:
-                cursor.execute('SELECT * FROM pumpfunstates WHERE tokenid = ?', (tokenId,))
+            cursor.execute(
+                text("SELECT * FROM pumpfunstates WHERE tokenid = %s"), (tokenId,)
+            )
             return cursor.fetchone()
 
     def getExistingTokenState(self, tokenId: str) -> Optional[Dict]:
         """Get current token state if exists"""
-        return self.getTokenState(tokenId) 
+        return self.getTokenState(tokenId)
