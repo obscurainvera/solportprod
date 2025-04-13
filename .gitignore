@@ -77,3 +77,4 @@ nginx/ssl/
 # Cache
 __pycache__/
 .cache/ 
+.trigger

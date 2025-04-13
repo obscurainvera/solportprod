@@ -19,7 +19,7 @@ class DatabaseConnectionError(Exception):
 class DatabaseConnectionManager:
     """
     Manages database connections with thread safety.
-    Uses singleton pattern to ensure only one manager exists per database.
+    Connection pooling for PostgreSQL is handled here.
     
     Key features:
     - Thread-safe connections
@@ -28,106 +28,67 @@ class DatabaseConnectionManager:
     - Transaction management
     """
     
-    # Singleton instance
-    _instance = None
-    # Lock for thread-safe singleton creation
+    # Lock for thread-safe operations
     _lock = threading.Lock()
     # Thread-local storage for connections
     _local = threading.local()
     # Dictionary to store table locks
     _locks = {}
-    # Flag to track if pool is closed
-    _pool_closed = False
 
-    def __new__(cls, db_url: str = None):
+    def __init__(self, db_url: str = None):
         """
-        Creates or returns the singleton instance of the connection manager.
-        
-        Why singleton?
-        - Prevents multiple managers for same database
-        - Controls connection pool
-        - Centralizes connection management
+        Initializes the connection manager.
+        Actual connection initialization is lazy - happens on first use.
         
         Args:
             db_url: Database connection URL (deprecated, kept for compatibility)
-        
-        Returns:
-            DatabaseConnectionManager: Singleton instance
         """
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super(DatabaseConnectionManager, cls).__new__(cls)
-                config = get_config()
-                
-                # Store configuration for use in connection methods
-                cls._instance.config = config
-                
-                # Default to PostgreSQL
-                cls._instance.connection_type = 'postgres'
-                cls._instance.pool = None
-                cls._instance._pool_closed = False
-                cls._instance.logger = logger
+        self.config = get_config()
+        self.connection_type = 'postgres'
+        self.pool = None
+        self._pool_closed = False
+        self.logger = logger
+        
+        # Store the initialization parameters for lazy connection
+        self._initialized = False
+        
+    def _check_pool_status(self):
+        """
+        Check if pool is available and initialized.
+        Returns:
+            bool: True if pool is available, False otherwise
+        """
+        return not (self.pool is None or self._pool_closed)
+        
+    def _initialize_pool_if_needed(self):
+        """
+        Initializes the connection pool if needed.
+        Returns:
+            bool: True if pool is available (either already or newly initialized), False if initialization failed
+        """
+        # Fast path - pool is already initialized and available
+        if self._check_pool_status():
+            return True
             
-                # Use psycopg2 connection pooling for PostgreSQL
-                try:
-                    # Set connection parameters
-                    conn_params = {
-                        'user': config.DB_USER,
-                        'password': config.DB_PASSWORD,
-                        'host': config.DB_HOST,
-                        'port': config.DB_PORT,
-                        'dbname': config.DB_NAME
-                    }
-                    
-                    # Log connection attempt (without password)
-                    log_params = conn_params.copy()
-                    log_params['password'] = '****' if log_params['password'] else 'None'
-                    logger.info(f"Connecting to PostgreSQL with: {log_params}")
-                    
-                    # Create connection pool
-                    cls._instance.pool = psycopg2.pool.ThreadedConnectionPool(
-                        minconn=1,
-                        maxconn=config.DB_POOL_SIZE,
-                        **conn_params
-                    )
-                    
-                    # Test the connection
-                    conn = cls._instance.pool.getconn()
-                    cls._instance.pool.putconn(conn)
-                    
-                    logger.info(f"Successfully initialized PostgreSQL connection pool to {config.DB_HOST}")
-                except Exception as e:
-                    logger.error(f"Failed to initialize PostgreSQL connection pool: {e}")
-                    # Make sure we still have a connection_type even when initialization fails
-                    cls._instance.connection_type = 'postgres'
-                    cls._instance.pool = None
-                    
-                    # Print more detailed error information
-                    logger.error(f"Database connection error details: {type(e).__name__}: {str(e)}")
-                    logger.error(f"Connection parameters: Host={config.DB_HOST}, Port={config.DB_PORT}, " +
-                                f"Database={config.DB_NAME}, User={config.DB_USER}")
-                    
-                    if isinstance(e, psycopg2.OperationalError):
-                        logger.error("This is typically a connection issue (server not running, " +
-                                    "incorrect credentials, etc.)")
-                        logger.error("Make sure PostgreSQL is installed and running, and that your " +
-                                    "credentials are correct.")
-                    
-                    # Don't raise here - we'll handle the error gracefully when methods are called
-            
-            return cls._instance
+        # Slow path - acquire lock and initialize pool
+        with self._lock:
+            # Double-check pattern to avoid unnecessary initialization
+            if self._check_pool_status():
+                return True
+                
+            # Actually initialize the pool
+            return self._initialize_pool()
 
     def _initialize_pool(self):
         """Initialize the connection pool"""
         try:
-            config = self.config
             # Set connection parameters
             conn_params = {
-                'user': config.DB_USER,
-                'password': config.DB_PASSWORD,
-                'host': config.DB_HOST,
-                'port': config.DB_PORT,
-                'dbname': config.DB_NAME
+                'user': self.config.DB_USER,
+                'password': self.config.DB_PASSWORD,
+                'host': self.config.DB_HOST,
+                'port': self.config.DB_PORT,
+                'dbname': self.config.DB_NAME
             }
             
             # Log connection attempt (without password)
@@ -138,34 +99,57 @@ class DatabaseConnectionManager:
             # Create connection pool
             self.pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1,
-                maxconn=config.DB_POOL_SIZE,
+                maxconn=self.config.DB_POOL_SIZE,
                 **conn_params
             )
             self._pool_closed = False
+            self._initialized = True
             
             # Test the connection
-            conn = self.pool.getconn()
-            self.pool.putconn(conn)
+            test_connection = self.pool.getconn()
+            self.pool.putconn(test_connection)
             
-            logger.info(f"Successfully initialized PostgreSQL connection pool to {config.DB_HOST}")
+            logger.info(f"Successfully initialized PostgreSQL connection pool to {self.config.DB_HOST}")
             return True
         except Exception as e:
             logger.error(f"Failed to initialize PostgreSQL connection pool: {e}")
             self.pool = None
             self._pool_closed = True
+            self._initialized = False
+            
+            # Print more detailed error information
+            logger.error(f"Database connection error details: {type(e).__name__}: {str(e)}")
+            logger.error(f"Connection parameters: Host={self.config.DB_HOST}, Port={self.config.DB_PORT}, " +
+                        f"Database={self.config.DB_NAME}, User={self.config.DB_USER}")
+            
+            if isinstance(e, psycopg2.OperationalError):
+                logger.error("This is typically a connection issue (server not running, " +
+                            "incorrect credentials, etc.)")
+                logger.error("Make sure PostgreSQL is installed and running, and that your " +
+                            "credentials are correct.")
+            
             return False
             
     def is_pool_closed(self):
         """Check if the connection pool is closed"""
         return self._pool_closed or self.pool is None
-        
-    def reinitialize_pool_if_closed(self):
-        """Reinitialize the connection pool if it's closed"""
-        if self.is_pool_closed():
-            logger.warning("Connection pool is closed, attempting to reinitialize...")
-            return self._initialize_pool()
-        return True
 
+    def _check_and_initialize_pool(self):
+        """
+        Check if pool needs initialization and initialize if needed.
+        
+        Returns:
+            bool: True if pool is available (either already or after initialization), 
+                  False if initialization failed
+        """
+        # Fast path - pool is available
+        if self._check_pool_status():
+            return True
+            
+        # Pool unavailable - try to initialize it
+        logger.info("Connection pool unavailable, initializing")
+        return self._initialize_pool_if_needed()
+        
     @contextmanager
     def get_connection(self):
         """
@@ -176,33 +160,32 @@ class DatabaseConnectionManager:
         """
         connection = None
         try:
-            # Check if pool needs to be initialized or reinitialized
-            if self.pool is None or self._pool_closed:
-                logger.warning("Connection pool is unavailable, attempting to initialize/reinitialize")
-                if not self._initialize_pool():
-                    raise Exception("Database connection pool is not initialized and could not be reinitialized. " +
-                                "Make sure PostgreSQL is running and credentials are correct.")
-                logger.info("Pool successfully (re)initialized")
+            # Ensure pool is initialized
+            if not self._check_and_initialize_pool():
+                raise DatabaseConnectionError("Database connection pool is not initialized and could not be reinitialized. " +
+                            "Make sure PostgreSQL is running and credentials are correct.")
             
             # Get connection from pool
             try:
                 connection = self.pool.getconn()
             except psycopg2.pool.PoolError as e:
-                # If pool error, try to reinitialize and get connection again
+                # If pool error, try to reinitialize once and get connection again
                 logger.warning(f"Pool error when getting connection: {str(e)}, attempting to reinitialize")
                 if self._initialize_pool():
                     connection = self.pool.getconn()
                     logger.info("Successfully got connection after pool reinitialization")
                 else:
-                    raise Exception("Failed to reinitialize pool after error")
+                    self._handle_connection_error(e, "get_connection")
             
             yield connection
         except Exception as e:
-            logger.error(f"Failed to get database connection: {e}")
-            # Re-raise the exception
-            raise
+            if not isinstance(e, DatabaseConnectionError):
+                self._handle_connection_error(e, "get_connection", connection)
+            else:
+                # Already handled, just re-raise
+                raise
         finally:
-            if connection and self.pool and not self._pool_closed:
+            if connection and self._check_pool_status():
                 # Return PostgreSQL connection to pool if it's still open
                 try:
                     if not connection.closed:
@@ -219,13 +202,56 @@ class DatabaseConnectionManager:
                                 except Exception as close_error:
                                     logger.error(f"Error closing unkeyed connection: {close_error}")
                             else:
-                                raise
+                                self._handle_connection_error(e, "return connection to pool")
                 except Exception as putconn_error:
                     logger.error(f"Error returning connection to pool: {putconn_error}")
-                    # Don't mark the pool as closed here, instead try to reinitialize
+                    # Flag for reinitialization if the pool appears to be closed
                     if "connection pool is closed" in str(putconn_error):
                         logger.warning("Pool appears to be closed, will reinitialize on next transaction")
+                        self._pool_closed = True
 
+    def _handle_connection_error(self, error, operation="database operation", connection=None):
+        """
+        Standardized handling of database connection errors.
+        
+        Args:
+            error: The exception that occurred
+            operation: Description of the operation that failed
+            connection: Optional connection to clean up
+            
+        Raises:
+            DatabaseConnectionError: A wrapped version of the original error with more context
+        """
+        # Determine error type and provide appropriate logging
+        if isinstance(error, psycopg2.OperationalError):
+            logger.error(f"Database connection error during {operation}: {error}")
+            logger.error("This is typically a connection issue (server not running, network, credentials)")
+            
+            # If this is a connection issue, mark the pool for reinitialization
+            self._pool_closed = True
+            
+        elif isinstance(error, psycopg2.pool.PoolError):
+            logger.error(f"Pool error during {operation}: {error}")
+            logger.error("Connection pool may need to be reinitialized")
+            
+        elif isinstance(error, psycopg2.IntegrityError):
+            logger.error(f"Database integrity error during {operation}: {error}")
+            logger.error("This is typically a constraint violation (unique, foreign key)")
+            
+        else:
+            logger.error(f"Unexpected database error during {operation}: {error}")
+            
+        # Clean up connection if provided
+        if connection and hasattr(connection, 'closed') and not connection.closed:
+            try:
+                connection.rollback()
+                logger.info("Rolled back transaction after error")
+            except Exception as rollback_error:
+                logger.error(f"Failed to rollback transaction: {rollback_error}")
+        
+        # Wrap the original error to provide a consistent interface
+        raise DatabaseConnectionError(f"Database error during {operation}: {str(error)}") from error
+        
     @contextmanager
     def transaction(self):
         """
@@ -234,15 +260,13 @@ class DatabaseConnectionManager:
         Returns:
             Cursor: Database cursor for operations
         """
-        # Use psycopg2 for PostgreSQL
         conn = None
         cur = None
         try:
-            if self.pool is None or self._pool_closed:
-                # Try to reinitialize the pool if it's closed or None
-                if not self._initialize_pool():
-                    raise Exception("Database connection pool is not initialized and could not be reinitialized. " +
-                                   "Make sure PostgreSQL is running and credentials are correct.")
+            # Ensure pool is initialized
+            if not self._check_and_initialize_pool():
+                raise DatabaseConnectionError("Database connection pool is not initialized and could not be reinitialized. " +
+                           "Make sure PostgreSQL is running and credentials are correct.")
                 
             conn = self.pool.getconn()
             # Auto-commit is off by default in psycopg2
@@ -273,7 +297,7 @@ class DatabaseConnectionManager:
                 
         except psycopg2.pool.PoolError as e:
             logger.error(f"Pool error: {str(e)}")
-            # Try to reinitialize the pool
+            # Try to reinitialize the pool once and retry
             if self._initialize_pool():
                 logger.info("Successfully reinitialized the connection pool after pool error")
                 # Try again with the new pool
@@ -306,7 +330,7 @@ class DatabaseConnectionManager:
                     return
                 except Exception as retry_e:
                     logger.error(f"Failed to use reinitialized pool: {str(retry_e)}")
-            raise e
+            self._handle_connection_error(e, "transaction", conn)
         except Exception as e:
             if conn:
                 try:
@@ -315,16 +339,7 @@ class DatabaseConnectionManager:
                         conn.rollback()
                 except Exception as rollback_error:
                     logger.error(f"Error during transaction rollback: {rollback_error}")
-            
-            logger.error(f"Transaction error: {str(e)}")
-            
-            # Provide more detailed error information
-            if isinstance(e, psycopg2.OperationalError):
-                logger.error("This is typically a connection issue or SQL syntax error")
-            elif isinstance(e, psycopg2.IntegrityError):
-                logger.error("This is typically a constraint violation (unique, foreign key, etc.)")
-            
-            raise e
+            self._handle_connection_error(e, "transaction", None)
         finally:
             # Close cursor first
             if cur:
@@ -335,7 +350,7 @@ class DatabaseConnectionManager:
                     logger.error(f"Error closing cursor: {close_error}")
             
             # Then return connection to pool
-            if conn and self.pool and not self._pool_closed:
+            if conn and self._check_pool_status():
                 try:
                     if not conn.closed:
                         try:
@@ -351,12 +366,13 @@ class DatabaseConnectionManager:
                                 except Exception as close_error:
                                     logger.error(f"Error closing unkeyed connection: {close_error}")
                             else:
-                                raise
+                                self._handle_connection_error(e, "return connection to pool")
                 except Exception as putconn_error:
                     logger.error(f"Error returning connection to pool: {putconn_error}")
-                    # Don't mark the pool as closed here, instead try to reinitialize
+                    # Flag for reinitialization if the pool appears to be closed
                     if "connection pool is closed" in str(putconn_error):
                         logger.warning("Pool appears to be closed, will reinitialize on next transaction")
+                        self._pool_closed = True
 
     @contextmanager
     def table_lock(self, table_name: str):
@@ -377,7 +393,7 @@ class DatabaseConnectionManager:
         This method should only be called during application shutdown.
         """
         # Close the PostgreSQL connection pool
-        if hasattr(self, 'pool') and self.pool and not self._pool_closed:
+        if self.pool and not self._pool_closed:
             try:
                 # Log first to ensure we see this in case of any issues
                 logger.info("Closing PostgreSQL connection pool")

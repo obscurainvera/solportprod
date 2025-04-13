@@ -8,36 +8,26 @@ class BaseDBHandler:
     """
     Base class for all database handlers.
     Provides common functionality and connection management.
-    
-    Why needed?
-    - Reduces code duplication
-    - Standardizes connection handling
-    - Provides common interface
     """
 
     def __init__(self, conn_manager: DatabaseConnectionManager):
         """
         Initializes the handler with a connection manager.
         
-        Why connection manager?
-        - Centralizes connection management
-        - Ensures proper resource handling
-        - Provides thread safety
-        
         Args:
             conn_manager: Shared database connection manager instance
         """
-        self.conn_manager = conn_manager
+        if conn_manager is None:
+            # Create a new manager only if not provided (rare case)
+            self.conn_manager = DatabaseConnectionManager()
+        else:
+            # Use the shared connection manager
+            self.conn_manager = conn_manager
 
     @property
     def transaction(self):
         """
         Property to access transaction context manager.
-        
-        Why property?
-        - Cleaner syntax
-        - Encapsulates connection manager
-        - Consistent interface
         
         Usage:
             with handler.transaction() as cursor:
@@ -49,17 +39,12 @@ class BaseDBHandler:
         return self.conn_manager.transaction
 
     @property
-    def tableLock(self):
+    def table_lock(self):
         """
         Property to access table locking mechanism.
         
-        Why property?
-        - Cleaner syntax
-        - Encapsulates connection manager
-        - Consistent interface
-        
         Usage:
-            with handler.tableLock('table_name'):
+            with handler.table_lock('table_name'):
                 # perform thread-safe operations
         
         Returns:
@@ -71,15 +56,8 @@ class BaseDBHandler:
         """
         Closes the database connection.
         
-        Why needed?
-        - Proper resource cleanup
-        - Releases database connections
-        - Prevents resource leaks
-        
-        When to use:
-        - Finishing operations
-        - Cleanup
-        - Application shutdown
+        Note: This should only be called during application shutdown.
+        Normal operations should let the connection pool manage connections.
         """
         self.conn_manager.close()
 
@@ -91,6 +69,7 @@ class BaseDBHandler:
     
     @staticmethod
     def getCurrentUtcTime() -> datetime:
+        """Get current time in UTC timezone"""
         return datetime.now(pytz.UTC)
 
     @staticmethod

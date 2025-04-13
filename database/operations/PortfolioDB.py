@@ -20,6 +20,7 @@ from framework.analyticsframework.models.BaseModels import ExecutionState, BaseS
 from sqlalchemy import text
 import sys
 import traceback
+import threading
 
 logger = get_logger(__name__)
 
@@ -29,24 +30,20 @@ class PortfolioDB:
     This class acts as a single entry point for all database operations
     while delegating the actual work to specific handlers.
     
-    Key Changes from Previous Version:
-    - Removed direct table operations (moved to specific handlers)
-    - No direct SQL queries (delegated to handlers)
-    - Simplified connection management
-    - Better separation of concerns
+    Key features:
+    - Single shared database connection manager
+    - Domain-specific handlers for different operations
+    - Unified interface for database operations
     - Cloud-ready with PostgreSQL support
     """
     
+    # Singleton instance and lock
     _instance = None
+    _lock = threading.Lock()
     
     def __new__(cls, db_url: str = None):
         """
         Singleton pattern implementation to ensure only one database instance exists.
-        
-        Why needed:
-        - Prevents multiple database connections
-        - Ensures consistent state across the application
-        - Manages resources efficiently
         
         Args:
             db_url: Database connection URL (can be SQLite file or PostgreSQL connection string)
@@ -54,14 +51,35 @@ class PortfolioDB:
         Returns:
             PortfolioDB: Single instance of the database handler
         """
-        # Get the database URL from configuration if not provided
-        db_url = db_url or get_config().get_database_url()
+        with cls._lock:
+            if cls._instance is None:
+                # Get the database URL from configuration if not provided
+                db_url = db_url or get_config().get_database_url()
+                
+                cls._instance = super(PortfolioDB, cls).__new__(cls)
+                cls._instance.db_url = db_url
+                cls._instance._initialized = False
             
-        if cls._instance is None:
-            cls._instance = super(PortfolioDB, cls).__new__(cls)
-            cls._instance.db_url = db_url
-            cls._instance._init_handlers()
-        return cls._instance
+            return cls._instance
+
+    def __init__(self, db_url: str = None):
+        """
+        Initialize handlers only once when the instance is first created.
+        Subsequent calls to __init__ will not re-initialize handlers.
+        
+        Args:
+            db_url: Database connection URL
+        """
+        # Skip initialization if already done
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+            
+        # Store the db_url from __new__ or update it if provided
+        if db_url:
+            self.db_url = db_url
+            
+        self._init_handlers()
+        self._initialized = True
 
     def _init_handlers(self):
         """
@@ -71,52 +89,51 @@ class PortfolioDB:
         self.conn_manager = DatabaseConnectionManager(self.db_url)
         
         # Initialize handlers
-        self.portfolio = PortfolioHandler(self.conn_manager)
-        self.walletsInvested = WalletsInvestedHandler(self.conn_manager)
-        self.job = JobHandler(self.conn_manager)
-        self.smartMoneyWallets = SmartMoneyWalletsHandler(self.conn_manager)
-        self.smWalletTopPNLToken = SMWalletTopPNLTokenHandler(self.conn_manager)
-        self.smartMoneyPerformanceReport = SmartMoneyPerformanceReportHandler(self.conn_manager)
-        self.attention = AttentionHandler(self.conn_manager)
-        self.volume = VolumeHandler(self.conn_manager)
-        self.pumpfun = PumpFunHandler(self.conn_manager)
-        self.token = TokenHandler(self.conn_manager)
-        self.credentials = CredentialsHandler(self.conn_manager)
-        self.analytics = AnalyticsHandler(self.conn_manager)
-        self.notification = NotificationHandler(self.conn_manager)
-        self.smWalletBehaviour = SmartMoneyWalletBehaviourHandler(self.conn_manager)
-        
-        # Map handler names to instances for dynamic access
         self._handlers = {
-            'portfolio': self.portfolio,
-            'walletsInvested': self.walletsInvested,
-            'job': self.job,
-            'smartMoneyWallets': self.smartMoneyWallets,
-            'smWalletTopPNLToken': self.smWalletTopPNLToken,
-            'smartMoneyPerformanceReport': self.smartMoneyPerformanceReport,
-            'attention': self.attention,
-            'volume': self.volume,
-            'pumpfun': self.pumpfun,
-            'token': self.token,
-            'credentials': self.credentials,
-            'analytics': self.analytics,
-            'notification': self.notification,
-            'smWalletBehaviour': self.smWalletBehaviour
+            'portfolio': PortfolioHandler(self.conn_manager),
+            'walletsInvested': WalletsInvestedHandler(self.conn_manager),
+            'job': JobHandler(self.conn_manager),
+            'smartMoneyWallets': SmartMoneyWalletsHandler(self.conn_manager),
+            'smWalletTopPNLToken': SMWalletTopPNLTokenHandler(self.conn_manager),
+            'smartMoneyPerformanceReport': SmartMoneyPerformanceReportHandler(self.conn_manager),
+            'attention': AttentionHandler(self.conn_manager),
+            'volume': VolumeHandler(self.conn_manager),
+            'pumpfun': PumpFunHandler(self.conn_manager),
+            'token': TokenHandler(self.conn_manager),
+            'credentials': CredentialsHandler(self.conn_manager),
+            'analytics': AnalyticsHandler(self.conn_manager),
+            'notification': NotificationHandler(self.conn_manager),
+            'smWalletBehaviour': SmartMoneyWalletBehaviourHandler(self.conn_manager)
         }
-
+        
+        # Set direct properties for commonly used handlers for ease of access
+        self.portfolio = self._handlers['portfolio']
+        self.walletsInvested = self._handlers['walletsInvested']
+        self.job = self._handlers['job']
+        self.smartMoneyWallets = self._handlers['smartMoneyWallets']
+        self.smWalletTopPNLToken = self._handlers['smWalletTopPNLToken']
+        self.smartMoneyPerformanceReport = self._handlers['smartMoneyPerformanceReport']
+        self.attention = self._handlers['attention']
+        self.volume = self._handlers['volume']
+        self.pumpfun = self._handlers['pumpfun']
+        self.token = self._handlers['token']
+        self.credentials = self._handlers['credentials']
+        self.analytics = self._handlers['analytics']
+        self.notification = self._handlers['notification']
+        self.smWalletBehaviour = self._handlers['smWalletBehaviour']
+        
+        # Also create a handler map for getattr fallback lookup
+        self._handler_method_map = {}
+        for handler_name, handler in self._handlers.items():
+            for method_name in dir(handler):
+                # Skip private methods and properties
+                if not method_name.startswith('_') and callable(getattr(handler, method_name)):
+                    self._handler_method_map[method_name] = handler
 
     def __getattr__(self, name: str) -> Any:
         """
         Magic method to delegate method calls to appropriate handlers.
-        
-        How it works:
-        1. When a method is called on PortfolioDB
-        2. If method not found directly, this function is called
-        3. Searches for method in all handlers
-        4. Returns the method if found
-        
-        Example:
-        db.insert_summary() -> Actually calls portfolio.insert_summary()
+        Uses a pre-built method map for O(1) lookup instead of O(n) search.
         
         Args:
             name: Name of the method being called
@@ -127,22 +144,15 @@ class PortfolioDB:
         Raises:
             AttributeError: If method not found in any handler
         """
-        for handler in [
-            self.token,
-            self.portfolio, 
-            self.walletsInvested, 
-            self.job, 
-            self.smartMoneyWallets, 
-            self.smWalletTopPNLToken,
-            self.smartMoneyPerformanceReport,
-            self.attention,
-            self.volume,
-            self.pumpfun,
-            self.analytics,
-            self.smWalletBehaviour
-        ]:
+        # Fast path - check in pre-built map
+        if name in self._handler_method_map:
+            return getattr(self._handler_method_map[name], name)
+            
+        # Slow path - check attributes of each handler (for non-method attributes)
+        for handler in self._handlers.values():
             if hasattr(handler, name):
                 return getattr(handler, name)
+                
         raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{name}'")
 
     def check_connection(self) -> bool:
@@ -167,42 +177,13 @@ class PortfolioDB:
         Close database connections. This should only be called 
         during application shutdown, not between requests.
         """
-        # Add protection against inappropriate closes
-        
-        # Only close in controlled shutdown scenarios
-        stack = traceback.extract_stack()
-        calling_frames = [frame for frame in stack if frame.name not in ('close', '__exit__')]
-        
-        # Common shutdown patterns
-        shutdown_indicators = [
-            'shutdown_event',
-            'onshutdown',
-            'on_exit',
-            'cleanup',
-            '_exit_',
-            'app_shutdown',
-            'stop_app'
-        ]
-        
-        # Check if this is a legitimate shutdown
-        is_shutdown_call = any(
-            any(indicator in frame.name.lower() for indicator in shutdown_indicators)
-            for frame in calling_frames
-        )
-        
-        # Only close if this is explicitly called during shutdown or exit context
         if hasattr(self, 'conn_manager'):
-            if is_shutdown_call:
-                logger.info("PortfolioDB close() called during application shutdown")
+            logger.info("Closing PortfolioDB connection manager")
+            try:
                 self.conn_manager.close()
-            else:
-                logger.warning("PortfolioDB.close() called outside a shutdown context - ignoring to preserve connection pool")
-                # Don't close the pool - this is probably not a real shutdown
-                # Instead, just release any active connection
-                # This prevents the pool from being closed prematurely
-                pass
-        else:
-            logger.warning("Attempt to close PortfolioDB but no connection manager found")
+                logger.info("Successfully closed database connections")
+            except Exception as e:
+                logger.error(f"Error while closing database connections: {str(e)}")
 
     def execute_query(self, query: str, params=None):
         """
@@ -220,8 +201,6 @@ class PortfolioDB:
             Exception: If there's an error executing the query
         """
         try:
-            config = get_config()
-            
             with self.conn_manager.transaction() as session:
                 # Always use SQLAlchemy text for PostgreSQL compatibility
                 result = session.execute(text(query), params or {})
@@ -245,11 +224,6 @@ class PortfolioDB:
         with db.transaction() as cursor:
             # perform multiple operations in single transaction
             
-        Why needed:
-        - Ensures atomic operations
-        - Manages transaction lifecycle
-        - Provides rollback on errors
-        
         Returns:
             Context manager for database transactions
         """
@@ -264,11 +238,6 @@ class PortfolioDB:
         with db.table_lock('table_name'):
             # perform thread-safe operations
             
-        Why needed:
-        - Ensures thread-safe operations
-        - Prevents race conditions
-        - Manages concurrent access
-        
         Returns:
             Context manager for table locking
         """
@@ -282,10 +251,6 @@ class PortfolioDB:
         with PortfolioDB() as db:
             # use database
             
-        Why needed:
-        - Ensures proper resource management
-        - Automatically handles connection lifecycle
-        
         Returns:
             PortfolioDB instance
         """
@@ -294,14 +259,7 @@ class PortfolioDB:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Context manager exit point.
-        
-        What it does:
-        1. Closes database connection
-        2. Handles any cleanup needed
-        
-        When called:
-        - When exiting 'with' block
-        - Even if an error occurred
+        Closes database connection when exiting context.
         """
         self.close()
 
@@ -312,29 +270,26 @@ class PortfolioDB:
         How to use:
         portfolio_handler = db.get_handler('portfolio')
         
-        Why needed:
-        - Provides direct access to handlers
-        - Useful for specialized operations
-        - Enables handler-specific functionality
-        
         Args:
             handler_type: Type of handler ('portfolio', 'token_analysis', 'jobs')
             
         Returns:
             Handler instance or None if not found
         """
-        handlers = {
-            'token': self.token,
-            'portfolio': self.portfolio,
-            'port_summary_report': self.portfolio,
-            'token_analysis': self.walletsInvested,
-            'jobs': self.job,
-            'wallet_behaviour': self.smartMoneyWallets,
-            'top_pnl_token': self.smWalletTopPNLToken,
-            'attention': self.attention,
-            'volume': self.volume,
-            'pumpfun': self.pumpfun,
-            'analytics': self.analytics,
-            'smWalletBehaviour': self.smWalletBehaviour
+        # Map logical handler names to actual handler keys
+        handler_mapping = {
+            'portfolio': 'portfolio',
+            'port_summary_report': 'portfolio',
+            'token_analysis': 'walletsInvested',
+            'jobs': 'job',
+            'wallet_behaviour': 'smartMoneyWallets',
+            'top_pnl_token': 'smWalletTopPNLToken',
+            'attention': 'attention',
+            'volume': 'volume',
+            'pumpfun': 'pumpfun',
+            'analytics': 'analytics',
+            'smWalletBehaviour': 'smWalletBehaviour'
         }
-        return handlers.get(handler_type)
+        
+        handler_key = handler_mapping.get(handler_type, handler_type)
+        return self._handlers.get(handler_key)
