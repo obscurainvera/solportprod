@@ -162,7 +162,7 @@ class PortfolioApp:
     - Initialize Flask app and API endpoints
     - Manage background job scheduling
     - Handle database setup and connections
-    - Ensure graceful shutdown
+    - Ensure graceful shutdown (only in development)
     """
     def __init__(self):
         """Initialize the Flask app, database, scheduler, and API routes."""
@@ -184,7 +184,7 @@ class PortfolioApp:
         # Register routes and handlers
         self._register_blueprints()
         self._setup_request_handlers()
-        self._setup_healthcheck()
+        self._setup_healthcheck()    
         logger.info("PortfolioApp initialized successfully")
 
     def _init_job_runner(self) -> bool:
@@ -244,25 +244,31 @@ class PortfolioApp:
                 }), 200
 
     def _setup_signal_handlers(self):
-        """Setup signal handlers for graceful shutdown."""
+        """Setup signal handlers for graceful shutdown, only in development."""
         def handle_signal(signum, _):
             if not self.is_shutting_down.is_set():
                 logger.info(f"Received signal {signum}, shutting down...")
                 self.shutdown()
                 os._exit(0)
-        signal.signal(signal.SIGINT, handle_signal)
-        signal.signal(signal.SIGTERM, handle_signal)
-        logger.info("Signal handlers configured")
+        if os.getenv('APP_ENV', 'development') == 'development':
+            signal.signal(signal.SIGINT, handle_signal)
+            signal.signal(signal.SIGTERM, handle_signal)
+            logger.info("Signal handlers configured (development mode)")
+        else:
+            logger.info("Signal handlers skipped (production mode)")
 
     def shutdown(self):
-        """Gracefully shut down the application."""
-        if not self.is_shutting_down.is_set():
-            self.is_shutting_down.set()
-            if self.job_runner:
-                self.job_runner.shutdown()
-                logger.info("Job runner stopped")
-            PortfolioDB().close()
-            logger.info("Database connections closed")
+        """Gracefully shut down the application, only in development."""
+        if os.getenv('APP_ENV', 'development') == 'development':
+            if not self.is_shutting_down.is_set():
+                self.is_shutting_down.set()
+                if self.job_runner:
+                    self.job_runner.shutdown()
+                    logger.info("Job runner stopped")
+                PortfolioDB().close()
+                logger.info("Database connections closed")
+        else:
+            logger.info("Shutdown skipped (production mode)")
 
     def run(self, host=None, port=None):
         """Run the Flask application with scheduler and signal handling."""
