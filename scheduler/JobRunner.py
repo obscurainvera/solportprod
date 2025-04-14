@@ -70,14 +70,6 @@ def run_pump_fun_analysis_job():
     with_retries(PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler)
 
 
-def run_execution_monitoring_job():
-    """Monitor active executions with retry logic."""
-    with_retries(
-        ExecutionMonitorScheduler.handleActiveExecutionsMonitoring,
-        ExecutionMonitorScheduler,
-    )
-
-
 class JobRunner:
     """
     Manages APScheduler for scheduling and executing background jobs.
@@ -111,8 +103,7 @@ class JobRunner:
         config = get_config()
         jobs = [
             ("volume_bot_analysis", {"minute": "*/1"}),
-            ("pump_fun_analysis", {"minute": "*/1"}),
-            ("execution_monitoring", {"minute": "*/1"}),
+            ("pump_fun_analysis", {"minute": "*/1"})
         ]
         for job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
@@ -120,10 +111,9 @@ class JobRunner:
             # Use named functions instead of lambdas
             if job_id == "volume_bot_analysis":
                 job_func = run_volume_bot_analysis_job
-            elif job_id == "pump_fun_analysis":
+            if job_id == "pump_fun_analysis":
                 job_func = run_pump_fun_analysis_job
-            elif job_id == "execution_monitoring":
-                job_func = run_execution_monitoring_job
+            
 
             self.scheduler.add_job(
                 func=job_func,
