@@ -57,11 +57,6 @@ class PumpFunScheduler:
             else:
                 logger.warning("Failed to process pump fun signals")
 
-            if addDelay:
-                delay = random.uniform(5, 10)
-                logger.info(f"Adding random delay of {delay:.2f} seconds")
-                time.sleep(delay)
-
             return success
 
         except Exception as e:
@@ -73,14 +68,11 @@ class PumpFunScheduler:
 
         config = get_config()
 
-        validCookie = config.PUMPFUN_COOKIE
-        expiryTime = config.PUMPFUN_EXPIRY
-
-        if isCookieExpired(expiryTime):
+        if isCookieExpired(config.PUMPFUN_EXPIRY):
             logger.warning("Pump fun cookie expired")
             return False
 
-        self.processPumpFunSignal(cookie=validCookie, addDelay=True)
+        self.processPumpFunSignal(config.PUMPFUN_COOKIE, addDelay=True)
 
         return True
 
@@ -89,11 +81,9 @@ class PumpFunScheduler:
 
         config = get_config()
 
-        validCookie = config.PUMPFUN_COOKIE
-        expiryTime = config.PUMPFUN_EXPIRY
 
-        if isCookieExpired(expiryTime):
+        if isCookieExpired(config.PUMPFUN_EXPIRY):
             logger.warning("Pump fun cookie expired")
             return False
 
-        return self.processPumpFunSignal(cookie=validCookie, addDelay=False)
+        return self.processPumpFunSignal(cookie=config.PUMPFUN_COOKIE, addDelay=False)

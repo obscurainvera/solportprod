@@ -60,11 +60,7 @@ class PumpFunAction:
 
             # Persist to database and get successfully persisted tokens
             persistedTokens = self.persistTokens(pumpFunTokens)
-            
-            # Push persisted tokens to strategy framework
-            if persistedTokens:
-                self.pushPumpFunTokensToStrategyFramework(persistedTokens)
-                
+                            
             return len(persistedTokens) > 0
 
         except Exception as e:
@@ -133,20 +129,18 @@ class PumpFunAction:
             List[PumpFunToken]: List of tokens that were successfully persisted
         """
         successfulTokens = []
-        try:
-            for token in pumpFunTokens:
-                try:
-                    self.db.pumpfun.insertTokenData(token)
-                    successfulTokens.append(token)
-                except Exception as token_error:
-                    logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
-                    continue
+        
+        for token in pumpFunTokens:
+            try:
+                self.db.pumpfun.insertTokenData(token)
+                successfulTokens.append(token)
+            except Exception as token_error:
+                logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
+                continue
                     
             logger.info(f"Successfully persisted {len(successfulTokens)} pump fun tokens")
             return successfulTokens
-        except Exception as e:
-            logger.error(f"Database operation failed: {str(e)}")
-            raise
+        
 
     def pushPumpFunTokensToStrategyFramework(self, pumpFunTokens: List[PumpFunToken]) -> bool:
         """

@@ -345,9 +345,7 @@ class VolumeHandler(BaseDBHandler):
 
         logger.info(f"Inserted new token {token.tokenid}")
 
-    def _updateExistingRecords(
-        self, cursor, token: VolumeToken, currentState: Dict
-    ) -> None:
+    def _updateExistingRecords(self, cursor, token: VolumeToken, currentState: Dict) -> None:
         """
         Archive current state and update records ONLY if:
         1. The token was seen within the last 20 minutes (timeago ≤ 20 minutes), AND
@@ -498,9 +496,7 @@ class VolumeHandler(BaseDBHandler):
             (currentTime, token.tokenid),
         )
 
-    def getTokenHistory(
-        self, tokenId: str, startTime: datetime, endTime: datetime
-    ) -> List[Dict]:
+    def getTokenHistory(self, tokenId: str, startTime: datetime, endTime: datetime) -> List[Dict]:
         """Get token history for backtesting"""
         with self.conn_manager.transaction() as cursor:
             cursor.execute(

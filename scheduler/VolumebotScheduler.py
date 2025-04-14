@@ -44,11 +44,6 @@ class VolumeBotScheduler:
             bool: Success status
         """
         try:
-            if addDelay:
-                delay = random.uniform(5, 10)
-                logger.info(f"Adding random delay of {delay:.2f} seconds")
-                time.sleep(delay)
-
             logger.info(f"Using cookie: {cookie[:15]}...")
 
             # Execute volume signals action with validated cookie
@@ -69,23 +64,17 @@ class VolumeBotScheduler:
         """Execute volume signals collection and analysis with delays"""
         config = get_config()
 
-        validCookie = config.VOLUME_COOKIE
-        expiryTime = config.VOLUME_EXPIRY
-
-        if isCookieExpired(expiryTime):
+        if isCookieExpired(config.VOLUME_EXPIRY):
             logger.warning("Volume cookie expired")
             return False
 
-        self.processVolumeSignal(validCookie, addDelay=True)
+        self.processVolumeSignal(config.VOLUME_COOKIE, addDelay=True)
 
     def handleVolumeAnalysisFromAPI(self):
         """Execute volume signals collection and analysis without delays"""
         config = get_config()
 
-        validCookie = config.VOLUME_COOKIE
-        expiryTime = config.VOLUME_EXPIRY
-
-        if isCookieExpired(expiryTime):
+        if isCookieExpired(config.VOLUME_EXPIRY):
             logger.warning("Volume cookie expired")
             return False
-        return self.processVolumeSignal(cookie=validCookie, addDelay=False)
+        return self.processVolumeSignal(cookie=config.VOLUME_COOKIE, addDelay=False)

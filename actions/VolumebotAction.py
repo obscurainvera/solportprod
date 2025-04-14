@@ -61,10 +61,7 @@ class VolumebotAction:
 
             # Persist to database and get successfully persisted tokens
             persistedTokens = self.persistTokens(volumeTokens)
-            
-            # Push persisted tokens to strategy framework
-            if persistedTokens:
-                self.pushVolumeTokensToStrategyFramework(persistedTokens)
+        
                 
             return len(persistedTokens) > 0
 
@@ -133,20 +130,17 @@ class VolumebotAction:
             List[VolumeToken]: List of tokens that were successfully persisted
         """
         successfulTokens = []
-        try:
-            for token in volumeTokens:
-                try:
-                    self.db.volume.insertTokenData(token)
-                    successfulTokens.append(token)
-                except Exception as token_error:
-                    logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
-                    continue
+        
+        for token in volumeTokens:
+            try:
+                self.db.volume.insertTokenData(token)
+                successfulTokens.append(token)
+            except Exception as token_error:
+                logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
+                continue
                     
             logger.info(f"Successfully persisted {len(successfulTokens)} volume tokens")
             return successfulTokens
-        except Exception as e:
-            logger.error(f"Database operation failed: {str(e)}")
-            raise
 
     def pushVolumeTokensToStrategyFramework(self, volumeTokens: List[VolumeToken]) -> bool:
         """

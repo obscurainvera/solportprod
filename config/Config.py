@@ -114,8 +114,7 @@ class Config:
 
     JOB_SCHEDULES = {
         "volume_bot_analysis": {"minute": "*/1"},
-        "pump_fun_analysis": {"minute": "*/1"},
-        "execution_monitoring": {"minute": "*/1"},
+        "pump_fun_analysis": {"minute": "*/1"}
     }
 
     VOLUME_COOKIE = os.getenv("VOLUME_COOKIE", "default_volume_cookie")
