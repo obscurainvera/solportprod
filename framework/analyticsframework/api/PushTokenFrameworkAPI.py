@@ -149,25 +149,7 @@ class PushTokenAPI:
         }
         return PortSummaryTokenData(**mappedData)
 
-    def pushToken(
-        self,
-        tokenData: BaseTokenData,
-        sourceType: str,
-        pushSource: PushSource = PushSource.SCHEDULER,
-        description: Optional[str] = None,
-    ) -> bool:
-        """
-        Analyze a token through all applicable strategies
-
-        Args:
-            tokenData: Token data from source
-            sourceType: Type of data source
-            pushSource: Source that pushed the token (API or SCHEDULER)
-            description: Optional description to be added to the execution
-
-        Returns:
-            bool: Success status
-        """
+    def pushToken(self,tokenData: BaseTokenData,sourceType: str,pushSource: PushSource = PushSource.SCHEDULER,description: Optional[str] = None,) -> bool:
         try:
             # Get active strategies for token's source type
             allActiveStrategies: List[Dict] = (
