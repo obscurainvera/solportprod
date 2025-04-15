@@ -15,6 +15,7 @@ import random
 from dotenv import load_dotenv
 from config.Config import get_config
 from config.Security import isCookieExpired
+import requests
 
 logger = get_logger(__name__)
 
@@ -48,6 +49,12 @@ class PumpFunScheduler:
         """
         try:
             logger.info(f"Using cookie: {cookie[:15]}...")
+
+            # Hit the health check API first
+            try:
+                requests.get('https://solportprod.onrender.com', timeout=10)
+            except Exception as api_error:
+                logger.warning(f"Health check API call failed: {api_error}. Continuing with processing...")
 
             # Execute pump fun signals action with validated cookie
             success = self.action.processPumpFunTokens(cookie=cookie)
