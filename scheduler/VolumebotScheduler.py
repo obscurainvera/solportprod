@@ -15,6 +15,7 @@ import time
 import random
 from dotenv import load_dotenv
 from config.Security import isCookieExpired
+import requests
 
 logger = get_logger(__name__)
 
@@ -45,6 +46,12 @@ class VolumeBotScheduler:
         """
         try:
             logger.info(f"Using cookie: {cookie[:15]}...")
+
+            # Hit the health check API first
+            try:
+                requests.get('https://solportprod.onrender.com', timeout=10)
+            except Exception as api_error:
+                logger.warning(f"Health check API call failed: {api_error}. Continuing with processing...")
 
             # Execute volume signals action with validated cookie
             success = self.action.processVolumebotTokens(cookie=cookie)
