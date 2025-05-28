@@ -315,3 +315,27 @@ class AttentionStatusEnum(Enum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     ARCHIVED = "ARCHIVED"
+
+
+@dataclass
+class OnchainInfo:
+    """Onchain information data structure"""
+
+    # Required fields
+    tokenid: str
+    name: str
+    chain: str
+    price: Decimal
+    marketcap: Decimal
+    liquidity: Decimal
+    makers: int
+    price1h: Decimal
+    rank: int
+    
+    # Optional fields
+    id: Optional[int] = None
+    onchaininfoid: Optional[int] = None
+    age: Optional[str] = None
+    count: int = 1
+    createdat: Optional[datetime] = None
+    updatedat: Optional[datetime] = None

@@ -15,6 +15,7 @@ from scheduler.PortfolioScheduler import PortfolioScheduler
 from scheduler.WalletsInvestedScheduler import WalletsInvestedScheduler
 from scheduler.VolumebotScheduler import VolumeBotScheduler
 from scheduler.PumpfunScheduler import PumpFunScheduler
+from scheduler.OnchainScheduler import OnchainScheduler
 from scheduler.AttentionScheduler import AttentionScheduler
 from scheduler.DeactivateLostSMBalanceTokens import DeactiveLostSMBalanceTokens
 from scheduler.ExecutionMonitorScheduler import ExecutionMonitorScheduler
@@ -70,6 +71,11 @@ def run_pump_fun_analysis_job():
     with_retries(PumpFunScheduler.handlePumpFunAnalysisFromJob, PumpFunScheduler)
 
 
+def run_onchain_analysis_job():
+    """Run onchain analysis with retry logic."""
+    with_retries(OnchainScheduler.handleOnchainAnalysisFromJob, OnchainScheduler)
+
+
 class JobRunner:
     """
     Manages APScheduler for scheduling and executing background jobs.
@@ -103,7 +109,8 @@ class JobRunner:
         config = get_config()
         jobs = [
             ("volume_bot_analysis", {"minute": "*/1"}),
-            ("pump_fun_analysis", {"minute": "*/1"})
+            ("pump_fun_analysis", {"minute": "*/1"}),
+            ("onchain_analysis", {"minute": "*/10"})
         ]
         for job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
@@ -113,6 +120,8 @@ class JobRunner:
                 job_func = run_volume_bot_analysis_job
             if job_id == "pump_fun_analysis":
                 job_func = run_pump_fun_analysis_job
+            if job_id == "onchain_analysis":
+                job_func = run_onchain_analysis_job
             
 
             self.scheduler.add_job(

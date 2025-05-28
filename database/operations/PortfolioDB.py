@@ -16,6 +16,7 @@ from database.smartmoneywallets.SmartMoneyPerformanceReportHandler import (
 from database.attention.AttentionHandler import AttentionHandler
 from database.volume.VolumeHandler import VolumeHandler
 from database.pumpfun.PumpfunHandler import PumpFunHandler
+from database.onchain.OnchainHandler import OnchainHandler
 from database.auth.TokenHandler import TokenHandler
 from database.auth.CredentialsHandler import CredentialsHandler
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
@@ -112,6 +113,7 @@ class PortfolioDB:
             "attention": AttentionHandler(self.conn_manager),
             "volume": VolumeHandler(self.conn_manager),
             "pumpfun": PumpFunHandler(self.conn_manager),
+            "onchain": OnchainHandler(self.conn_manager),
             "token": TokenHandler(self.conn_manager),
             "credentials": CredentialsHandler(self.conn_manager),
             "analytics": AnalyticsHandler(self.conn_manager),
@@ -129,6 +131,7 @@ class PortfolioDB:
         self.attention = self._handlers["attention"]
         self.volume = self._handlers["volume"]
         self.pumpfun = self._handlers["pumpfun"]
+        self.onchain = self._handlers["onchain"]
         self.token = self._handlers["token"]
         self.credentials = self._handlers["credentials"]
         self.analytics = self._handlers["analytics"]

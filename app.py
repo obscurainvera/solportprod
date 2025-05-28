@@ -45,6 +45,7 @@ from database.smartmoneywallets.SmartMoneyPerformanceReportHandler import SmartM
 from database.smartmoneywallets.SmartMoneyWalletsHandler import SmartMoneyWalletsHandler
 from database.smwalletsbehaviour.SmartMoneyWalletBehaviourHandler import SmartMoneyWalletBehaviourHandler
 from database.volume.VolumeHandler import VolumeHandler
+from database.onchain.OnchainHandler import OnchainHandler
 from database.walletinvested.WalletsInvestedHandler import WalletsInvestedHandler
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 
@@ -79,6 +80,7 @@ from api.smwalletsbehaviour.SMWalletInvestmentRangeReportAPI import smwallet_inv
 from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_bp
 from api.attention.AttentionReportAPI import attention_report_bp
 from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
+from api.onchain.OnchainAPI import onchain_bp
 
 logger = get_logger(__name__)
 
@@ -136,6 +138,7 @@ def initialize_database():
             'SmartMoneyPerformanceReportHandler': SmartMoneyPerformanceReportHandler,
             'AttentionHandler': AttentionHandler,
             'VolumeHandler': VolumeHandler,
+            'OnchainHandler': OnchainHandler,
             'PumpFunHandler': PumpFunHandler,
             'TokenHandler': TokenHandler,
             'CredentialsHandler': CredentialsHandler,
@@ -202,7 +205,7 @@ class PortfolioApp:
             wallets_invested_bp, wallets_invested_investement_details_bp, portfolio_bp,
             health_bp, dashboard_bp, analytics_bp, smart_money_wallets_bp,
             smwallet_top_pnl_token_bp, smwallet_top_pnl_token_investment_bp, attention_bp,
-            volumebot_bp, pumpfun_bp, scheduler_bp, portfolio_tagger_bp, strategy_bp,
+            volumebot_bp, pumpfun_bp, onchain_bp, scheduler_bp, portfolio_tagger_bp, strategy_bp,
             push_token_bp, strategy_page_bp, execution_monitor_bp, smartMoneyWalletBehaviourBp,
             reports_page_bp, port_summary_report_bp, smartMoneyWalletsReportBp,
             smartMoneyPerformanceReportBp, strategy_report_bp, strategyperformance_bp,
