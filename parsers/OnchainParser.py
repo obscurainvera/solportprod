@@ -39,9 +39,9 @@ def parseOnchainResponse(response: Dict) -> List[OnchainInfo]:
             
         # Sort by change_pct_1h_raw in descending order
         sorted_items = sorted(
-            sol_items, 
-            key=lambda x: float(x.get("change_pct_1h_raw", 0)), 
-            reverse=True
+                sol_items, 
+                key=lambda x: float(_parseDecimal(x.get("change_pct_1h", "0"))), 
+                reverse=True
         )
         
         # Assign ranks starting from 1
@@ -71,9 +71,9 @@ def parseOnchainResponse(response: Dict) -> List[OnchainInfo]:
                     marketcap=_parseDecimal(item["marketCap_raw"]),
                     liquidity=_parseDecimal(item["liquidity_raw"]),
                     makers=int(makers_value),
-                    price1h=_parseDecimal(item["change_pct_1h_raw"]),
+                    price1h=_parseDecimal(item["change_pct_1h"]),
                     rank=rank,  # Assigned rank based on sorting
-                    age=item.get("ageCat"),
+                    age=item.get("token_age_raw"),
                     createdat=now,
                     updatedat=now,
                 )
