@@ -110,7 +110,7 @@ class JobRunner:
         jobs = [
             ("volume_bot_analysis", {"minute": "*/1"}),
             ("pump_fun_analysis", {"minute": "*/1"}),
-            ("onchain_analysis", {"minute": "*/5"})
+            ("onchain_analysis", {"minute": "*/2"})
         ]
         for job_id, default_schedule in jobs:
             schedule = config.JOB_SCHEDULES.get(job_id, default_schedule)
