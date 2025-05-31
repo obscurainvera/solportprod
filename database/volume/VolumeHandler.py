@@ -447,6 +447,9 @@ class VolumeHandler(BaseDBHandler):
                 currentTime,
             ),
         )
+        
+        logger.info(
+            f"Updated history for token {token.tokenid}: {', '.join(changedMetrics)}")
 
         # 2. Update state table
         cursor.execute(
@@ -482,6 +485,9 @@ class VolumeHandler(BaseDBHandler):
                 token.tokenid,
             ),
         )
+        
+        logger.info(
+            f"Updated state for token {token.tokenid}: {', '.join(changedMetrics)}")
 
         # 3. Update info table
         cursor.execute(
@@ -495,6 +501,8 @@ class VolumeHandler(BaseDBHandler):
             ),
             (currentTime, token.tokenid),
         )
+        logger.info(
+            f"Updated info for token {token.tokenid}: {', '.join(changedMetrics)}")
 
     def getTokenHistory(self, tokenId: str, startTime: datetime, endTime: datetime) -> List[Dict]:
         """Get token history for backtesting"""
