@@ -138,8 +138,8 @@ class PumpFunAction:
                 logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
                 continue
                     
-            logger.info(f"Successfully persisted {len(successfulTokens)} pump fun tokens")
-            return successfulTokens
+        logger.info(f"Successfully persisted {len(successfulTokens)} pump fun tokens")
+        return successfulTokens
         
 
     def pushPumpFunTokensToStrategyFramework(self, pumpFunTokens: List[PumpFunToken]) -> bool:

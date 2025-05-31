@@ -272,12 +272,15 @@ class VolumeHandler(BaseDBHandler):
 
         if not result:
             # New token - insert both records
+            logger.info(
+                    f"New token {token.name} entry"
+                )
             self._insertNewRecords(cursor, token)
         else:
             # Existing token - archive and update
             if not result["state_exists"]:
-                logger.error(
-                    f"Inconsistent state: Token {token.tokenid} exists in info but not in state table"
+                logger.info(
+                    f"Inconsistent state: Token {token.tokenname} exists in info but not in state table"
                 )
                 return
 
@@ -343,7 +346,7 @@ class VolumeHandler(BaseDBHandler):
             ),
         )
 
-        logger.info(f"Inserted new token {token.tokenid}")
+        logger.info(f"Inserted new token {token.tokenname}")
 
     def _updateExistingRecords(self, cursor, token: VolumeToken, currentState: Dict) -> None:
         """
@@ -374,16 +377,16 @@ class VolumeHandler(BaseDBHandler):
 
             if timeDifference > 20:
                 logger.info(
-                    f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), outside 20-minute threshold, skipping update"
+                    f"Token {token.tokenname} was seen {timeDifference:.2f} minutes ago (UTC), outside 20-minute threshold, skipping update"
                 )
                 return  # Skip update entirely if token was seen more than 20 minutes ago
 
             logger.info(
-                f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), within 20-minute threshold, checking for changes"
+                f"Token {token.tokenname} was seen {timeDifference:.2f} minutes ago (UTC), within 20-minute threshold, checking for changes"
             )
         else:
             # If timeago is None, skip update
-            logger.info(f"Token {token.tokenid} has no timeago value, skipping update")
+            logger.info(f"Token {token.tokenname} has no timeago value, skipping update")
             return
 
         # SECONDARY CONDITION: Check if any metrics have changed

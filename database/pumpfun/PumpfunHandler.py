@@ -209,13 +209,12 @@ class PumpFunHandler(BaseDBHandler):
 
         if not result:
             # New token - insert both records
+            logger.info(f"New token {token.name} addition")
             self._insertNewRecords(cursor, token)
         else:
             # Existing token - archive and update
             if not result["state_exists"]:
-                logger.error(
-                    f"Inconsistent state: Token {token.tokenid} exists in info but not in state table"
-                )
+                logger.info(f"Inconsistent state: Token {token.name} exists in info but not in state table")
                 return
 
             self._updateExistingRecords(cursor, token, result)
@@ -250,6 +249,8 @@ class PumpFunHandler(BaseDBHandler):
                 currentTime,
             ),
         )
+        
+        logger.info(f"Info record added for the token :  {token.name}")
 
         # Insert state record
         cursor.execute(
@@ -279,6 +280,7 @@ class PumpFunHandler(BaseDBHandler):
                 currentTime,
             ),
         )
+        logger.info(f"State record added for the token :  {token.name}")
 
         logger.info(f"Inserted new token {token.tokenid}")
 
@@ -313,16 +315,16 @@ class PumpFunHandler(BaseDBHandler):
 
             if timeDifference > 20:
                 logger.info(
-                    f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), outside 20-minute threshold, skipping update"
+                    f"Token {token.name} was seen {timeDifference:.2f} minutes ago (UTC), outside 20-minute threshold, skipping update"
                 )
                 return  # Skip update entirely if token was seen more than 20 minutes ago
 
             logger.info(
-                f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), within 20-minute threshold, checking for changes"
+                f"Token {token.name} was seen {timeDifference:.2f} minutes ago (UTC), within 20-minute threshold, checking for changes"
             )
         else:
             # If timeago is None, skip update
-            logger.info(f"Token {token.tokenid} has no timeago value, skipping update")
+            logger.info(f"Token {token.name} has no timeago value, skipping update")
             return
 
         # SECONDARY CONDITION: Check if any metrics have changed
@@ -350,14 +352,10 @@ class PumpFunHandler(BaseDBHandler):
                 changedMetrics.append(f"{metricName}: {oldValue} -> {newValue}")
 
         if not shouldUpdate:
-            logger.info(
-                f"No changes detected for token {token.tokenid}, skipping update"
-            )
+            logger.info(f"No changes detected for token {token.name}, skipping update")
             return
 
-        logger.info(
-            f"Changes detected for token {token.tokenid}: {', '.join(changedMetrics)}"
-        )
+        logger.info(f"Changes detected for token {token.name}: {', '.join(changedMetrics)}")
 
         # 1. Archive current state since we're going to update
         cursor.execute(
@@ -386,6 +384,7 @@ class PumpFunHandler(BaseDBHandler):
                 currentTime,
             ),
         )
+        logger.info(f"Updated history for token {token.name}: {', '.join(changedMetrics)}")
 
         # 2. Update state table
         cursor.execute(
@@ -421,6 +420,8 @@ class PumpFunHandler(BaseDBHandler):
                 token.tokenid,
             ),
         )
+        
+        logger.info(f"Updated state for token {token.name}: {', '.join(changedMetrics)}")
 
         # 3. Update info table
         cursor.execute(
@@ -434,6 +435,8 @@ class PumpFunHandler(BaseDBHandler):
             ),
             (currentTime, token.tokenid),
         )
+        
+        logger.info(f"Updated info for token {token.name}, incremented count")
 
     def getTokenHistory(
         self, tokenId: str, startTime: datetime, endTime: datetime

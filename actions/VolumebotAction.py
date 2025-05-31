@@ -136,11 +136,11 @@ class VolumebotAction:
                 self.db.volume.insertTokenData(token)
                 successfulTokens.append(token)
             except Exception as token_error:
-                logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
+                logger.error(f"Failed to persist token {token.name}: {str(token_error)}")
                 continue
                     
-            logger.info(f"Successfully persisted {len(successfulTokens)} volume tokens")
-            return successfulTokens
+        logger.info(f"Successfully persisted {len(successfulTokens)} volume tokens")
+        return successfulTokens
 
     def pushVolumeTokensToStrategyFramework(self, volumeTokens: List[VolumeToken]) -> bool:
         """
