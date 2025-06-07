@@ -348,9 +348,7 @@ class CredentialsHandler(BaseDBHandler):
             )
             return False
 
-    def getCredentialsByType(
-        self, serviceName: str, credentialType: str
-    ) -> Optional[Dict[str, Any]]:
+    def getCredentialsByType(self, serviceName: str, credentialType: str) -> Optional[Dict[str, Any]]:
         """
         Get credentials for a service by credential type
 
@@ -687,3 +685,5 @@ class CredentialsHandler(BaseDBHandler):
         except Exception as e:
             logger.error(f"Failed to store credentials for {serviceName}: {str(e)}")
             return False
+
+    
