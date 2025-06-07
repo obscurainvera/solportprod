@@ -105,7 +105,7 @@ class TelegramNotificationService(AbstractNotificationService):
         """
         try:
             # Get chat ID
-            chatId = self.getChatIdForGroup()
+            chatId = self.getChatIdForGroup(chatName)
             if not chatId:
                 logger.error("No chat ID found")
                 self._updateNotificationStatus(notification, NotificationStatus.FAILED, 
