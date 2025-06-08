@@ -148,15 +148,11 @@ class OnchainNotificationStrategies:
         Returns:
             bool: True if notification should be sent, False otherwise
         """
-        # Check if token is new
-        is_new = existingToken is None
+        isNewToken = OnchainNotificationStrategies.is_new_token(token, existingToken)
+        isTopRanked = OnchainNotificationStrategies.is_top_ranked(token, 1, 10)
         
-        # Check if token rank is between 1 and 10
-        is_top_ranked = token.rank is not None and 1 <= token.rank <= 10
-        
-        # Only notify for new tokens with rank 1-10
-        if is_new and is_top_ranked:
-            logger.info(f"Token {token.name} is new and has rank {token.rank}, will send notification")
+        if isNewToken and isTopRanked:
+            logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
             
         logger.info(f"Token {token.name} does not meet notification criteria: is_new={is_new}, rank={token.rank}")
@@ -178,8 +174,7 @@ class OnchainNotificationStrategies:
         strategy_chat_map = {
             "new_top_ranked": ChatGroup.ONCHAIN_CHAT,
             # Add more strategies and their target chat groups as needed
-            # "high_liquidity": ChatGroup.LIQUIDITY_CHAT,
-            # "price_surge": ChatGroup.PRICE_ALERTS_CHAT,
+            
         }
         
         # Return the mapped chat group or default to ONCHAIN_CHAT
@@ -246,26 +241,26 @@ class OnchainNotificationStrategies:
             cls.processed_tokens.add(token.tokenid)
             
             # Determine which strategy to use and if notification should be sent
-            strategy_name = None
-            should_notify = False
+            strategyName = None
+            shouldNotify = False
             
             # Check new top ranked strategy
             if cls.shouldNotifyNewAndTopTanked(token, existingToken):
-                strategy_name = "new_top_ranked"
-                should_notify = True
+                strategyName = "new_top_ranked"
+                shouldNotify = True
             
             # Add more strategy checks here as needed
             # if cls.shouldNotifyHighLiquidity(token, existingToken):
             #     strategy_name = "high_liquidity"
             #     should_notify = True
             
-            if not should_notify:
+            if not shouldNotify:
                 logger.info(f"Token {token.name} does not meet any notification criteria")
                 return False
                 
             # Get the appropriate chat group for this strategy
-            chat_group = cls.getChatGroupForStrategy(strategy_name)
-            logger.info(f"Using strategy '{strategy_name}' with chat group '{chat_group.value}'")
+            chatGroup = cls.getChatGroupForStrategy(strategyName)
+            logger.info(f"Using strategy '{strategyName}' with chat group '{chatGroup.value}'")
                 
             # Convert to notification content
             content = cls.createNotificationContent(token)
@@ -274,13 +269,13 @@ class OnchainNotificationStrategies:
             result = notificationManager.sendTokenNotification(
                 source=NotificationSource.ONCHAIN,
                 tokenContent=content,
-                chatGroup=chat_group
+                chatGroup=chatGroup
             )
             
             if result:
-                logger.info(f"Successfully sent notification for token {token.name} with rank {token.rank} to {chat_group.value}")
+                logger.info(f"Successfully sent notification for token {token.name} with rank {token.rank} to {chatGroup.value}")
             else:
-                logger.warning(f"Failed to send notification for token {token.name} to {chat_group.value}")
+                logger.warning(f"Failed to send notification for token {token.name} to {chatGroup.value}")
                 
             return result
             
