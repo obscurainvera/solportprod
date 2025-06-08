@@ -159,22 +159,13 @@ class NotificationManager:
         try:
             # Convert dict to TokenNotificationContent if needed
             if isinstance(tokenContent, dict):
-                # Extract required parameters
-                requiredParams = ['subject', 'contractAddress', 'symbol', 'chain']
-                kwargs = {}
-                
-                # Check if all required parameters are present
-                for param in requiredParams:
-                    if param not in tokenContent:
-                        logger.error(f"Missing required parameter '{param}' for token notification")
-                        return False
                 
                 # Extract subject, contractAddress, symbol, chain
                 subject = tokenContent.pop('subject')
-                contractAddress = tokenContent.pop('contractAddress')
-                symbol = tokenContent.pop('symbol')
+                contractAddress = tokenContent.pop('tokenid')
+                symbol = tokenContent.pop('name')
                 chain = tokenContent.pop('chain')
-                
+            
                 # Create TokenNotificationContent
                 tokenContent = self.createTokenContent(
                     subject=subject,

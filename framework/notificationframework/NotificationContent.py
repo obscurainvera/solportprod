@@ -5,31 +5,38 @@ Notification content models for structured messages
 from dataclasses import dataclass, field
 from typing import Optional, List
 from decimal import Decimal
+from datetime import datetime
+
 
 @dataclass
 class TokenNotificationContent:
     """
     Structured content for token notifications
     """
-    # Required fields
+    """
+    Structured content for token notifications, aligned with OnchainInfo plus DexScreener URL
+    """
+    # Required fields from OnchainInfo
     subject: str  # Notification subject
-    contractAddress: str  # Contract address of the token
-    symbol: str  # Token symbol
-    chain: str  # Blockchain (e.g., sol, eth)
+    tokenid: str
+    name: str
+    chain: str
+    price: Decimal
+    marketcap: Decimal
+    liquidity: Decimal
+    makers: int
+    rank: int
     
-    # Optional fields
-    tokenName: Optional[str] = None  # Full token name
-    currentPrice: Optional[Decimal] = None  # Current token price
-    balanceUsd: Optional[Decimal] = None  # Total balance in USD
-    marketCap: Optional[Decimal] = None  # Market cap
-    liquidity: Optional[Decimal] = None  # Liquidity
-    fullyDilutedValue: Optional[Decimal] = None  # Fully diluted value
-    holderCount: Optional[int] = None  # Number of holders/wallets
-    description: Optional[str] = None  # Additional description
-    changePercent1h: Optional[Decimal] = None  # 1-hour price change
-    changePercent24h: Optional[Decimal] = None  # 24-hour price change
-    txnChartUrl: Optional[str] = None  # Transaction chart URL
-    dexScreenerUrl: Optional[str] = None  # DexScreener URL
+    # Optional fields from OnchainInfo
+    id: Optional[int] = None
+    onchaininfoid: Optional[int] = None
+    age: Optional[str] = None
+    count: int = 1
+    createdat: Optional[datetime] = None
+    updatedat: Optional[datetime] = None
+    
+    # DexScreener URL from original TokenNotificationContent
+    dexScreenerUrl: Optional[str] = None
     
     def formatTelegramMessage(self) -> str:
         """
@@ -48,46 +55,45 @@ class TokenNotificationContent:
         message.append(f"💡 <b>Subject:</b> {self.subject}")
         
         # Add contract address
-        message.append(f"📋 <b>CA:</b> {self.contractAddress}")
+        message.append(f"📋 <b>Contract Address:</b> {self.tokenid}")
         
         # Add token name if available
-        if self.tokenName:
-            message.append(f"<b>{self.tokenName}</b>")
+        if self.name:
+            message.append(f"<b>{self.name}</b>")
+            
+        # Add rank
+        message.append(f"🏅 <b>Rank:</b> {self.rank}")
+    
+        # Add age if available
+        if self.age:
+            message.append(f"⏳ <b>Token Age:</b> {self.age}")
+    
+        # Add count
+        message.append(f"🔢 <b>Count:</b> {self.count}")
+    
         
         # Add chain
         message.append(f"⛓ <b>Chain:</b> {self.chain}")
         
-        # Add token symbol
-        message.append(f"🎰 <b>Token Symbols:</b> {self.symbol}")
+        # Add price
+        message.append(f"💵 <b>Price:</b> ${self.price:,.2f}")
         
-        # Add balance in USD if available
-        if self.balanceUsd:
-            formatted_balance = f"${self.balanceUsd:,.2f}K" if self.balanceUsd >= 1000 else f"${self.balanceUsd:,.2f}"
-            message.append(f"💰 <b>Bal_USD:</b> {formatted_balance}")
-        
-        # Add liquidity if available
-        if self.liquidity:
-            formatted_liquidity = f"${self.liquidity:,.2f}K" if self.liquidity >= 1000 else f"${self.liquidity:,.2f}"
-            message.append(f"💧 <b>Liquidity:</b> {formatted_liquidity}")
-        
-        # Add FDV if available
-        if self.fullyDilutedValue:
-            formatted_fdv = f"${self.fullyDilutedValue:,.2f}M" if self.fullyDilutedValue >= 1000000 else f"${self.fullyDilutedValue:,.2f}K" if self.fullyDilutedValue >= 1000 else f"${self.fullyDilutedValue:,.2f}"
-            message.append(f"📈 <b>FDV:</b> {formatted_fdv}")
+        # Add liquidity
+        formatted_liquidity = f"${self.liquidity:,.2f}K" if self.liquidity >= 1000 else f"${self.liquidity:,.2f}"
+        message.append(f"💧 <b>Liquidity:</b> {formatted_liquidity}")
+    
+        # Add makers (as holder count)
+        message.append(f"💳 <b>Number of Makers:</b> {self.makers}")
         
         # Add current price if available
-        if self.currentPrice:
-            message.append(f"💵 <b>Latest Price:</b> {self.currentPrice}")
+        if self.price:
+            message.append(f"💵 <b>Latest Price:</b> {self.price}")
         
         # Add transaction chart info
         message.append(f"📊 <b>Txn Chart:</b> (Click below)")
         
         # Add DexScreener info
         message.append(f"👀 <b>DexScreener:</b> (Click below)")
-        
-        # Add holder count if available
-        if self.holderCount:
-            message.append(f"💳 <b># of No of Wallets:</b> {self.holderCount}")
         
         # Join all parts with newlines
         return "\n".join(message)
@@ -100,19 +106,6 @@ class TokenNotificationContent:
             List[dict]: List of button configurations
         """
         buttons = []
-        
-        # Add transaction chart button if URL is available
-        if self.txnChartUrl:
-            buttons.append({
-                "text": "Txn Chart", 
-                "url": self.txnChartUrl
-            })
-        else:
-            # Use a default URL if none is provided
-            buttons.append({
-                "text": "Txn Chart", 
-                "url": f"https://dexscreener.com/solana/{self.contractAddress}?chart=1"
-            })
         
         # Add DexScreener button if URL is available
         if self.dexScreenerUrl:
