@@ -120,7 +120,7 @@ class NotificationHandler(BaseDBHandler):
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     '''
-                    result = cursor.execute(text(insert_sql), (
+                    cursor.execute(text(insert_sql), (
                         notification.source,
                         notification.chatgroup,
                         notification.content,
@@ -132,7 +132,8 @@ class NotificationHandler(BaseDBHandler):
                         notification.updatedat,
                         notification.sentat
                     ))
-                    row = result.fetchone()
+                    # Fetch the result directly from cursor, not from the execute result
+                    row = cursor.fetchone()
                     notification.id = row['id'] if row else None
                 else:
                     insert_sql = f'''
