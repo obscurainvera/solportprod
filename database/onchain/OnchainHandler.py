@@ -200,27 +200,36 @@ class OnchainHandler(BaseDBHandler):
         """
         if not tokenIds:
             return {}
-            
-        # Convert list to tuple for SQL IN clause
-        tokenIds_tuple = tuple(tokenIds)
         
-        # Use different query syntax based on number of tokens
-        if len(tokenIds) == 1:
-            query = "SELECT * FROM onchaininfo WHERE tokenid = :tokenid"
-            params = {"tokenid": tokenIds[0]}
-        else:
-            query = "SELECT * FROM onchaininfo WHERE tokenid IN :tokenids"
-            params = {"tokenids": tokenIds_tuple}
-        
-        result_dict = {}
-        with self.conn_manager.get_connection() as conn:
-            results = conn.execute(text(query), params).fetchall()
+        try:
+            # Convert list to tuple for SQL IN clause
+            tokenIds_tuple = tuple(tokenIds)
             
-            for row in results:
-                row_dict = dict(row)
-                result_dict[row_dict['tokenid']] = row_dict
+            # Use different query syntax based on number of tokens
+            if len(tokenIds) == 1:
+                query = "SELECT * FROM onchaininfo WHERE tokenid = %s"
+                params = (tokenIds[0],)
+            else:
+                # Format for IN clause with proper parameterization
+                placeholders = ','.join(['%s'] * len(tokenIds))
+                query = f"SELECT * FROM onchaininfo WHERE tokenid IN ({placeholders})"
+                params = tokenIds
+            
+            result_dict = {}
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute(query, params)
+                results = cursor.fetchall()
                 
-        return result_dict
+                for row in results:
+                    row_dict = dict(row)
+                    result_dict[row_dict['tokenid']] = row_dict
+                    
+            logger.info(f"Retrieved info for {len(result_dict)} tokens out of {len(tokenIds)} requested")
+            return result_dict
+            
+        except Exception as e:
+            logger.error(f"Error getting existing tokens info: {str(e)}")
+            return {}
 
     def getExistingTokenState(self, tokenId: str) -> Optional[Dict]:
         """Get current token state if exists"""
