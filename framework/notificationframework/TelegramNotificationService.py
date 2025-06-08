@@ -44,56 +44,89 @@ class TelegramNotificationService(AbstractNotificationService):
         """
         return NotificationServiceType.TELEGRAM
     
-    def getChatIdForGroup(self) -> Optional[str]:
+    def getChatIdForGroup(self, chatGroup: Optional[ChatGroup] = None) -> Optional[str]:
         """
         Get the chat ID from credentials
         
+        Args:
+            chatGroup: The chat group to get the chat ID for
+            
         Returns:
-            Optional[str]: Chat ID if found, None otherwise
+            str: Chat ID or None if not found
         """
+        if not chatGroup:
+            logger.error("No chat group specified")
+            return None
+            
         try:
+            # The chat group value itself is used as the service name
+            # This allows different chat groups to have different credentials
+            serviceName = chatGroup.value
+            
             # Get credentials with CHAT_ID type
             credential = self.db.credentials.getCredentialsByType(
-                serviceName=self.service.service_name,
+                serviceName=serviceName,
                 credentialType=CredentialType.CHAT_ID.value
             )
             
             if not credential:
-                logger.error(f"No chat ID credentials found for service {self.service.service_name}")
+                logger.error(f"No chat ID credentials found for chat group {serviceName}")
                 return None
             
             # The chat ID is stored directly in the apikey column
-            return credential.get('apikey')
+            chatId = credential.get('apikey')
+            if not chatId:
+                logger.error(f"Chat ID not found in credentials for chat group {serviceName}")
+                return None
+                
+            logger.info(f"Found chat ID for chat group {serviceName}")
+            return chatId
             
         except Exception as e:
-            logger.error(f"Failed to get chat ID: {e}")
+            logger.error(f"Failed to get chat ID for chat group {chatGroup.value}: {e}")
             return None
     
-    def getBotToken(self) -> Optional[str]:
+    def getBotToken(self, chatGroup: Optional[ChatGroup] = None) -> Optional[str]:
         """
         Get the bot token from credentials
         
+        Args:
+            chatGroup: The chat group to get the bot token for
+            
         Returns:
-            Optional[str]: Bot token if found, None otherwise
+            str: Bot token or None if not found
         """
+        if not chatGroup:
+            logger.error("No chat group specified")
+            return None
+            
         try:
+            # The chat group value itself is used as the service name
+            serviceName = chatGroup.value
+            
             # Get API key credentials
             credential = self.db.credentials.getCredentialsByType(
-                serviceName=self.service.service_name,
+                serviceName=serviceName,
                 credentialType=CredentialType.API_KEY.value
             )
             
             if not credential:
-                logger.error(f"No bot token credentials found for service {self.service.service_name}")
+                logger.error(f"No bot token credentials found for chat group {serviceName}")
                 return None
-            
-            return credential.get('apikey')
+                
+            botToken = credential.get('apikey')
+            if not botToken:
+                logger.error(f"Bot token not found in credentials for chat group {serviceName}")
+                return None
+                
+            logger.info(f"Found bot token for chat group {serviceName}")
+            return botToken
             
         except Exception as e:
-            logger.error(f"Failed to get bot token: {e}")
+            logger.error(f"Failed to get bot token for chat group {chatGroup.value}: {e}")
             return None
     
-    def sendNotification(self, notification: Notification) -> bool:
+    def sendNotification(self, notification: Notification, chatGroup: Optional[ChatGroup] = None) -> bool:
         """
         Send a notification using Telegram
         
@@ -105,7 +138,7 @@ class TelegramNotificationService(AbstractNotificationService):
         """
         try:
             # Get chat ID
-            chatId = self.getChatIdForGroup(chatName)
+            chatId = self.getChatIdForGroup(chatGroup)
             if not chatId:
                 logger.error("No chat ID found")
                 self._updateNotificationStatus(notification, NotificationStatus.FAILED, 
@@ -113,7 +146,7 @@ class TelegramNotificationService(AbstractNotificationService):
                 return False
             
             # Get bot token
-            token = self.getBotToken()
+            token = self.getBotToken(chatGroup)
             if not token:
                 logger.error("No Telegram bot token found")
                 self._updateNotificationStatus(notification, NotificationStatus.FAILED, 
@@ -243,7 +276,7 @@ class TelegramNotificationService(AbstractNotificationService):
                 return False
             
             # 3. Send the notification
-            return self.sendNotification(savedNotification)
+            return self.sendNotification(savedNotification, chatGroup)
             
         except Exception as e:
             logger.error(f"Failed to send message: {e}")
