@@ -120,7 +120,7 @@ class Config:
     VOLUME_COOKIE = os.getenv("VOLUME_COOKIE", "default_volume_cookie")
     PUMPFUN_COOKIE = os.getenv("PUMPFUN_COOKIE", "default_pump_fun_cookie")
 
-    VOLUME_EXPIRY = os.getenv("VOLUME_EXPIRY", "2025-12-31")
+    VOLUME_EXPIRY = os.getenv("VOLUME_EXPIRY", "2023-12-31")
     PUMPFUN_EXPIRY = os.getenv("PUMPFUN_EXPIRY", "2023-12-31")
 
     def get_database_url(self) -> str:

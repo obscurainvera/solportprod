@@ -144,7 +144,7 @@ class OnchainNotificationStrategies:
         Args:
             token: OnchainInfo object to check
             existingToken: Existing token info from database or None if token is new
-            x
+            
         Returns:
             bool: True if notification should be sent, False otherwise
         """
@@ -155,7 +155,7 @@ class OnchainNotificationStrategies:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
             
-        
+        logger.info(f"Token {token.name} does not meet notification criteria: is_new={is_new}, rank={token.rank}")
         return False
         
     @staticmethod
@@ -181,7 +181,7 @@ class OnchainNotificationStrategies:
         return strategy_chat_map.get(strategy_name, ChatGroup.ONCHAIN_CHAT)
         
     @staticmethod
-    def createNotificationContent(onchainTokenInfo: OnchainInfo, strategyName: str) -> TokenNotificationContent:
+    def createNotificationContent(token: OnchainInfo) -> TokenNotificationContent:
         """
         Convert OnchainInfo object to TokenNotificationContent
         
@@ -191,26 +191,32 @@ class OnchainNotificationStrategies:
         Returns:
             TokenNotificationContent: Notification content for the token
         """
-    
+        # Format price with appropriate precision
+        price_str = f"${token.price:.8f}" if token.price and token.price < 0.01 else f"${token.price:.4f}" if token.price else "Unknown"
+        
+        # Format liquidity with commas for readability
+        liquidity_str = f"${token.liquidity:,.2f}" if token.liquidity else "Unknown"
+        
+        # Format price change with sign
+        price_change_1h = f"{token.price1h:+.2f}%" if token.price1h is not None else "Unknown"
+        price_change_24h = f"{token.price24h:+.2f}%" if token.price24h is not None else "Unknown"
         
         return TokenNotificationContent(
-        subject=strategyName,
-        tokenid=onchainTokenInfo.tokenid,
-        name=onchainTokenInfo.name,
-        chain=onchainTokenInfo.chain,
-        price=onchainTokenInfo.price,
-        marketcap=onchainTokenInfo.marketcap,
-        liquidity=onchainTokenInfo.liquidity,
-        makers=onchainTokenInfo.makers,
-        rank=onchainTokenInfo.rank,
-        id=onchainTokenInfo.id,
-        onchaininfoid=onchainTokenInfo.onchaininfoid,
-        age=onchainTokenInfo.age,
-        count=onchainTokenInfo.count,
-        createdat=onchainTokenInfo.createdat,
-        updatedat=onchainTokenInfo.updatedat,
-        dexScreenerUrl=f"https://dexscreener.com/{onchainTokenInfo.chain.lower()}/{onchainTokenInfo.tokenid}"
-    )
+            tokenName=token.name,
+            tokenSymbol=token.symbol,
+            tokenAddress=token.tokenid,
+            chain=token.chain,
+            price=price_str,
+            priceChange1h=price_change_1h,
+            priceChange24h=price_change_24h,
+            liquidity=liquidity_str,
+            volume24h=f"${token.volume24h:,.2f}" if token.volume24h else "Unknown",
+            marketCap=f"${token.marketcap:,.2f}" if token.marketcap else "Unknown",
+            rank=f"#{token.rank}" if token.rank else "Unknown",
+            holders=f"{token.holders:,}" if token.holders else "Unknown",
+            makers=f"{token.makers:,}" if token.makers else "Unknown",
+            dexScreenerUrl=f"https://dexscreener.com/{token.chain.lower()}/{token.tokenid}"
+        )
         
     @classmethod
     def handleNotification(cls, token: OnchainInfo, existingToken: Optional[Dict], notificationManager: NotificationManager) -> bool:
@@ -257,7 +263,7 @@ class OnchainNotificationStrategies:
             logger.info(f"Using strategy '{strategyName}' with chat group '{chatGroup.value}'")
                 
             # Convert to notification content
-            content = cls.createNotificationContent(token,strategyName)
+            content = cls.createNotificationContent(token)
             
             # Send notification to the strategy-specific chat group
             result = notificationManager.sendTokenNotification(
