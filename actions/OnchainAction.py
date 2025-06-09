@@ -123,7 +123,7 @@ class OnchainAction:
 
     def persistTokens(self, onchainTokens: List[OnchainInfo]) -> List[OnchainInfo]:
         """
-        Persist OnchainInfo objects to database
+        Persist OnchainInfo objects to database and send notifications for tokens that meet criteria
         
         Args:
             onchainTokens: List of OnchainInfo objects to persist
@@ -143,7 +143,7 @@ class OnchainAction:
         
         if successfulTokens:
             try:
-                sentCount = OnchainNotificationStrategies.sendNotification(
+                sentCount = OnchainNotificationStrategies.processTokenForNotification(
                     tokens=successfulTokens,
                     db=self.db,
                     notificationManager=self.notificationManager
