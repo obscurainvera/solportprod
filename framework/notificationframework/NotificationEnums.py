@@ -15,7 +15,6 @@ class NotificationSource(Enum):
     VOLUME = "VOLUME"
     SYSTEM = "SYSTEM"
     ERROR = "ERROR"
-    ONCHAIN = "ONCHAIN"
     
     def __str__(self) -> str:
         return self.value
@@ -30,7 +29,6 @@ class ChatGroup(Enum):
     VOLUME_CHAT = "VOLUME_CHAT"
     SYSTEM_CHAT = "SYSTEM_CHAT"
     ERROR_CHAT = "ERROR_CHAT"
-    ONCHAIN_CHAT = "ONCHAIN_CHAT"
     
     def __str__(self) -> str:
         return self.value

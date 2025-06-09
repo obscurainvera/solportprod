@@ -11,9 +11,6 @@ from logs.logger import get_logger
 from database.onchain.OnchainHandler import OnchainHandler
 from services.AuthService import AuthService
 from database.auth.ServiceCredentialsEnum import ServiceCredentials, CredentialType
-from framework.notificationframework.NotificationManager import NotificationManager
-from framework.notificationframework.OnchainNotificationWrapper import OnchainNotificationWrapper
-from framework.notificationframework.OnchainNotificationStrategies import OnchainNotificationStrategies
 import pytz
 logger = get_logger(__name__)
 
@@ -30,9 +27,6 @@ class OnchainAction:
         self.service = ServiceCredentials.CHAINEDGE
         self.baseUrl = self.service.metadata['base_url']
         self.tokenHandler = self.db.token
-        
-        # Initialize notification manager
-        self.notificationManager = NotificationManager(self.db)
 
     def processOnchainTokens(self, cookie: str) -> bool:
         """
@@ -123,7 +117,7 @@ class OnchainAction:
 
     def persistTokens(self, onchainTokens: List[OnchainInfo]) -> List[OnchainInfo]:
         """
-        Persist OnchainInfo objects to database and send notifications for tokens that meet criteria
+        Persist OnchainInfo objects to database
         
         Args:
             onchainTokens: List of OnchainInfo objects to persist
@@ -140,17 +134,6 @@ class OnchainAction:
             except Exception as token_error:
                 logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
                 continue
-        
-        if successfulTokens:
-            try:
-                sentCount = OnchainNotificationStrategies.processTokenForNotification(
-                    tokens=successfulTokens,
-                    db=self.db,
-                    notificationManager=self.notificationManager
-                )
-                logger.info(f"Processed {len(successfulTokens)} tokens for notifications, sent {sentCount} notifications")
-            except Exception as notification_error:
-                logger.error(f"Failed to process notifications: {str(notification_error)}")
                     
         logger.info(f"Successfully persisted {len(successfulTokens)} onchain tokens")
         return successfulTokens
