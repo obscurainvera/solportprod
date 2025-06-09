@@ -36,7 +36,6 @@ SCHEMA_DOCS = {
         "age": "Token age",
         "createdat": "When record was created",
         "updatedat": "Last state update timestamp",
-        "createdatist": "When record was created (IST timezone)",
     },
     "onchainhistory": {
         "id": "Internal unique ID",
@@ -50,7 +49,6 @@ SCHEMA_DOCS = {
         "rank": "Ranking at snapshot",
         "age": "Token age at snapshot",
         "createdat": "When record was created",
-        "createdatist": "When record was created (IST timezone)",
     },
 }
 
@@ -101,7 +99,6 @@ class OnchainHandler(BaseDBHandler):
                         age TEXT,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedat TIMESTAMP,
-                        createdatist TIMESTAMP,
                         FOREIGN KEY(onchaininfoid) REFERENCES onchaininfo(id),
                         FOREIGN KEY(tokenid) REFERENCES onchaininfo(tokenid)
                     )
@@ -125,7 +122,6 @@ class OnchainHandler(BaseDBHandler):
                         rank INTEGER NOT NULL,
                         age TEXT,
                         createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        createdatist TIMESTAMP,
                         FOREIGN KEY(onchainstateid) REFERENCES onchainstate(id),
                         FOREIGN KEY(tokenid) REFERENCES onchaininfo(tokenid)
                     )
@@ -169,58 +165,21 @@ class OnchainHandler(BaseDBHandler):
         return tableSchema.get(columnName, "No description available")
 
     def getExistingTokenInfo(self, tokenId: str) -> Optional[Dict]:
-        """
-        Get current token info if exists
-        
-        Args:
-            tokenId: Token ID to check
-            
-        Returns:
-            Dict: Token info or None if not found
-        """
-        query = "SELECT * FROM onchaininfo WHERE tokenid = :tokenid"
-        params = {"tokenid": tokenId}
-        
-        with self.conn_manager.get_connection() as conn:
-            result = conn.execute(text(query), params).fetchone()
-            
-        if result:
-            return dict(result)
-        return None
-        
-    def getExistingTokensInfo(self, tokenIds: List[str]) -> Dict[str, Dict]:
-        """
-        Get current token info for multiple tokens in a single query
-        
-        Args:
-            tokenIds: List of token IDs to check
-            
-        Returns:
-            Dict[str, Dict]: Dictionary mapping token IDs to their info, or empty dict if none found
-        """
-        if not tokenIds:
-            return {}
-            
-        # Convert list to tuple for SQL IN clause
-        tokenIds_tuple = tuple(tokenIds)
-        
-        # Use different query syntax based on number of tokens
-        if len(tokenIds) == 1:
-            query = "SELECT * FROM onchaininfo WHERE tokenid = :tokenid"
-            params = {"tokenid": tokenIds[0]}
-        else:
-            query = "SELECT * FROM onchaininfo WHERE tokenid IN :tokenids"
-            params = {"tokenids": tokenIds_tuple}
-        
-        result_dict = {}
-        with self.conn_manager.get_connection() as conn:
-            results = conn.execute(text(query), params).fetchall()
-            
-            for row in results:
-                row_dict = dict(row)
-                result_dict[row_dict['tokenid']] = row_dict
-                
-        return result_dict
+        """Get current token info if exists"""
+        with self.conn_manager.transaction() as cursor:
+            cursor.execute(
+                text(
+                    """
+                SELECT * FROM onchaininfo 
+                WHERE tokenid = %s
+            """
+                ),
+                (tokenId,),
+            )
+            result = cursor.fetchone()
+            if result:
+                return dict(result)
+            return None
 
     def getExistingTokenState(self, tokenId: str) -> Optional[Dict]:
         """Get current token state if exists"""
@@ -250,12 +209,9 @@ class OnchainHandler(BaseDBHandler):
             bool: Success status
         """
         try:
-            # Get current time
-            now = datetime.now()
-            
-            # Also get IST timezone time for the new column
+            # Convert datetime objects to IST timezone
             ist = pytz.timezone('Asia/Kolkata')
-            now_ist = datetime.now(pytz.UTC).astimezone(ist)
+            now = datetime.now(ist)
             
             # First, check if token already exists in onchaininfo
             existingInfo = self.getExistingTokenInfo(onchainToken.tokenid)
@@ -310,8 +266,8 @@ class OnchainHandler(BaseDBHandler):
                         text(
                             """
                         INSERT INTO onchainhistory
-                        (onchainstateid, tokenid, price, marketcap, liquidity, makers, price1h, rank, age, createdat, createdatist)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (onchainstateid, tokenid, price, marketcap, liquidity, makers, price1h, rank, age, createdat)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """
                         ),
                         (
@@ -325,7 +281,6 @@ class OnchainHandler(BaseDBHandler):
                             existingState["rank"],
                             existingState["age"],
                             now,
-                            now_ist,
                         ),
                     )
                 
@@ -365,8 +320,8 @@ class OnchainHandler(BaseDBHandler):
                         text(
                             """
                         INSERT INTO onchainstate
-                        (onchaininfoid, tokenid, price, marketcap, liquidity, makers, price1h, rank, age, createdat, updatedat, createdatist)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (onchaininfoid, tokenid, price, marketcap, liquidity, makers, price1h, rank, age, createdat, updatedat)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """
                         ),
                         (
@@ -381,7 +336,6 @@ class OnchainHandler(BaseDBHandler):
                             onchainToken.age,
                             now,
                             now,
-                            now_ist,
                         ),
                     )
             
