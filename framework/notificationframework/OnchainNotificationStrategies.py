@@ -46,17 +46,8 @@ class OnchainNotificationStrategies:
     
     @staticmethod
     def is_new_token(token: OnchainInfo, existingToken: Optional[Dict]) -> bool:
-        """
-        Determine if a token is new (not previously seen in the database)
         
-        Args:
-            token: OnchainInfo object to evaluate
-            existingToken: Token info from database if exists, None if new
-            
-        Returns:
-            bool: True if token is new, False otherwise
-        """
-        isNewToken = existingToken is None
+        isNewToken = existingToken is not None and existingToken.get('count') == 1
         
         if isNewToken:
             logger.info(f"Found new token: {token.name} with rank {token.rank}")
@@ -149,7 +140,7 @@ class OnchainNotificationStrategies:
             bool: True if notification should be sent, False otherwise
         """
         isNewToken = OnchainNotificationStrategies.is_new_token(token, existingToken)
-        isTopRanked = OnchainNotificationStrategies.is_top_ranked(token, 1, 10)
+        isTopRanked = OnchainNotificationStrategies.is_top_ranked(token, 1, 5)
         
         if isNewToken and isTopRanked:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
