@@ -42,7 +42,7 @@ class OnchainNotificationWrapper:
         existingToken = None if is_new_token else {}
         
         # Delegate to the strategy class
-        return OnchainNotificationStrategies.handleTokenNotification(
+        return OnchainNotificationStrategies.handleNotification(
             token=token,
             existingToken=existingToken,
             notificationManager=self.notificationManager
@@ -64,7 +64,7 @@ class OnchainNotificationWrapper:
         existingTokensMap = {token.tokenid: None for token in tokens}
         
         # Delegate to the strategy class
-        return OnchainNotificationStrategies.processTokenForNotification(
+        return OnchainNotificationStrategies.sendNotification(
             tokens=tokens,
             existingTokensMap=existingTokensMap,
             notificationManager=self.notificationManager

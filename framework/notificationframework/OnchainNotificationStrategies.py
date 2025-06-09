@@ -142,8 +142,8 @@ class OnchainNotificationStrategies:
         Current notification strategy: Only notify for new tokens with rank 1-10
         
         Args:
-            token: OnchainInfo object to evaluate
-            existingToken: Token info from database if exists, None if new
+            token: OnchainInfo object to check
+            existingToken: Existing token info from database or None if token is new
             
         Returns:
             bool: True if notification should be sent, False otherwise
@@ -155,10 +155,33 @@ class OnchainNotificationStrategies:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
             
+        logger.info(f"Token {token.name} does not meet notification criteria: is_new={is_new}, rank={token.rank}")
         return False
         
     @staticmethod
-    def create_token_notification_content(token: OnchainInfo) -> TokenNotificationContent:
+    def getChatGroupForStrategy(strategy_name: str) -> ChatGroup:
+        """
+        Get the appropriate chat group for a notification strategy
+        Different strategies may send notifications to different chat groups
+        
+        Args:
+            strategy_name: Name of the strategy being used
+            
+        Returns:
+            ChatGroup: The chat group to send notifications to
+        """
+        # Map strategies to chat groups
+        strategy_chat_map = {
+            "new_top_ranked": ChatGroup.ONCHAIN_CHAT,
+            # Add more strategies and their target chat groups as needed
+            
+        }
+        
+        # Return the mapped chat group or default to ONCHAIN_CHAT
+        return strategy_chat_map.get(strategy_name, ChatGroup.ONCHAIN_CHAT)
+        
+    @staticmethod
+    def createNotificationContent(token: OnchainInfo) -> TokenNotificationContent:
         """
         Convert OnchainInfo object to TokenNotificationContent
         
@@ -196,13 +219,13 @@ class OnchainNotificationStrategies:
         )
         
     @classmethod
-    def handleTokenNotification(cls, token: OnchainInfo, existingToken: Optional[Dict], notificationManager: NotificationManager) -> bool:
+    def handleNotification(cls, token: OnchainInfo, existingToken: Optional[Dict], notificationManager: NotificationManager) -> bool:
         """
         Process a token and send notification if it meets the criteria
         
         Args:
             token: OnchainInfo object to process
-            existingToken: Token info from database if exists, None if new
+            existingToken: Existing token info from database or None if token is new
             notificationManager: NotificationManager instance for sending notifications
             
         Returns:
@@ -217,25 +240,42 @@ class OnchainNotificationStrategies:
             # Add to processed tokens set
             cls.processed_tokens.add(token.tokenid)
             
-            # Check if notification should be sent
-            if not cls.shouldNotifyNewAndTopTanked(token, existingToken):
-                logger.info(f"Token {token.name} does not meet notification criteria")
+            # Determine which strategy to use and if notification should be sent
+            strategyName = None
+            shouldNotify = False
+            
+            # Check new top ranked strategy
+            if cls.shouldNotifyNewAndTopTanked(token, existingToken):
+                strategyName = "new_top_ranked"
+                shouldNotify = True
+            
+            # Add more strategy checks here as needed
+            # if cls.shouldNotifyHighLiquidity(token, existingToken):
+            #     strategy_name = "high_liquidity"
+            #     should_notify = True
+            
+            if not shouldNotify:
+                logger.info(f"Token {token.name} does not meet any notification criteria")
                 return False
                 
+            # Get the appropriate chat group for this strategy
+            chatGroup = cls.getChatGroupForStrategy(strategyName)
+            logger.info(f"Using strategy '{strategyName}' with chat group '{chatGroup.value}'")
+                
             # Convert to notification content
-            content = cls.create_token_notification_content(token)
+            content = cls.createNotificationContent(token)
             
-            # Send notification
+            # Send notification to the strategy-specific chat group
             result = notificationManager.sendTokenNotification(
                 source=NotificationSource.ONCHAIN,
                 tokenContent=content,
-                chatGroup=ChatGroup.ONCHAIN_CHAT
+                chatGroup=chatGroup
             )
             
             if result:
-                logger.info(f"Successfully sent notification for token {token.name} with rank {token.rank}")
+                logger.info(f"Successfully sent notification for token {token.name} with rank {token.rank} to {chatGroup.value}")
             else:
-                logger.warning(f"Failed to send notification for token {token.name}")
+                logger.warning(f"Failed to send notification for token {token.name} to {chatGroup.value}")
                 
             return result
             
@@ -244,7 +284,7 @@ class OnchainNotificationStrategies:
             return False
             
     @classmethod
-    def processTokenForNotification(cls, tokens: List[OnchainInfo], db: PortfolioDB, notificationManager: NotificationManager) -> int:
+    def sendNotification(cls, tokens: List[OnchainInfo], db: PortfolioDB, notificationManager: NotificationManager) -> int:
         """
         Process a list of tokens and send notifications for those that meet criteria
         
@@ -276,7 +316,7 @@ class OnchainNotificationStrategies:
                 existingToken = exsistingOnchainTokens.get(token.tokenid)
                 
                 # Process token for notification
-                if cls.handleTokenNotification(token, existingToken, notificationManager):
+                if cls.handleNotification(token, existingToken, notificationManager):
                     sentCount += 1
                     
             except Exception as e:
