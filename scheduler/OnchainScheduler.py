@@ -71,9 +71,9 @@ class OnchainScheduler:
         """Execute onchain data collection and analysis with delays"""
         config = get_config()
 
-        # if isCookieExpired(config.VOLUME_EXPIRY):  # Using the same cookie as volume for now
-        #     logger.warning("Volume cookie expired")
-        #     return False
+        if isCookieExpired(config.VOLUME_EXPIRY):  # Using the same cookie as volume for now
+            logger.warning("Volume cookie expired")
+            return False
 
         self.processOnchainData(config.VOLUME_COOKIE, addDelay=True)
 
@@ -81,7 +81,7 @@ class OnchainScheduler:
         """Execute onchain data collection and analysis without delays"""
         config = get_config()
 
-        # if isCookieExpired(config.VOLUME_EXPIRY):  # Using the same cookie as volume for now
-        #     logger.warning("Volume cookie expired")
-        #     return False
+        if isCookieExpired(config.VOLUME_EXPIRY):  # Using the same cookie as volume for now
+            logger.warning("Volume cookie expired")
+            return False
         return self.processOnchainData(cookie=config.VOLUME_COOKIE, addDelay=False)
