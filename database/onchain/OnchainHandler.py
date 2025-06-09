@@ -178,15 +178,15 @@ class OnchainHandler(BaseDBHandler):
         Returns:
             Dict: Token info or None if not found
         """
-        query = "SELECT * FROM onchaininfo WHERE tokenid = %s"
-        params = (tokenId,)
+        query = "SELECT * FROM onchaininfo WHERE tokenid = :tokenid"
+        params = {"tokenid": tokenId}
         
-        
-        with self.conn_manager.transaction() as cursor:
-            cursor.execute(query, params)
-            result = cursor.fetchall()
+        with self.conn_manager.get_connection() as conn:
+            result = conn.execute(text(query), params).fetchone()
             
-            return [dict(row) for row in result]
+        if result:
+            return dict(result)
+        return None
         
     def getExistingTokensInfo(self, tokenIds: List[str]) -> Dict[str, Dict]:
         """
