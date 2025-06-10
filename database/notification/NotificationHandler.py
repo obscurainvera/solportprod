@@ -88,57 +88,29 @@ class NotificationHandler(BaseDBHandler):
         except Exception as e:
             logger.error(f"Error ensuring notification table exists: {e}")
             # Don't re-raise, as we want to allow graceful fallback
-    
-    def createNotification(self, notification: Notification) -> Optional[Notification]:
-        """
-        Create a new notification record
-        
-        Args:
-            notification: Notification object to save
             
-        Returns:
-            Optional[Notification]: Saved notification with ID or None if failed
-        """
+    def createNotification(self, notification: Notification) -> Optional[Notification]:
+
         try:
             config = get_config()
-            
+        
             with self.conn_manager.transaction() as cursor:
                 now = self.getCurrentIstTime()
-                
-                # Set timestamps
+            
+            # Set timestamps
                 notification.createdat = now
                 notification.updatedat = now
-                
-                # Serialize buttons to JSON if present
+            
+            # Serialize buttons to JSON if present
                 buttons_json = json.dumps([{"text": btn.text, "url": btn.url} for btn in notification.buttons]) if notification.buttons else None
-                
-                # Insert into database
+            
+            # Insert into database
                 if config.DB_TYPE == 'postgres':
                     insert_sql = f'''
                         INSERT INTO {self.tableName} 
                         (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    '''
-                    result = cursor.execute(text(insert_sql), (
-                        notification.source,
-                        notification.chatgroup,
-                        notification.content,
-                        notification.status,
-                        notification.servicetype,
-                        notification.errordetails,
-                        buttons_json,
-                        notification.createdat,
-                        notification.updatedat,
-                        notification.sentat
-                    ))
-                    row = result.fetchone()
-                    notification.id = row['id'] if row else None
-                else:
-                    insert_sql = f'''
-                        INSERT INTO {self.tableName} 
-                        (source, chatgroup, content, status, servicetype, errordetails, buttons, createdat, updatedat, sentat)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     '''
                     cursor.execute(text(insert_sql), (
                         notification.source,
@@ -150,14 +122,17 @@ class NotificationHandler(BaseDBHandler):
                         buttons_json,
                         notification.createdat,
                         notification.updatedat,
-                        notification.sentat
+                        notification.updatedat
                     ))
-                    
-                    # Get the ID of the inserted row
-                    notification.id = cursor.lastrowid
-                
-                return notification
-                
+                    row = cursor.fetchone()
+                    if row:
+                        notification.id = row.get('id')
+                    else:
+                        logger.error("No ID returned after inserting notification")
+                        return None
+                            
+            return notification
+            
         except Exception as e:
             logger.error(f"Failed to create notification: {e}")
             return None

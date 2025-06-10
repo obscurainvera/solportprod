@@ -436,3 +436,35 @@ class OnchainHandler(BaseDBHandler):
         except Exception as e:
             logger.error(f"Error retrieving token history: {e}")
             return []
+        
+        
+    def getOnchainInfoTokens(self, tokenIds: List[str]) -> List[Dict]:
+        """
+        Get token information for multiple token IDs from onchaininfo table
+    
+        Args:
+            tokenIds: List of token IDs to retrieve
+        
+        Returns:
+            List[Dict]: List of token information dictionaries
+        """
+        try:
+            if not tokenIds:
+                return []
+            
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute(
+                    text(
+                     """
+                        SELECT * FROM onchaininfo 
+                        WHERE tokenid IN %s
+                        """
+                    ),
+                    (tuple(tokenIds),),
+                )
+                results = cursor.fetchall()
+                return {row['tokenid']: dict(row) for row in results}
+            
+        except Exception as e:
+            logger.error(f"Error retrieving multiple token info: {e}")
+            return []
