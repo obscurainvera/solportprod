@@ -39,7 +39,7 @@ class OnchainNotificationStrategies:
             
         try:
             # Use the efficient batch query method
-            return db.onchain.getExistingTokensInfo(token_ids)
+            return db.onchain.getOnchainInfoTokens(token_ids)
         except Exception as e:
             logger.error(f"Error getting existing tokens info: {str(e)}")
             return {}
@@ -56,7 +56,7 @@ class OnchainNotificationStrategies:
         Returns:
             bool: True if token is new, False otherwise
         """
-        isNewToken = existingToken is None
+        isNewToken = existingToken is not None and existingToken.get('count', 0) == 1
         
         if isNewToken:
             logger.info(f"Found new token: {token.name} with rank {token.rank}")
