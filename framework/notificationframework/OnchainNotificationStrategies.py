@@ -154,7 +154,6 @@ class OnchainNotificationStrategies:
         if isTopRanked:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
-            
         
         return False
         
