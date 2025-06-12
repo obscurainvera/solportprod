@@ -94,24 +94,24 @@ class TokenNotificationContent:
         # Add DexScreener button if URL is available
         if self.dexScreenerUrl:
             buttons.append({
-                "text": "DexScreener",
+                "text": f"DS = {self.name}",
                 "url": self.dexScreenerUrl
             })
         else:
             # Use a default URL if none is provided
             buttons.append({
-                "text": f"DexScreener = {self.name}",
+                "text": f"DS = {self.name}",
                 "url": f"https://dexscreener.com/solana/{self.tokenid}"
             })
             
         buttons.append({
-            "text": f"Chainedge = {self.name}",
+            "text": f"CE = {self.name}",
             "url": f"https://app.chainedge.io/solana/?search={self.tokenid}"
         })
         
         return buttons 
     
-    def formatTelegramMessageForOnchainNew(self) -> str:
+    def formatTelegramMessageForOnchainNeweefefef(self) -> str:
         """
         Format the content as a telegram message with HTML table formatting
     
@@ -169,7 +169,7 @@ class TokenNotificationContent:
         return "\n".join(message)
     
     
-    def formatTelegramMessageForOnchain(self) -> str:
+    def formatTelegramMessageForOnchainNew(self) -> str:
     
         # Define column widths for alignment, reduced for iPhone compatibility
         label_width = 18  # Reduced width for labels
