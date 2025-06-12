@@ -146,9 +146,9 @@ class OnchainNotificationStrategies:
             bool: True if notification should be sent, False otherwise
         """
         isNewToken = OnchainNotificationStrategies.is_new_token(token, existingToken)
-        isTopRanked = OnchainNotificationStrategies.is_top_ranked(token, 1, 2)
+        isTopRanked = OnchainNotificationStrategies.is_top_ranked(token, 1, 10)
         
-        if isTopRanked:
+        if isNewToken and isTopRanked:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
         
