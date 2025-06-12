@@ -38,7 +38,7 @@ class TokenNotificationContent:
     # DexScreener URL from original TokenNotificationContent
     dexScreenerUrl: Optional[str] = None
     
-    def formatTelegramMessage(self) -> str:
+    def formatTelegramMessageForOnchain(self) -> str:
         """
         Format the content as a telegram message with HTML formatting
         
@@ -46,9 +46,7 @@ class TokenNotificationContent:
             str: Formatted message for Telegram
         """
         message = [
-            "<b>PORTFOLIO ALERTS</b>\n",
-            "🔔 <b>chainEdge SOL BOT</b>",
-            "Portfolio Alerts\n"
+            "<b>ONCHAIN ALERTS</b>\n"
         ]
         
         # Add subject
@@ -59,7 +57,7 @@ class TokenNotificationContent:
         
         # Add token name if available
         if self.name:
-            message.append(f"<b>{self.name}</b>")
+            message.append(f"<b>Name :</b> {self.name}")
             
         # Add rank
         message.append(f"🏅 <b>Rank:</b> {self.rank}")
@@ -70,13 +68,9 @@ class TokenNotificationContent:
     
         # Add count
         message.append(f"🔢 <b>Count:</b> {self.count}")
-    
-        
-        # Add chain
-        message.append(f"⛓ <b>Chain:</b> {self.chain}")
         
         # Add price
-        message.append(f"💵 <b>Price:</b> ${self.price:,.2f}")
+        message.append(f"💵 <b>Price:</b> ${self.price}")
         
         # Add liquidity
         formatted_liquidity = f"${self.liquidity:,.2f}K" if self.liquidity >= 1000 else f"${self.liquidity:,.2f}"
@@ -84,16 +78,6 @@ class TokenNotificationContent:
     
         # Add makers (as holder count)
         message.append(f"💳 <b>Number of Makers:</b> {self.makers}")
-        
-        # Add current price if available
-        if self.price:
-            message.append(f"💵 <b>Latest Price:</b> {self.price}")
-        
-        # Add transaction chart info
-        message.append(f"📊 <b>Txn Chart:</b> (Click below)")
-        
-        # Add DexScreener info
-        message.append(f"👀 <b>DexScreener:</b> (Click below)")
         
         # Join all parts with newlines
         return "\n".join(message)
@@ -119,5 +103,10 @@ class TokenNotificationContent:
                 "text": "DexScreener",
                 "url": f"https://dexscreener.com/solana/{self.contractAddress}"
             })
+            
+        buttons.append({
+            "text": "Chainedge",
+            "url": f"https://app.chainedge.io/solana/?search={self.contractAddress}"
+        })
         
         return buttons 
