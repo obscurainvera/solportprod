@@ -19,9 +19,6 @@ class OnchainNotificationStrategies:
     This class centralizes all notification criteria for easier management and modification
     """
     
-    # Track tokens we've already processed to avoid duplicate notifications
-    processed_tokens: Set[str] = set()
-    
     @classmethod
     def getOnchainTokenInfo(cls, db: PortfolioDB, token_ids: List[str]) -> Dict[str, Dict]:
         """
@@ -154,7 +151,6 @@ class OnchainNotificationStrategies:
         if isTopRanked:
             logger.info(f"Will send notification for new token {token.name} with rank {token.rank}")
             return True
-            
         
         return False
         
@@ -226,14 +222,6 @@ class OnchainNotificationStrategies:
             bool: True if notification was sent successfully, False otherwise
         """
         try:
-            # Skip if we've already processed this token
-            if token.tokenid in cls.processed_tokens:
-                logger.info(f"Token {token.name} already processed, skipping notification check")
-                return False
-                
-            # Add to processed tokens set
-            cls.processed_tokens.add(token.tokenid)
-            
             # Determine which strategy to use and if notification should be sent
             strategyName = None
             shouldNotify = False
