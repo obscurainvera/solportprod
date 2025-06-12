@@ -170,10 +170,9 @@ class TokenNotificationContent:
     
     
     def formatTelegramMessageForOnchainNew(self) -> str:
-    
         # Define column widths for alignment, reduced for iPhone compatibility
-        label_width = 18  # Reduced width for labels
-        value_width = 25  # Reduced width for values to fit smaller screens
+        label_width = 18  # Width for labels
+        value_width = 25  # Width for values to fit smaller screens
 
         # Initialize message with header
         message = ["<b>ONCHAIN ALERTS</b>\n", "<pre>"]
@@ -184,22 +183,25 @@ class TokenNotificationContent:
         message.append(f"│ {'Field':<{label_width}}│ {'Value':<{value_width}}│")
         message.append(separator)
 
-        # Add subject (truncate if too long)
-        display_subject = self.subject if len(self.subject) <= value_width else self.subject[:value_width-3] + '...'
+        # Add subject (coerce to string and truncate if too long)
+        subject_str = str(self.subject) if self.subject is not None else ''
+        display_subject = subject_str if len(subject_str) <= value_width else subject_str[:value_width-3] + '...'
         message.append(f"│ 💡 {'Subject':<{label_width-2}}│ {display_subject:<{value_width}}│")
         message.append(separator)
 
         # Add contract address (tokenid) with <code>, showing first 4 and last 4
-        if self.tokenid and len(self.tokenid) > 8:
-            display_tokenid = f"{self.tokenid[:4]}...{self.tokenid[-4:]}"
+        tokenid_str = str(self.tokenid) if self.tokenid is not None else ''
+        if tokenid_str and len(tokenid_str) > 8:
+            display_tokenid = f"{tokenid_str[:4]}...{tokenid_str[-4:]}"
         else:
-            display_tokenid = self.tokenid or ''
-        message.append(f"│ 📋 {'Contract Address':<{label_width-2}}│ <code>{self.tokenid or ''}</code>{' ' * (value_width - len(display_tokenid))}│")
+            display_tokenid = tokenid_str
+        message.append(f"│ 📋 {'Contract Address':<{label_width-2}}│ <code>{tokenid_str}</code>{' ' * (value_width - len(display_tokenid))}│")
         message.append(separator)
 
-        # Add token name if available (truncate if too long)
+        # Add token name if available (coerce to string and truncate if too long)
         if self.name:
-            display_name = self.name if len(self.name) <= value_width else self.name[:value_width-3] + '...'
+            name_str = str(self.name) if self.name is not None else ''
+            display_name = name_str if len(name_str) <= value_width else name_str[:value_width-3] + '...'
             message.append(f"│ {'Name':<{label_width}}│ {display_name:<{value_width}}│")
             message.append(separator)
 
@@ -207,9 +209,10 @@ class TokenNotificationContent:
         message.append(f"│ 🏅 {'Rank':<{label_width-2}}│ {self.rank:<{value_width}}│")
         message.append(separator)
 
-        # Add age if available (truncate if too long)
+        # Add age if available (coerce to string and truncate if too long)
         if self.age:
-            display_age = self.age if len(self.age) <= value_width else self.age[:value_width-3] + '...'
+            age_str = str(self.age) if self.age is not None else ''
+            display_age = age_str if len(age_str) <= value_width else age_str[:value_width-3] + '...'
             message.append(f"│ ⏳ {'Token Age':<{label_width-2}}│ {display_age:<{value_width}}│")
             message.append(separator)
 
