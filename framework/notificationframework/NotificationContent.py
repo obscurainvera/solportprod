@@ -167,3 +167,70 @@ class TokenNotificationContent:
 
         # Join all parts with newlines
         return "\n".join(message)
+    
+    
+    def formatTelegramMessageForOnchain(self) -> str:
+    
+        # Define column widths for alignment, reduced for iPhone compatibility
+        label_width = 18  # Reduced width for labels
+        value_width = 25  # Reduced width for values to fit smaller screens
+
+        # Initialize message with header
+        message = ["<b>ONCHAIN ALERTS</b>\n", "<pre>"]
+
+        # Simple table header with minimal borders
+        separator = "├" + "─" * (label_width + value_width + 3) + "┤"
+        message.append("┌" + "─" * (label_width + value_width + 3) + "┐")
+        message.append(f"│ {'Field':<{label_width}}│ {'Value':<{value_width}}│")
+        message.append(separator)
+
+        # Add subject (truncate if too long)
+        display_subject = self.subject if len(self.subject) <= value_width else self.subject[:value_width-3] + '...'
+        message.append(f"│ 💡 {'Subject':<{label_width-2}}│ {display_subject:<{value_width}}│")
+        message.append(separator)
+
+        # Add contract address (tokenid) with <code>, showing first 4 and last 4
+        if self.tokenid and len(self.tokenid) > 8:
+            display_tokenid = f"{self.tokenid[:4]}...{self.tokenid[-4:]}"
+        else:
+            display_tokenid = self.tokenid or ''
+        message.append(f"│ 📋 {'Contract Address':<{label_width-2}}│ <code>{self.tokenid or ''}</code>{' ' * (value_width - len(display_tokenid))}│")
+        message.append(separator)
+
+        # Add token name if available (truncate if too long)
+        if self.name:
+            display_name = self.name if len(self.name) <= value_width else self.name[:value_width-3] + '...'
+            message.append(f"│ {'Name':<{label_width}}│ {display_name:<{value_width}}│")
+            message.append(separator)
+
+        # Add rank
+        message.append(f"│ 🏅 {'Rank':<{label_width-2}}│ {self.rank:<{value_width}}│")
+        message.append(separator)
+
+        # Add age if available (truncate if too long)
+        if self.age:
+            display_age = self.age if len(self.age) <= value_width else self.age[:value_width-3] + '...'
+            message.append(f"│ ⏳ {'Token Age':<{label_width-2}}│ {display_age:<{value_width}}│")
+            message.append(separator)
+
+        # Add count
+        message.append(f"│ 🔢 {'Count':<{label_width-2}}│ {self.count:<{value_width}}│")
+        message.append(separator)
+
+        # Add price
+        formatted_price = f"${self.price:,.4f}".rstrip('0').rstrip('.')
+        message.append(f"│ 💵 {'Price':<{label_width-2}}│ {formatted_price:<{value_width}}│")
+        message.append(separator)
+
+        # Add liquidity
+        formatted_liquidity = f"${self.liquidity:,.2f}K" if self.liquidity >= 1000 else f"${self.liquidity:.4f}".rstrip('0').rstrip('.')
+        message.append(f"│ 💧 {'Liquidity':<{label_width-2}}│ {formatted_liquidity:<{value_width}}│")
+        message.append(separator)
+
+        # Add makers (as holder count)
+        message.append(f"│ 💳 {'Number of Makers':<{label_width-2}}│ {self.makers:<{value_width}}│")
+        message.append("└" + "─" * (label_width + value_width + 3) + "┘")
+        message.append("</pre>")
+
+        # Join all parts with newlines
+        return "\n".join(message)
