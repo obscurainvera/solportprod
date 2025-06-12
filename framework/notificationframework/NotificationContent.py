@@ -100,13 +100,13 @@ class TokenNotificationContent:
         else:
             # Use a default URL if none is provided
             buttons.append({
-                "text": "DexScreener",
-                "url": f"https://dexscreener.com/solana/{self.contractAddress}"
+                "text": f"DexScreener = {self.name}",
+                "url": f"https://dexscreener.com/solana/{self.tokenid}"
             })
             
         buttons.append({
-            "text": "Chainedge",
-            "url": f"https://app.chainedge.io/solana/?search={self.contractAddress}"
+            "text": f"Chainedge = {self.name}",
+            "url": f"https://app.chainedge.io/solana/?search={self.tokenid}"
         })
         
         return buttons 

@@ -205,7 +205,7 @@ class OnchainNotificationStrategies:
         count=onchainTokenInfo.count,
         createdat=onchainTokenInfo.createdat,
         updatedat=onchainTokenInfo.updatedat,
-        dexScreenerUrl=f"https://dexscreener.com/{onchainTokenInfo.chain.lower()}/{onchainTokenInfo.tokenid}"
+        dexScreenerUrl=f"https://dexscreener.com/solana/{onchainTokenInfo.tokenid}"
     )
         
     @classmethod
