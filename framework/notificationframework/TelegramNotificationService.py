@@ -256,7 +256,7 @@ class TelegramNotificationService(AbstractNotificationService):
             # Process content if it's a TokenNotificationContent
             if isinstance(content, TokenNotificationContent):
                 # Format content as string
-                content_str = content.formatTelegramMessageForOnchain()
+                content_str = content.formatTelegramMessageForOnchainNew()
                 
                 # Get default buttons for token if none provided
                 if not buttons:

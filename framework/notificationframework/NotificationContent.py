@@ -110,3 +110,60 @@ class TokenNotificationContent:
         })
         
         return buttons 
+    
+    def formatTelegramMessageForOnchainNew(self) -> str:
+        """
+        Format the content as a telegram message with HTML table formatting
+    
+        Returns:
+        str: Formatted message for Telegram
+        """
+        # Define column widths for alignment
+        label_width = 20  # Width for labels (e.g., "Subject", "Price")
+        value_width = 30  # Width for values (e.g., tokenid, price)
+
+        # Initialize message with header
+        message = ["<b>ONCHAIN ALERTS</b>\n", "<pre>"]
+
+        # Table header with borders
+        message.append("┌" + "─" * (label_width + value_width + 3) + "┐")
+        message.append(f"│ {'Field':<{label_width}}│ {'Value':<{value_width}}│")
+        message.append("├" + "─" * (label_width + value_width + 3) + "┤")
+
+        # Add subject
+        message.append(f"│ 💡 {'Subject':<{label_width-2}}│ {self.subject:<{value_width}}│")
+
+        # Add contract address
+        message.append(f"│ 📋 {'Contract Address':<{label_width-2}}│ {self.tokenid:<{value_width}}│")
+
+        # Add token name if available
+        if self.name:
+            message.append(f"│ {'Name':<{label_width}}│ {self.name:<{value_width}}│")
+
+        # Add rank
+        message.append(f"│ 🏅 {'Rank':<{label_width-2}}│ {self.rank:<{value_width}}│")
+
+        # Add age if available
+        if self.age:
+            message.append(f"│ ⏳ {'Token Age':<{label_width-2}}│ {self.age:<{value_width}}│")
+
+        # Add count
+        message.append(f"│ 🔢 {'Count':<{label_width-2}}│ {self.count:<{value_width}}│")
+
+        # Add price
+        formatted_price = f"${self.price:,.4f}".rstrip('0').rstrip('.')
+        message.append(f"│ 💵 {'Price':<{label_width-2}}│ {formatted_price:<{value_width}}│")
+
+        # Add liquidity
+        formatted_liquidity = f"${self.liquidity:,.2f}K" if self.liquidity >= 1000 else f"${self.liquidity:.4f}".rstrip('0').rstrip('.')
+        message.append(f"│ 💧 {'Liquidity':<{label_width-2}}│ {formatted_liquidity:<{value_width}}│")
+
+        # Add makers (as holder count)
+        message.append(f"│ 💳 {'Number of Makers':<{label_width-2}}│ {self.makers:<{value_width}}│")
+
+        # Table footer
+        message.append("└" + "─" * (label_width + value_width + 3) + "┘")
+        message.append("</pre>")
+
+        # Join all parts with newlines
+        return "\n".join(message)
